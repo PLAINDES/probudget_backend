@@ -248,27 +248,29 @@ class Proyectogeneral extends Mysql
         $filter = 'users_id = :users_id';
         if ($rs) $filter = '(users_id = :users_id OR id IN (' . implode(',', $rs) . '))';
         $sql = "SELECT        
-                    id,
-                    users_id,
-                    proyecto,
-                    cliente,
-                    direccion,
-                    distrito,
-                    provincia,
-                    departamento,
-                    pais,
-                    area_geografica,
-                    fecha_base,
-                    jornada_laboral,
-                    moneda,
-                    proyecto_generalescol,
-                    fecha_inicio,
-                    fecha_fin,
-                    costo_directo,
-                    categoriaId
-            FROM proyecto_generales  
-            WHERE {$filter} AND deleted_at is NULL           
-            ORDER BY id ASC";
+                    pg.id,
+                    pg.users_id,
+                    pg.proyecto,
+                    pg.cliente,
+                    pg.direccion,
+                    pg.distrito,
+                    pg.provincia,
+                    pg.departamento,
+                    pg.pais,
+                    pg.area_geografica,
+                    pg.fecha_base,
+                    pg.jornada_laboral,
+                    pg.moneda,
+                    pg.proyecto_generalescol,
+                    pg.fecha_inicio,
+                    pg.fecha_fin,
+                    pg.costo_directo,
+                    pg.categoriaId,
+                    c.descripcion AS categoriaNombre
+            FROM proyecto_generales pg 
+            LEFT JOIN categorias c ON c.id = pg.categoriaId
+            WHERE {$filter} AND pg.deleted_at IS NULL
+            ORDER BY pg.id ASC";
         $data = self::fetchAllObj($sql, ['users_id' => $this->_users_id]);
         return $data;
     }
