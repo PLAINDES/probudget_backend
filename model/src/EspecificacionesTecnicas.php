@@ -141,6 +141,7 @@ class EspecificacionesTecnicas extends Mysql
     public function getListado()
     {
         try {
+            error_log("Valor REAL en modelo _subpresupuesto_id: " . var_export($this->_subpresupuesto_id, true));
 
             $sql_general = "SELECT id, descripcion, presupuestos_proyecto_generales_id, type_item
                             FROM presupuestos

@@ -1,6 +1,5 @@
 <?php
 
-// Si el archivo está en: backend/model/src/integration/PresupuestoExport.php
 require_once(__DIR__ . '/../../persistence/Mysql.php');
 require_once(__DIR__ . '/../../utilitarian/FG.php');
 
@@ -29,7 +28,6 @@ class PresupuestoExport extends Mysql
         $this->_subpresupuestos_id = $subpresupuesto_id;
     }
 
-    // NUEVO MÉTODO: Exportar todos los subpresupuestos
     public function getExportJSONComplete()
     {
         try {
@@ -96,7 +94,6 @@ class PresupuestoExport extends Mysql
         }
     }
 
-    // NUEVO MÉTODO: Exportar todos los subpresupuestos en formato plano
     public function getExportJSONCompleteFlat()
     {
         try {
@@ -202,7 +199,7 @@ class PresupuestoExport extends Mysql
         }
     }
 
-    // NUEVO MÉTODO: Obtener lista de subpresupuestos del proyecto
+    //Obtener lista de subpresupuestos del proyecto
     private function getSubpresupuestosList()
     {
         $sql = "SELECT 
@@ -216,7 +213,6 @@ class PresupuestoExport extends Mysql
         return self::fetchAllObj($sql, ['id' => $this->_proyecto_generales_id]);
     }
 
-    // Métodos existentes...
     public function getExportJSON()
     {
         try {
