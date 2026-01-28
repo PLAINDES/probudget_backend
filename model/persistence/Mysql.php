@@ -145,4 +145,170 @@ class Mysql
         }
         return $return;
     }
+
+
+/**
+ * Nuevo método para ejecutar queries con parámetros y logging
+ * 
+ * @param string $sql - Consulta SQL
+ * @param array $params - Parámetros para binding
+ * @return bool - True si la ejecución fue exitosa
+ */
+public static function execute($sql, $params = [])
+{
+    try {
+        $pdo = self::Connection();
+        $stmt = $pdo->prepare($sql);
+        $result = $stmt->execute($params);
+        
+        if (!$result) {
+            error_log("Error en execute(): Query falló");
+            error_log("SQL: " . $sql);
+            error_log("Params: " . print_r($params, true));
+        }
+        
+        return $result;
+    } catch (PDOException $e) {
+        error_log("PDOException en execute(): " . $e->getMessage());
+        error_log("SQL: " . $sql);
+        error_log("Params: " . print_r($params, true));
+        throw $e;
+    }
+}
+
+
+    // ==========================================
+    // MÉTODOS DE TRANSACCIONES
+    // ==========================================
+
+    /**
+     * Iniciar una transacción
+     * 
+     * @return bool
+     */
+    public static function beginTransaction()
+    {
+        try {
+            $pdo = self::Connection();
+            if ($pdo->inTransaction()) {
+                error_log("WARNING: Ya existe una transacción activa");
+                return true;
+            }
+            return $pdo->beginTransaction();
+        } catch (PDOException $e) {
+            error_log("Error al iniciar transacción: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Confirmar (commit) una transacción
+     * 
+     * @return bool
+     */
+    public static function commit()
+    {
+        try {
+            $pdo = self::Connection();
+            if (!$pdo->inTransaction()) {
+                error_log("WARNING: No hay transacción activa para hacer commit");
+                return false;
+            }
+            return $pdo->commit();
+        } catch (PDOException $e) {
+            error_log("Error al hacer commit: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Revertir (rollback) una transacción
+     * 
+     * @return bool
+     */
+    public static function rollback()
+    {
+        try {
+            $pdo = self::Connection();
+            if (!$pdo->inTransaction()) {
+                error_log("WARNING: No hay transacción activa para hacer rollback");
+                return false;
+            }
+            return $pdo->rollBack();
+        } catch (PDOException $e) {
+            error_log("Error al hacer rollback: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Verificar si hay una transacción activa
+     * 
+     * @return bool
+     */
+    public static function inTransaction()
+    {
+        $pdo = self::Connection();
+        return $pdo->inTransaction();
+    }
+
+    /**
+     * Obtener el número de filas afectadas por la última operación
+     * Solo funciona con INSERT, UPDATE, DELETE
+     * 
+     * @return int
+     */
+    public static function rowCount()
+    {
+        $pdo = self::Connection();
+        // Nota: PDO no mantiene el rowCount después de ejecutar el statement
+        // Esta función es más útil si se usa inmediatamente después de una operación
+        return 0; // Placeholder, usa el patrón directo con fetchObj
+    }
+
+    /**
+     * Ejecutar múltiples queries en una transacción
+     * 
+     * @param array $queries - Array de arrays ['sql' => '...', 'params' => [...]]
+     * @return array - ['success' => bool, 'message' => string, 'affected' => int]
+     */
+    public static function executeTransaction(array $queries)
+    {
+        $response = ['success' => false, 'message' => '', 'affected' => 0];
+        
+        try {
+            self::beginTransaction();
+            
+            $totalAffected = 0;
+            foreach ($queries as $query) {
+                $sql = $query['sql'] ?? '';
+                $params = $query['params'] ?? [];
+                
+                if (empty($sql)) {
+                    throw new Exception("Query SQL vacía en transacción");
+                }
+                
+                $result = self::ex($sql, $params);
+                
+                if (!$result) {
+                    throw new Exception("Error ejecutando query: {$sql}");
+                }
+                
+                $totalAffected++;
+            }
+            
+            self::commit();
+            
+            $response['success'] = true;
+            $response['message'] = "Transacción completada exitosamente";
+            $response['affected'] = $totalAffected;
+            
+        } catch (Exception $e) {
+            self::rollback();
+            $response['message'] = "Error en transacción: " . $e->getMessage();
+            error_log("executeTransaction failed: " . $e->getMessage());
+        }
+        
+        return $response;
+    }
 }

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Description of CursoController
+ * Description of UserController
  *
  * @author wheredia
  */
@@ -17,11 +17,10 @@ class UserController
     $domain = $request->domain;
     $oauth_provider = $request->oauth_provider;
     $password = $request->password ? $request->password : null;
-    $roleId = $request->roleId; // Default role ID is 2 if not provided
+    $roleId = $request->roleId;
     $user   = new User();
     return $user->signUp($email, $accept, $domain, $oauth_provider, $roleId, $password);
   }
-
 
   public function roles()
   {
@@ -57,6 +56,7 @@ class UserController
     $user   = new User();
     return $user->allUsers();
   }
+
   public function emailRememberPassword($request)
   {
     $email  = $request->email;
@@ -130,4 +130,111 @@ class UserController
     $user = new User();
     return $user->deleteUser($request->id);
   }
+
+  /**
+   * NUEVOS MÉTODOS PARA ASIGNACIÓN MASIVA
+   */
+
+  /**
+   * Asignar proyectos a usuario de forma masiva
+   * Soporta asignación simple y múltiple
+   */
+  public function sharedBudgetMasivo($request)
+  {
+    error_log("🔥 controller massivo backend: " . print_r($request, true));
+    $userId = $request->userId ?? null;
+    $proyectos = $request->proyectos ?? null;
+    //$tipo = $request->tipo ?? 'encargado';
+    
+    $user = new User();
+    return $user->sharedBudgetMasivo((object)[
+      'userId' => $userId,
+      'proyectos' => $proyectos,
+    //  'tipo' => $tipo
+    ]);
+  }
+
+  /**
+   * Obtener proyectos asignados a un usuario
+   */
+  public function getUserProjects($request)
+  {
+    $userId = $_GET['userId'] ?? null;
+
+    
+    if (!$userId) {
+      return [
+        'success' => false,
+        'message' => 'ID de usuario requerido',
+        'data' => []
+      ];
+    }
+    
+    $user = new User();
+    return $user->getUserProjects($userId);
+  }
+
+/**
+ * Eliminar asignación de proyecto a usuario (Controller)
+ */
+public function removeUserProject($request)
+{
+    // Klein: obtener POST
+    $postData = $request->paramsPost()->all();
+
+    error_log("=== DEBUG removeUserProject Controller (Klein) ===");
+    error_log("POST DATA: " . print_r($postData, true));
+
+    $assignmentId = $postData['id'] ?? null;
+
+    if (!$assignmentId) {
+        return [
+            'success' => false,
+            'message' => 'ID de asignación requerido'
+        ];
+    }
+
+    $user = new User();
+    return $user->removeUserProject((object)['id' => $assignmentId]);
+}
+
+
+  /**
+   * Obtener proyectos disponibles para asignar
+   */
+  public function getAvailableProjects()
+  {
+    $user = new User();
+    return $user->getAvailableProjects();
+  }
+
+  /**
+   * Obtener estadísticas de asignaciones de un usuario
+   */
+  public function getUserStats($request)
+  {
+    $userId = $request->userId ?? null;
+    
+    if (!$userId) {
+      return [
+        'success' => false,
+        'message' => 'ID de usuario requerido',
+        'data' => null
+      ];
+    }
+    
+    $user = new User();
+    return $user->getUserStats($userId);
+  }
+
+  /**
+   * Obtener todas las asignaciones con detalles
+   */
+  public function getAllAssignments()
+  {
+    $user = new User();
+    return $user->getAllAssignments();
+  }
+
+  
 }

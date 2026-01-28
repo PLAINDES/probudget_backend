@@ -39,6 +39,7 @@ class Plantilla extends Mysql
                         fecha_inicio,
                         fecha_fin,
                         costo_directo,
+                        categoriaId,
                         deleted_at
                         FROM proyecto_generales
                         WHERE id = :id AND deleted_at is NULL";
@@ -58,6 +59,7 @@ class Plantilla extends Mysql
                                         "fecha_base" => $proyecto_generales->fecha_base,
                                         "jornada_laboral" => $proyecto_generales->jornada_laboral,
                                         "moneda" => $proyecto_generales->moneda,
+                                        "categoriaId" => $proyecto_generales->categoriaId,
                                         "proyecto_generalescol" => $proyecto_generales->proyecto_generalescol
                                 ];
                                 if ($proyecto_generales->fecha_inicio) $var["fecha_inicio"] = $proyecto_generales->fecha_inicio;
