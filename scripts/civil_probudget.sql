@@ -21,6 +21,9 @@ SET time_zone = "+00:00";
 -- Base de datos: `civil_probudget`
 --
 
+CREATE DATABASE IF NOT EXISTS `civil_probudget` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
+USE `civil_probudget`;
+
 -- --------------------------------------------------------
 
 --
