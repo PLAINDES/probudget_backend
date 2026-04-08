@@ -421,13 +421,7 @@ class FG {
     public static function siNumeric($nro) { return ($nro)?$nro:1; }
 
     public static function _crypt($string) {
-        /*
-          Esta funcion usa CRYPT_BLOWFISH
-          donde el salt empieza por $2a$ or $2x$ or $2y$
-          seguido de dos digitos con un $ (Estos dos definen la complejidad del algoritmo
-          si el valor es alto el proceso demorara, si es exesivamente alto el proceso de cae)
-          luego se establece 22 caracteres "./0-9A-Za-z"
-         */
+       
         return crypt($string, '$2a$09$tARm1a9A9N7q1W9T9n5LqR$');
     }
 

@@ -148,7 +148,7 @@ class Mysql
 
 
 /**
- * Nuevo método para ejecutar queries con parámetros y logging
+ *  
  * 
  * @param string $sql - Consulta SQL
  * @param array $params - Parámetros para binding
@@ -261,9 +261,7 @@ public static function execute($sql, $params = [])
     public static function rowCount()
     {
         $pdo = self::Connection();
-        // Nota: PDO no mantiene el rowCount después de ejecutar el statement
-        // Esta función es más útil si se usa inmediatamente después de una operación
-        return 0; // Placeholder, usa el patrón directo con fetchObj
+        return 0; 
     }
 
     /**
