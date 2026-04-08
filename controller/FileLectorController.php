@@ -6,7 +6,7 @@ require_once(__DIR__ . '/ArchivoController.php');
 class FileLectorController
 {
     /**
-     * Extraer materiales desde un PDF subido (método original)
+     * Extraer materiales desde un PDF subido 
      * Endpoint: POST /FileLector/extractMaterialsFromPDF
      */
     public function extractMaterialsFromPDF($request)
@@ -232,7 +232,6 @@ class FileLectorController
      */
     private function parseKleinRequest($request)
     {
-        // Opción 1: Leer php://input directamente
         $rawBody = file_get_contents('php://input');
         
         if (!empty($rawBody)) {
@@ -243,13 +242,11 @@ class FileLectorController
             }
         }
         
-        // Opción 2: Usar $_POST (si viene como form-data)
         if (!empty($_POST)) {
             error_log("✓ Datos obtenidos de \$_POST");
             return $_POST;
         }
         
-        // Opción 3: Intentar obtener parámetros de Klein
         if (method_exists($request, 'params')) {
             $params = $request->params();
             if (!empty($params)) {
@@ -292,11 +289,10 @@ class FileLectorController
             '/uploads',
         ];
         
-        // Estrategia 1: Usar la ruta completa de BD
         $rutasCompletas = [
             $basePath . '/' . ltrim($rutaBD, '/'),
             $basePath . '/public/' . ltrim($rutaBD, '/'),
-            $basePath . '/public' . $rutaBD, // Si ya empieza con /
+            $basePath . '/public' . $rutaBD, 
         ];
         
         foreach ($rutasCompletas as $ruta) {
@@ -306,7 +302,6 @@ class FileLectorController
             }
         }
         
-        // Estrategia 2: Buscar solo por nombre de archivo en directorios comunes
         foreach ($directoriosPosibles as $dir) {
             $ruta = $basePath . $dir . '/' . $nombreArchivo;
             if (file_exists($ruta)) {
@@ -315,7 +310,6 @@ class FileLectorController
             }
         }
         
-        // Estrategia 3: Buscar recursivamente en uploads (solo primer nivel)
         $uploadDir = $basePath . '/public/uploads';
         if (is_dir($uploadDir)) {
             $subdirs = scandir($uploadDir);
