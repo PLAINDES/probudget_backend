@@ -11,6 +11,11 @@ services:
       - db
     mem_limit: 512m
     cpus: "0.5"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   db:
     image: mysql:8.0
@@ -25,6 +30,11 @@ services:
       - db_data:/var/lib/mysql
     mem_limit: 512m
     cpus: "1.0"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   phpmyadmin:
     image: phpmyadmin
@@ -36,6 +46,11 @@ services:
       - db
     mem_limit: 256m
     cpus: "0.3"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
 volumes:
   db_data:
