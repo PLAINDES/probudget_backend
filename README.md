@@ -29,10 +29,10 @@ git clone <url-del-repo>
 cd <nombre-del-proyecto>
 
 # Levantar contenedores en local
-docker compose -f docker-compose.local up -d --build
+docker compose -f docker-compose.local.yml up -d --build
 
 # Cuando haces cambios en Dockerfile o docker-composer.local
-docker compose -f docker-compose.local up -d
+docker compose -f docker-compose.local.yml up -d
 ```
 
 #### 📌 Accesos
