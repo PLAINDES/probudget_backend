@@ -93,6 +93,11 @@ class Proyectogeneral extends Mysql
     {
         return $this->_costo_directo;
     }
+    private $_categoriaId;
+    public function getcategoriaId()
+    {
+        return $this->_categoriaId;
+    }
     private $_subcategorias;
     public function getsubcategorias()
     {
@@ -131,6 +136,7 @@ class Proyectogeneral extends Mysql
                 'fecha_inicio',
                 'fecha_fin',
                 'costo_directo',
+                'categoriaId',
                 'subcategorias',
                 'newsubcategorias'
             ];
@@ -148,6 +154,10 @@ class Proyectogeneral extends Mysql
 
     public function getSave()
     {
+            error_log("=== DEBUG CATEGORIA ===");
+    error_log("_values completo: " . print_r($this->_values, true));
+    error_log("categoriaId directa: " . ($this->_categoriaId ?? 'NO DEFINIDA'));
+    error_log("=====================");
         try {
             if ($this->_id) {
                 $sql = 'SELECT COUNT(id) FROM proyecto_generales WHERE id = :id';
@@ -239,39 +249,57 @@ class Proyectogeneral extends Mysql
     }
 
     public function getListProyectoGeneral()
-    {
-        $sql = 'SELECT proyectogeneralId FROM usuarios_invitados WHERE userId = :userId';
-        $rs = self::fetchAllObj($sql, ['userId' => $this->_users_id]);
-        $rs = array_map(function ($v) {
-            return $v->proyectogeneralId;
-        }, $rs);
-        $filter = 'users_id = :users_id';
-        if ($rs) $filter = '(users_id = :users_id OR id IN (' . implode(',', $rs) . '))';
-        $sql = "SELECT        
-                    id,
-                    users_id,
-                    proyecto,
-                    cliente,
-                    direccion,
-                    distrito,
-                    provincia,
-                    departamento,
-                    pais,
-                    area_geografica,
-                    fecha_base,
-                    jornada_laboral,
-                    moneda,
-                    proyecto_generalescol,
-                    fecha_inicio,
-                    fecha_fin,
-                    costo_directo,
-                    categoriaId
-            FROM proyecto_generales  
-            WHERE {$filter} AND deleted_at is NULL           
-            ORDER BY id ASC";
-        $data = self::fetchAllObj($sql, ['users_id' => $this->_users_id]);
-        return $data;
+{
+    // Obtener IDs de proyectos compartidos
+    $sql = 'SELECT proyectogeneralId 
+            FROM usuarios_invitados 
+            WHERE userId = :userId';
+
+    $rs = self::fetchAllObj($sql, ['userId' => $this->_users_id]);
+
+    // Convertir a enteros y limpiar basura
+    $compartidos = array_filter(array_map(function ($v) {
+        return intval($v->proyectogeneralId);
+    }, $rs));
+
+    // Armar filtro
+    $filter = 'pg.users_id = :users_id';
+
+    if (!empty($compartidos)) {
+        $inList = implode(',', $compartidos);
+        $filter = "(pg.users_id = :users_id OR pg.id IN ($inList))";
     }
+
+    // Query final
+    $sql = "SELECT        
+                pg.id,
+                pg.users_id,
+                pg.proyecto,
+                pg.cliente,
+                pg.direccion,
+                pg.distrito,
+                pg.provincia,
+                pg.departamento,
+                pg.pais,
+                pg.area_geografica,
+                pg.fecha_base,
+                pg.jornada_laboral,
+                pg.moneda,
+                pg.proyecto_generalescol,
+                pg.fecha_inicio,
+                pg.fecha_fin,
+                pg.costo_directo,
+                pg.categoriaId,
+                c.descripcion AS categoriaNombre
+        FROM proyecto_generales pg 
+        LEFT JOIN categorias c ON c.id = pg.categoriaId
+        WHERE $filter 
+        AND pg.deleted_at IS NULL
+        ORDER BY pg.id ASC";
+
+    return self::fetchAllObj($sql, ['users_id' => $this->_users_id]);
+}
+
 
 
     public function getDelete()

@@ -530,4 +530,347 @@ class User extends Mysql
     }
     return $resp;
   }
+
+  public function sharedBudgetMasivo($request)
+{
+    $resp = new stdClass();
+
+    // DEBUG: log entrada completa
+    error_log("==== DEBUG sharedBudgetMasivo ====");
+    error_log("Request recibido: " . json_encode($request));
+
+    try {
+        $userId = $request->userId ?? null;
+        $proyectos = $request->proyectos ?? null;
+
+        error_log("UserId: " . json_encode($userId));
+        error_log("Proyectos: " . json_encode($proyectos));
+
+        if (!$userId) {
+            $resp->success = false;
+            $resp->message = 'El ID de usuario es requerido';
+            error_log("ERROR: userId vacío");
+            return $resp;
+        }
+
+        $isMultiple = is_array($proyectos);
+        error_log("¿Asignación masiva?: " . ($isMultiple ? "SÍ" : "NO"));
+
+        if ($isMultiple) {
+            if (empty($proyectos)) {
+                $resp->success = false;
+                $resp->message = 'Debe seleccionar al menos un proyecto';
+                error_log("ERROR: listado de proyectos vacío");
+                return $resp;
+            }
+
+            $asignados = 0;
+            $actualizados = 0;
+            $errores = 0;
+
+            foreach ($proyectos as $proyectoId) {
+                error_log("Procesando proyecto ID: " . $proyectoId);
+
+                try {
+                    // Buscar asignación previa
+                    $sql = 'SELECT id FROM usuarios_invitados 
+                            WHERE userId = :userId AND proyectogeneralId = :budgetId';
+
+                    $rs = self::fetchObj($sql, [
+                        'userId' => $userId,
+                        'budgetId' => $proyectoId
+                    ]);
+
+                    error_log("Resultado fetchObj: " . json_encode($rs));
+
+                    if (!$rs) {
+                        // Insertar
+                        self::insert("usuarios_invitados", [
+                            'userId' => $userId,
+                            'proyectogeneralId' => $proyectoId,
+                        ]);
+
+                        error_log("Insertado proyectoId: {$proyectoId}");
+
+                        $asignados++;
+
+                    } else {
+                        // Notas: la variable $tipo NO EXISTE, así que no actualiza
+                        error_log("Asignación ya existente (ID {$rs->id}), no se actualiza tipo por estar comentado");
+                    }
+                } catch (\Throwable $th) {
+                    $errores++;
+                    error_log("ERROR procesando proyecto {$proyectoId}: " . $th->getMessage());
+                }
+            }
+
+            $mensaje = "Se asignaron {$asignados} proyecto(s) correctamente";
+            if ($actualizados > 0) $mensaje .= ", se actualizaron {$actualizados} asignación(es)";
+            if ($errores > 0) $mensaje .= ". {$errores} proyecto(s) presentaron errores";
+
+            $resp->message = $mensaje;
+            $resp->success = true;
+
+            error_log("RESULTADO FINAL MASIVO: " . json_encode($resp));
+
+        } else {
+            // Asignación simple
+            $budgetId = $request->budgetId ?? $proyectos;
+
+            error_log("Asignación simple. BudgetId = " . json_encode($budgetId));
+
+            if (!$budgetId) {
+                $resp->success = false;
+                $resp->message = 'El ID del presupuesto es requerido';
+                error_log("ERROR: budgetId vacío");
+                return $resp;
+            }
+
+            $sql = 'SELECT id FROM usuarios_invitados WHERE userId = :userId AND proyectogeneralId = :budgetId';
+            $rs = self::fetchObj($sql, [
+                'userId' => $userId,
+                'budgetId' => $budgetId
+            ]);
+
+            error_log("Resultado fetchObj simple: " . json_encode($rs));
+
+            if (!$rs) {
+                self::insert("usuarios_invitados", [
+                    'userId' => $userId,
+                    'proyectogeneralId' => $budgetId,
+                ]);
+
+                $resp->message = 'Presupuesto compartido correctamente';
+                error_log("Insertado budgetId: {$budgetId}");
+            } else {
+                error_log("Asignación ya existe, no se actualiza tipo porque está comentado");
+                $resp->message = 'El presupuesto ya está compartido';
+            }
+
+            $resp->success = true;
+        }
+
+    } catch (\Throwable $th) {
+        $resp->success = false;
+        $resp->message = $th->getMessage();
+        error_log("ERROR GENERAL: " . $th->getMessage());
+    }
+
+    error_log("==== FIN DEBUG sharedBudgetMasivo ====");
+
+    return $resp;
+}
+
+
+/**
+ * Obtener proyectos asignados a un usuario específico
+ */
+public function getUserProjects($userId)
+{
+  $resp = new stdClass();
+  try {
+    $sql = "
+      SELECT 
+        ui.id,
+        ui.userId,
+        ui.proyectogeneralId,
+        p.proyecto as proyecto_nombre,
+        p.direccion as proyecto_descripcion
+      FROM usuarios_invitados ui
+      LEFT JOIN proyecto_generales p ON ui.proyectogeneralId = p.id
+      WHERE ui.userId = :userId
+      ORDER BY p.proyecto ASC
+    ";
+    
+    $proyectos = self::fetchAllObj($sql, ['userId' => $userId]);
+    
+    $resp->success = true;
+    $resp->data = $proyectos ? $proyectos : [];
+    $resp->message = 'Proyectos cargados correctamente';
+    
+  } catch (\Throwable $th) {
+    $resp->success = false;
+    $resp->message = $th->getMessage();
+    $resp->data = [];
+  }
+  
+  return $resp;
+}
+/**
+ * Eliminar asignación de proyecto a usuario (Model)
+ */
+public function removeUserProject($request)
+{
+    error_log("=== DEBUG Model removeUserProject ===");
+    error_log("REQUEST OBJETO RECIBIDO: " . print_r($request, true));
+
+    $resp = new stdClass();
+
+    try {
+        $assignmentId = $request->id ?? null;
+
+        error_log("ID recibido en Modelo: " . $assignmentId);
+
+        if (!$assignmentId) {
+            $resp->success = false;
+            $resp->message = 'El ID de asignación es requerido';
+            error_log("ERROR: ID vacío en Modelo");
+            return $resp;
+        }
+
+        // Verificar que existe la asignación
+        $sql = 'SELECT id FROM usuarios_invitados WHERE id = :id';
+        error_log("SQL Check: $sql, PARAMS: " . print_r(['id' => $assignmentId], true));
+
+        $rs = self::fetchObj($sql, ['id' => $assignmentId]);
+
+        error_log("Resultado SELECT usuarios_invitados: " . print_r($rs, true));
+
+        if (!$rs) {
+            $resp->success = false;
+            $resp->message = 'Asignación no encontrada';
+            error_log("ERROR: No existe usuarios_invitados.id = $assignmentId");
+            return $resp;
+        }
+
+        // Eliminar la asignación
+        error_log("Intentando eliminar usuarios_invitados ID: " . $assignmentId);
+
+        $result = self::delete("usuarios_invitados", ['id' => $assignmentId]);
+
+        error_log("Resultado DELETE: " . print_r($result, true));
+
+        if ($result) {
+            $resp->success = true;
+            $resp->message = 'Asignación eliminada correctamente';
+            error_log("ÉXITO: Eliminación ok");
+        } else {
+            $resp->success = false;
+            $resp->message = 'No se pudo eliminar la asignación';
+            error_log("ERROR: delete() retornó FALSE");
+        }
+        
+    } catch (\Throwable $th) {
+        $resp->success = false;
+        $resp->message = $th->getMessage();
+        error_log("EXCEPTION: " . $th->getMessage());
+    }
+
+    return $resp;
+}
+
+
+/**
+ * Obtener todos los proyectos disponibles para asignar
+ */
+public function getAvailableProjects()
+{
+  $resp = new stdClass();
+  try {
+    $sql = "
+      SELECT 
+        id,
+        proyecto,
+        cliente,
+        direccion
+      FROM proyectos_generales
+      WHERE deleted_at IS NULL
+      ORDER BY proyecto ASC
+    ";
+    
+    $proyectos = self::fetchAllObj($sql);
+    
+    $resp->success = true;
+    $resp->data = $proyectos ? $proyectos : [];
+    $resp->message = 'Proyectos disponibles';
+    
+  } catch (\Throwable $th) {
+    $resp->success = false;
+    $resp->message = $th->getMessage();
+    $resp->data = [];
+  }
+  
+  return $resp;
+}
+
+/**
+ * Obtener estadísticas de asignaciones de un usuario
+ */
+public function getUserStats($userId)
+{
+  $resp = new stdClass();
+  try {
+    $sql = "
+      SELECT 
+        COUNT(*) as total_proyectos,
+        SUM(CASE WHEN tipo = 'encargado' THEN 1 ELSE 0 END) as total_encargado,
+        SUM(CASE WHEN tipo = 'copia' THEN 1 ELSE 0 END) as total_copia
+      FROM usuarios_invitados
+      WHERE userId = :userId
+    ";
+    
+    $stats = self::fetchObj($sql, ['userId' => $userId]);
+    
+    if (!$stats) {
+      $stats = (object)[
+        'total_proyectos' => 0,
+        'total_encargado' => 0,
+        'total_copia' => 0
+      ];
+    }
+    
+    $resp->success = true;
+    $resp->data = $stats;
+    $resp->message = 'Estadísticas obtenidas';
+    
+  } catch (\Throwable $th) {
+    $resp->success = false;
+    $resp->message = $th->getMessage();
+    $resp->data = null;
+  }
+  
+  return $resp;
+}
+
+/**
+ * Obtener todas las asignaciones con información detallada
+ */
+public function getAllAssignments()
+{
+  $resp = new stdClass();
+  try {
+    $sql = "
+      SELECT 
+        ui.id,
+        ui.userId,
+        ui.proyectogeneralId,
+
+        u.email as usuario_email,
+        u.first_name as usuario_nombre,
+        u.last_name as usuario_apellido,
+        p.proyecto as proyecto_nombre,
+        p.direccion as proyecto_direccion,
+        ui.created_at,
+        ui.updated_at
+      FROM usuarios_invitados ui
+      LEFT JOIN users u ON ui.userId = u.id
+      LEFT JOIN proyecto_generales p ON ui.proyectogeneralId = p.id
+      WHERE u.deleted_at IS NULL
+      ORDER BY ui.created_at DESC
+    ";
+    
+    $asignaciones = self::fetchAllObj($sql);
+    
+    $resp->success = true;
+    $resp->data = $asignaciones ? $asignaciones : [];
+    $resp->message = 'Asignaciones obtenidas';
+    
+  } catch (\Throwable $th) {
+    $resp->success = false;
+    $resp->message = $th->getMessage();
+    $resp->data = [];
+  }
+  
+  return $resp;
+}
 }

@@ -1,19 +1,106 @@
-## **API REST**
+# 🚀 API REST - ProBudget Corp
 
-Api rest proeducative corp.
+API REST para la gestión de ProBudget Corp.
 
-** Pre-requisitos** 📋
+---
 
-\_PHP >=7.2
-\_Postgresql >=10.13 / Maridb >=10.4
-\_MongoDB >=4.4
+## 📦 Requisitos
 
-## Instalación 🔧
+### Sin Docker
 
-\_Instalación
+- PHP >= 8.x
+- Composer
+- MySQL / MariaDB
 
-## Licencia 📄
+### Con Docker
 
-Este proyecto está bajo la Licencia (Tu Licencia) - mira el archivo [LICENSE.md](LICENSE.md) para detalles
+- Docker
+- Docker Compose
 
+---
+
+## ⚙️ Instalación
+
+### 🔹 Opción 1: Con Docker (recomendado)
+
+```bash
+# Clonar repositorio
+git clone <url-del-repo>
+cd <nombre-del-proyecto>
+
+# Levantar contenedores en local
+docker compose -f docker-compose.local.yml up -d --build
+
+# Cuando haces cambios en Dockerfile o docker-composer.local
+docker compose -f docker-compose.local.yml up -d
+```
+
+#### 📌 Accesos
+
+- API: http://localhost:8001
+- Base de datos: puerto definido en `docker-compose.yml````
+
+### 🔹 Opción 2: Sin Docker
+
+```bash
+# Clonar repositorio
+git clone <url-del-repo>
+cd <nombre-del-proyecto>
+
+# Instalar dependencias
+composer install
+```
+
+#### ▶️ Levantar servidor
+
+```bash
 php -S localhost:8001 -t public
+```
+
+---
+
+## 🗄️ Configuración
+
+1. Crear base de datos en MySQL
+2. Configurar variables de entorno (ejemplo `.env` o config):
+
+```env
+DB_HOST=localhost
+DB_PORT=3306
+DB_DATABASE=nombre_db
+DB_USERNAME=root
+DB_PASSWORD=tu_password
+```
+
+---
+
+## 📡 Endpoints
+
+Ejemplo:
+
+```http
+GET /api/users
+POST /api/auth/login
+```
+
+_(Ajusta esto según tus rutas reales)_
+
+---
+
+## 🛠️ Comandos útiles
+
+### Docker
+
+```bash
+# Ver logs
+docker-compose logs -f
+
+# Detener contenedores
+docker-compose down
+```
+
+---
+
+## 📄 Licencia
+
+Este proyecto está bajo la licencia especificada en el archivo [LICENSE.md](LICENSE.md).

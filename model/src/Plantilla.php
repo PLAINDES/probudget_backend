@@ -39,6 +39,7 @@ class Plantilla extends Mysql
                         fecha_inicio,
                         fecha_fin,
                         costo_directo,
+                        categoriaId,
                         deleted_at
                         FROM proyecto_generales
                         WHERE id = :id AND deleted_at is NULL";
@@ -58,6 +59,7 @@ class Plantilla extends Mysql
                                         "fecha_base" => $proyecto_generales->fecha_base,
                                         "jornada_laboral" => $proyecto_generales->jornada_laboral,
                                         "moneda" => $proyecto_generales->moneda,
+                                        "categoriaId" => $proyecto_generales->categoriaId,
                                         "proyecto_generalescol" => $proyecto_generales->proyecto_generalescol
                                 ];
                                 if ($proyecto_generales->fecha_inicio) $var["fecha_inicio"] = $proyecto_generales->fecha_inicio;
@@ -206,6 +208,7 @@ class Plantilla extends Mysql
                                 if ($value->type_item) $var["type_item"] = $value->type_item;
 
                                 $insert = self::insert("presupuestos", $var);
+                                $this->partidas[$value->id] = $insert["lastInsertId"];
                                 $this->setVerificarPresupuesto($value->id, $presupuestos, $insert["lastInsertId"]);
                         }
                 }
@@ -413,8 +416,19 @@ class Plantilla extends Mysql
                         WHERE proyectos_generales_id = {$this->_id} AND deleted_at IS NULL";
                 $apus_partida_presupuestos =  self::fetchAllObj($sql);
 
-                if ($apus_partida_presupuestos) {
-                        foreach ($apus_partida_presupuestos as  $value) {
+                                if ($apus_partida_presupuestos) {
+                                                foreach ($apus_partida_presupuestos as  $value) {
+                                                        if (!isset($this->insumos[$value->insumo_id])) {
+                                        continue; // Saltar si el insumo no existe
+                                }
+                                
+                                if (!isset($this->partidas[$value->presupuestos_id])) {
+                                        continue; // Saltar si la partida no existe
+                                }
+                                
+                                if (!isset($this->subpresupuestos[$value->subpresupuestos_id])) {
+                                        continue; // Saltar si el subpresupuesto no existe
+                                }
                                 $var = [
                                         "unidad_medidas_id" => $value->unidad_medidas_id,
                                         "proyectos_generales_id" => $this->_newId,
@@ -452,6 +466,9 @@ class Plantilla extends Mysql
                 $presupuestos_partida =  self::fetchAllObj($sql);
                 if ($presupuestos_partida) {
                         foreach ($presupuestos_partida as  $value) {
+                                if (!isset($this->partidas[$value->presupuestos_id])) {
+                                        continue;
+                                }
                                 $var = ["presupuestos_id" => $this->partidas[$value->presupuestos_id]];
                                 if ($value->rendimiento) $var["rendimiento"] = $value->rendimiento;
                                 if ($value->rendimiento_unid) $var["rendimiento_unid"] = $value->rendimiento_unid;
@@ -491,6 +508,10 @@ class Plantilla extends Mysql
 
                 if ($metrado_partida_presupuestos) {
                         foreach ($metrado_partida_presupuestos as  $value) {
+
+                                if (!isset($this->partidas[$value->presupuestos_id])) {
+                                        continue;
+                                }
                                 $var = [
                                         "descripcion" => $value->descripcion,
                                         "presupuestos_id" =>  $this->partidas[$value->presupuestos_id],
@@ -573,7 +594,7 @@ class Plantilla extends Mysql
                         subpresupuestos_id,
                         proyectos_generales_id
                         FROM pie_presupuesto_grupo  
-                        WHERE proyecto_general_id = :id";
+                        WHERE proyectos_generales_id = :id";
                 $pie_presupuesto_grupo =  self::fetchAllObj($sql, ['id' => $this->_id]);
 
                 if ($pie_presupuesto_grupo) {

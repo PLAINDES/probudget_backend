@@ -8,87 +8,114 @@ class ApusPartidasProyecto extends Mysql
 {
 
     public function getSave($param)
-    {
-        $resp = ['success' => true, 'message' => 'Apu guardado'];
-        try {
-            $nullable = [];
-            $var = [];
-            if ($param->cuadrilla) {
-                $var['cuadrilla'] = number_format($param->cuadrilla, 2, '.', '');
-            } else {
-                $nullable['cuadrilla'] = 'NULL';
-            }
-
-            if (is_numeric($param->cantidad)) {
-                $var['cantidad'] = number_format($param->cantidad, 4, '.', '');
-            } else {
-                $nullable['cantidad'] = 'NULL';
-            }
-            $insumo = null;
-            if ($param->master_insumo_id) {
-                $insumo = $this->findOrCreateInsumo($param->master_insumo_id, $param->proyectos_generales_id);
-            } else if ($param->proyecto_insumo_id) {
-                $insumo = $this->findInsumo($param->proyecto_insumo_id);
-            }
-            if ($param->id) {
-                if ($insumo) $var['insumo_id'] = $insumo->id;
-                if ($insumo) $var['unidad_medidas_id'] = $insumo->unidad_medidas_id;
-                self::update("apus_partida_presupuestos", $var, ['id' => $param->id]);
-                $valueSets = [];
-                if ($param->precio && $param->insumo_id) {
-                    $sql = 'SELECT partida_id FROM apus_partida_presupuestos WHERE id = :id AND deleted_at IS NULL';
-                    $insu = self::fetchObj($sql, ['id' => $param->id]);
-                    if ($insu && $insu->partida_id) {
-                        $precio = $param->precio; // number_format($param->precio, 2,'.','');
-                        $valueSets[] = "precio = {$precio}";
-                    } else {
-                        $precio = $param->precio; // number_format($param->precio, 2, '.', '');
-                        self::update("insumos_proyecto", array('precio' => $precio), array('id' => $param->insumo_id));
-                    }
-                }
-                foreach ($nullable as $key => $value) {
-                    $valueSets[] = "$key = {$value}";
-                }
-                $nullable = implode(", ", $valueSets);
-                if ($nullable) self::ex("UPDATE apus_partida_presupuestos SET {$nullable} WHERE id = " . $param->id);
-                $var['id'] = $param->id;
-            } else {
-                if (!empty($insumo)) {
-                    $insu = NULL;
-                    if ($param->subpartida_id) {
-                        $sql = 'SELECT id, unidad_medidas_id FROM apus_partida_presupuestos WHERE insumo_id = :insumo_id AND subpartida_id = :subpartida_id AND deleted_at IS NULL';
-                        $insu = self::fetchObj($sql, ['insumo_id' => $insumo->id, 'subpartida_id' => $param->subpartida_id]);
-                    } else {
-                        $sql = 'SELECT id, unidad_medidas_id FROM apus_partida_presupuestos WHERE insumo_id = :insumo_id AND presupuestos_id = :presupuestos_id AND subpartida_id IS NULL AND deleted_at IS NULL';
-                        $insu = self::fetchObj($sql, ['insumo_id' => $insumo->id, 'presupuestos_id' => $param->presupuestos_id]);
-                    }
-                    if ($insu) {
-                        self::update("apus_partida_presupuestos", array('unidad_medidas_id' => $insu->unidad_medidas_id), array('id' => $insu->id));
-                        $var['id'] = $insu->id;
-                    } else {
-                        $var['insumo_id'] = $insumo->id;
-                        $var['unidad_medidas_id'] = $insumo->unidad_medidas_id;
-                        $var['proyectos_generales_id'] = $param->proyectos_generales_id;
-                        $var['presupuestos_id'] = $param->presupuestos_id;
-                        $var['subpresupuestos_id'] = $param->subpresupuestos_id;
-                        if ($param->subpartida_id) $var['subpartida_id'] = $param->subpartida_id;
-                        $lastInsert = self::insert("apus_partida_presupuestos", $var);
-                        $var['id'] = $lastInsert['lastInsertId'];
-                    }
-                } else {
-                    $resp['success'] = false;
-                    $resp['message'] = 'El insumo no existe';
-                    return $resp;
-                }
-            }
-            $resp['data'] = $var;
-            return $resp;
-        } catch (\Throwable $th) {
-            $resp['success'] = false;
-            $resp['message'] = $th->getMessage();
-            return $resp;
+{
+    $resp = ['success' => true, 'message' => 'Apu guardado'];
+    try {
+        $nullable = [];
+        $var = [];
+        
+        // Procesar cuadrilla
+        if ($param->cuadrilla) {
+            $var['cuadrilla'] = number_format($param->cuadrilla, 2, '.', '');
+        } else {
+            $nullable['cuadrilla'] = 'NULL';
         }
+
+        // Procesar cantidad
+        if (is_numeric($param->cantidad)) {
+            $var['cantidad'] = number_format($param->cantidad, 4, '.', '');
+        } else {
+            $nullable['cantidad'] = 'NULL';
+        }
+        
+
+        // *** FIN NUEVO ***
+        
+        $insumo = null;
+        if ($param->master_insumo_id) {
+            $insumo = $this->findOrCreateInsumo($param->master_insumo_id, $param->proyectos_generales_id);
+        } else if ($param->proyecto_insumo_id) {
+            $insumo = $this->findInsumo($param->proyecto_insumo_id);
+        }
+        
+        if ($param->id) {
+            // UPDATE - Actualizar registro existente
+            if ($insumo) $var['insumo_id'] = $insumo->id;
+            if ($insumo) $var['unidad_medidas_id'] = $insumo->unidad_medidas_id;
+            
+            self::update("apus_partida_presupuestos", $var, ['id' => $param->id]);
+            
+            $valueSets = [];
+            
+            // Actualizar precio
+            if ($param->precio && $param->insumo_id) {
+                $sql = 'SELECT partida_id FROM apus_partida_presupuestos WHERE id = :id AND deleted_at IS NULL';
+                $insu = self::fetchObj($sql, ['id' => $param->id]);
+                if ($insu && $insu->partida_id) {
+                    $precio = $param->precio;
+                    $valueSets[] = "precio = {$precio}";
+                } else {
+                    $precio = $param->precio;
+                    self::update("insumos_proyecto", array('precio' => $precio), array('id' => $param->insumo_id));
+                }
+            }
+            
+            // Procesar campos nullable
+            foreach ($nullable as $key => $value) {
+                $valueSets[] = "$key = {$value}";
+            }
+            
+            $nullable = implode(", ", $valueSets);
+            if ($nullable) {
+                self::ex("UPDATE apus_partida_presupuestos SET {$nullable} WHERE id = " . $param->id);
+            }
+            
+            $var['id'] = $param->id;
+            
+        } else {
+            // INSERT - Crear nuevo registro
+            if (!empty($insumo)) {
+                $insu = NULL;
+                if ($param->subpartida_id) {
+                    $sql = 'SELECT id, unidad_medidas_id FROM apus_partida_presupuestos WHERE insumo_id = :insumo_id AND subpartida_id = :subpartida_id AND deleted_at IS NULL';
+                    $insu = self::fetchObj($sql, ['insumo_id' => $insumo->id, 'subpartida_id' => $param->subpartida_id]);
+                } else {
+                    $sql = 'SELECT id, unidad_medidas_id FROM apus_partida_presupuestos WHERE insumo_id = :insumo_id AND presupuestos_id = :presupuestos_id AND subpartida_id IS NULL AND deleted_at IS NULL';
+                    $insu = self::fetchObj($sql, ['insumo_id' => $insumo->id, 'presupuestos_id' => $param->presupuestos_id]);
+                }
+                
+                if ($insu) {
+                    // Ya existe, actualizar
+                    self::update("apus_partida_presupuestos", array('unidad_medidas_id' => $insu->unidad_medidas_id), array('id' => $insu->id));
+                    $var['id'] = $insu->id;
+                } else {
+                    // No existe, insertar nuevo
+                    $var['insumo_id'] = $insumo->id;
+                    $var['unidad_medidas_id'] = $insumo->unidad_medidas_id;
+                    $var['proyectos_generales_id'] = $param->proyectos_generales_id;
+                    $var['presupuestos_id'] = $param->presupuestos_id;
+                    $var['subpresupuestos_id'] = $param->subpresupuestos_id;
+                    if ($param->subpartida_id) $var['subpartida_id'] = $param->subpartida_id;
+                    
+                    $lastInsert = self::insert("apus_partida_presupuestos", $var);
+                    $var['id'] = $lastInsert['lastInsertId'];
+                }
+            } else {
+                $resp['success'] = false;
+                $resp['message'] = 'El insumo no existe';
+                return $resp;
+            }
+        }
+        
+        $resp['data'] = $var;
+        return $resp;
+        
+    } catch (\Throwable $th) {
+        $resp['success'] = false;
+        $resp['message'] = $th->getMessage();
+        return $resp;
     }
+}
 
     public function getSaveNewinsumo($request)
     {
@@ -449,6 +476,7 @@ class ApusPartidasProyecto extends Mysql
             $cabecera = self::fetchObj($sql, ['id' => $id]);
             if ($cabecera) {
                 $sql = "SELECT pp.id,
+                        pp.iu,
                         pp.cuadrilla,
                         pp.cantidad,
                         pp.unidad_medidas_id,                        
@@ -743,4 +771,7 @@ class ApusPartidasProyecto extends Mysql
             }
         }
     }
+
+ 
+
 }
