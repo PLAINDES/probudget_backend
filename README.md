@@ -28,8 +28,11 @@ API REST para la gestión de ProBudget Corp.
 git clone <url-del-repo>
 cd <nombre-del-proyecto>
 
-# Levantar contenedores
-docker-compose up -d --build
+# Levantar contenedores en local
+docker compose -f docker-compose.local up -d --build
+
+# Cuando haces cambios en Dockerfile o docker-composer.local
+docker compose -f docker-compose.local up -d
 ```
 
 #### 📌 Accesos
