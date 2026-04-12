@@ -10,6 +10,13 @@ require_once(__DIR__ . '/../model/src/User.php');
 class UserController
 {
 
+  /*
+  public function test() {
+    $password = FG::_crypt("1234567");
+    return $password;
+  }*/
+
+
   public function signUp($request)
   {
     $email  = $request->email;

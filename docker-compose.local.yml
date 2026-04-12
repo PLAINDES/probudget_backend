@@ -1,0 +1,69 @@
+services:
+  app:
+    build: .
+    container_name: probudget_backend
+    ports:
+      - "8001:80"
+    volumes:
+      - .:/var/www/html
+      - /var/www/html/vendor
+    depends_on:
+      - db
+    mem_limit: 512m
+    cpus: "0.5"
+    networks:
+      - backend_net # ← para ver a db
+      - probudget_net # ← para ver al frontend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  db:
+    image: mysql:8.0
+    container_name: probudget_backend_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASS}
+      MYSQL_DATABASE: ${DB_NAME}
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - backend_net
+    mem_limit: 512m
+    cpus: "1.0"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  phpmyadmin:
+    image: phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db
+    depends_on:
+      - db
+    networks:
+      - backend_net
+    mem_limit: 256m
+    cpus: "0.3"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+networks:
+  backend_net:
+    driver: bridge
+  probudget_net:
+    external: true
+
+volumes:
+  db_data:
