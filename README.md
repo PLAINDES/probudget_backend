@@ -93,10 +93,10 @@ _(Ajusta esto según tus rutas reales)_
 
 ```bash
 # Ver logs
-docker-compose logs -f
+docker compose logs -f
 
 # Detener contenedores
-docker-compose down
+docker compose down
 ```
 
 ---
