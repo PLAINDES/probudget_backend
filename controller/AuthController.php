@@ -26,8 +26,11 @@ class AuthController
 
   public function login($request)
   {
-    $username = $request->username;
-    $password = $request->password;
+    $body = json_decode(file_get_contents('php://input'), true);
+
+    $username = $body['username'];
+    $password = $body['password'];
+
     $auth = new Auth();
     $resp = $auth->login($username, $password);
     return $resp;
