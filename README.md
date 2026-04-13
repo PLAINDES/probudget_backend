@@ -34,6 +34,17 @@ docker compose -f docker-compose.local.yml up -d --build
 # Cuando haces cambios en Dockerfile o docker-composer.local
 docker compose -f docker-compose.local.yml up -d
 ```
+## 🗄️ Configuración
+
+1. Crear base de datos en MySQL
+2. Configurar variables de entorno (ejemplo `.env` o config):
+
+```env
+DB_HOST=db (nombre del servicio en docker-compose.local.yml)
+DB_DATABASE=nombre_db
+DB_USERNAME=root
+DB_PASSWORD=password
+```
 
 #### 📌 Accesos
 
@@ -93,10 +104,10 @@ _(Ajusta esto según tus rutas reales)_
 
 ```bash
 # Ver logs
-docker-compose logs -f
+docker compose logs -f
 
 # Detener contenedores
-docker-compose down
+docker compose down
 ```
 
 ---

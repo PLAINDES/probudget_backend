@@ -1,7 +1,7 @@
 <?php
 
 require_once(__DIR__ . '/../persistence/Mysql.php'); // Cambiado de Mariadb a Mysql
-require_once(__DIR__ . '/../persistence/Mariadb.php');
+//require_once(__DIR__ . '/../persistence/Mariadb.php');
 require_once(__DIR__ . '/../utilitarian/FG.php');
 
 class Insumos extends Mysql

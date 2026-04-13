@@ -11,7 +11,8 @@
  *
  * @author AJAC
  */
-require_once (__DIR__ . '/../persistence/Mariadb.php');
+require_once(__DIR__ . '/../persistence/Mysql.php');
+//require_once (__DIR__ . '/../persistence/Mariadb.php');
 require_once (__DIR__ . '/../utilitarian/FG.php');
 require_once (__DIR__ . '/Subcategoria.php');
 
