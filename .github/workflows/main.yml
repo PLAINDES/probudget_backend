@@ -1,1 +1,38 @@
 name: Deploy Backend
+
+on:
+  push:
+    branches: [devsb]
+  pull_request:
+    branches: [devsb]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Copiar archivos vía SFTP
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          local_path: ./
+          remote_path: /home/ftpceon/ftp/probudget/backend/
+          exclude: ".git .github"
+
+      - name: Reconstruir contenedor vía SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/ftpceon/ftp/probudget/backend
+            docker compose down
+            cp /home/ftpceon/ftp/probudget/backend/.env.production .env
+            docker build --no-cache -t backend-app .
+            docker compose up -d
