@@ -3,8 +3,6 @@ name: Deploy Backend
 on:
   push:
     branches: [devsb]
-  pull_request:
-    branches: [devsb]
 
 jobs:
   deploy:
