@@ -33,6 +33,4 @@ jobs:
           script: |
             cd /home/ftpceon/ftp/probudget/backend
             docker compose down
-            cp /home/ftpceon/ftp/probudget/backend/.env.production .env
-            docker build --no-cache -t backend-app .
-            docker compose up -d
+            docker compose up -d --build
