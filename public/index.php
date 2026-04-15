@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 error_reporting(0);
 require_once(__DIR__ . '/../vendor/autoload.php');
-require_once(__DIR__ . '/controller.php');
+//require_once(__DIR__ . '/controller.php');
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
 $dotenv->load();
 
@@ -26,11 +26,11 @@ date_default_timezone_set('America/Lima');
 $klein = new \Klein\Klein();
 
 $klein->respond('GET', '/[:controller]?/[:action]?', function ($request, $response, $service) {
-    return Controller::getController($request->controller, $request->action, $request, $response);
+    return \App\Core\Controller::getController($request->controller, $request->action, $request, $response);
 });
 
 $klein->respond('POST', '/[:controller]?/[:action]?', function ($request, $response, $service) {
-    return Controller::getController($request->controller, $request->action, $request, $response);
+    return \App\Core\Controller::getController($request->controller, $request->action, $request, $response);
 });
 
 $klein->onHttpError(function ($code, $router) {
