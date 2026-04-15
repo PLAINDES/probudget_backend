@@ -11,6 +11,7 @@
  *
  * @author AJAC
  */
+
 require_once(__DIR__ . '/../persistence/Mysql.php'); // Cambiado de Mariadb a Mysql
 require_once(__DIR__ . '/../utilitarian/FG.php');
 require_once(__DIR__ . '/RecalculoPrespuesto.php');
@@ -111,7 +112,7 @@ class GastosGenerales extends Mysql
                 'disaggregated'
             ];
 
-            foreach ($column as  $value) {
+            foreach ($column as $value) {
                 if (isset($request->{$value}) && !empty($request->{$value})) {
                     $this->_values[$value] = $request->{$value};
                     $this->{"_$value"} = $request->{$value};
@@ -126,7 +127,6 @@ class GastosGenerales extends Mysql
     public function getSave()
     {
         try {
-
             if ($this->_gastos_generales_id && $this->_level == 4) {
                 $this->_values["parcial"] = $this->getparcial();
             }
@@ -322,7 +322,7 @@ class GastosGenerales extends Mysql
                     return ($e->grupos_id == $searchedValue);
                 });
 
-                foreach ($object_grupo as  $value) {
+                foreach ($object_grupo as $value) {
                     $array = [];
                     $searchedValue = $value->id;
                     $detalle = $this->setMatrizGeneralExpense($searchedValue, $gastos_generales_detalle);
@@ -358,7 +358,7 @@ class GastosGenerales extends Mysql
             $total_parcial = 0.00;
             $percentage = 0.00;
 
-            foreach ($grupos as  $value) {
+            foreach ($grupos as $value) {
                 $value->items = [];
                 $value->partial = 0;
                 array_push($array_grupos, $value);

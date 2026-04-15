@@ -1,6 +1,6 @@
 <?php
 
-require_once (__DIR__.'/TwigHtml.php');
+require_once(__DIR__ . '/TwigHtml.php');
 
 use Aws\Credentials\Credentials;
 use Aws\Ses\Exception\SesException;
@@ -8,13 +8,13 @@ use Aws\Exception\AwsException;
 use Aws\S3\S3Client;
 
 /**
- * 
+ *
  */
-class EmailSES {
-
+class EmailSES
+{
     /**
      * Funcion Envio de Correo atravez de AWS SES
-     * 
+     *
      * @param string $NomCuenta
      * @param string $email
      * @param string $asunto
@@ -25,10 +25,10 @@ class EmailSES {
      * @param string $emailFrom
      * @return boolean
      */
-    public function emailSES3($parametros_ses) {
+    public function emailSES3($parametros_ses)
+    {
         $resultado = [];
         try {
-        
             $destinatario_nombre = $parametros_ses["destinatario_nombre"];
             $destinatario_email = $parametros_ses["destinatario_email"];
             $emisor_nombre = $parametros_ses["emisor_nombre"];
@@ -69,7 +69,7 @@ class EmailSES {
     }
 
     /**
-     * 
+     *
      * @param string $titulo
      * @param string $mensaje
      * @param string $subtitulo
@@ -78,7 +78,8 @@ class EmailSES {
      * @param string $url
      * @return string
      */
-    public function enviarEmail($titulo, $mensaje, $subtitulo, $submensaje, $url, $parametros_ses, $template) {
+    public function enviarEmail($titulo, $mensaje, $subtitulo, $submensaje, $url, $parametros_ses, $template)
+    {
 
         $param = array(
             "color" => "red",
@@ -93,12 +94,12 @@ class EmailSES {
             "code" => $parametros_ses["code"]
         );
 
-        if(isset($parametros_ses["password"])){
+        if (isset($parametros_ses["password"])) {
             $param['password'] = $parametros_ses["password"];
         }
 
         $fTwig = new TwigHtml();
-        $mensaje_cuerpo = $fTwig->view($template, $param);        
+        $mensaje_cuerpo = $fTwig->view($template, $param);
         $parametros_ses["mensaje_cuerpo"] = $mensaje_cuerpo;
 
         if (!$parametros_ses["emisor_email"]) {
@@ -113,5 +114,4 @@ class EmailSES {
 
         return $email_info;
     }
-
 }

@@ -34,7 +34,7 @@ class FileLector
         try {
             // PASO 1: Identificar páginas relevantes
             $relevantPages = $this->pdfExtractor->findPagesByHeader($filePath, 'Precios de los Materiales');
-            
+
             if (empty($relevantPages)) {
                 return [
                     'success' => false,
@@ -48,10 +48,10 @@ class FileLector
                     ]
                 ];
             }
-            
+
             // PASO 2: Extraer y limpiar el texto
             $textoPaginas = $this->extraerYProcesarTexto($filePath, $relevantPages);
-            
+
             if (empty($textoPaginas)) {
                 return [
                     'success' => false,
@@ -64,54 +64,54 @@ class FileLector
                     ]
                 ];
             }
-            
+
             // PASO 3: Dividir en chunks PEQUEÑOS y procesar
             $chunks = $this->dividirEnChunksPequenos($textoPaginas);
-            
+
             error_log("🔄 Procesando " . count($chunks) . " chunk(s) con Gemini");
-            
+
             $allTables = [];
             $totalRows = 0;
-            
+
             foreach ($chunks as $chunkIndex => $chunk) {
                 error_log("📤 Chunk " . ($chunkIndex + 1) . "/" . count($chunks) . " - Enviando " . strlen($chunk['text']) . " chars");
-                
+
                 $prompt = $this->buildOptimizedPrompt($chunk);
                 $rawResponse = $this->gemini->ask($prompt);
-                
+
                 error_log("📥 Chunk " . ($chunkIndex + 1) . " - Respuesta: " . strlen($rawResponse) . " chars");
-                
+
                 // Verificar si la respuesta fue truncada
                 if ($this->isResponseTruncated($rawResponse)) {
                     error_log("⚠️ Chunk " . ($chunkIndex + 1) . " - Respuesta TRUNCADA, intentando procesar lo disponible");
                 }
-                
+
                 // Parsear con reparación automática
                 $parsed = $this->parseAndRepairJSON($rawResponse);
-                
+
                 if ($parsed !== null && isset($parsed['tables'])) {
                     $tablesCount = count($parsed['tables']);
-                    $rowsInChunk = array_sum(array_map(function($t) { 
-                        return count($t['rows'] ?? []); 
+                    $rowsInChunk = array_sum(array_map(function ($t) {
+                        return count($t['rows'] ?? []);
                     }, $parsed['tables']));
-                    
+
                     $allTables = array_merge($allTables, $parsed['tables']);
                     $totalRows += $rowsInChunk;
-                    
+
                     error_log("✅ Chunk " . ($chunkIndex + 1) . " - " . $tablesCount . " tabla(s), " . $rowsInChunk . " fila(s)");
                 } else {
                     error_log("❌ Chunk " . ($chunkIndex + 1) . " - No se pudo parsear");
                     error_log("📄 Respuesta: " . substr($rawResponse, 0, 300));
                 }
             }
-            
+
             error_log("🎉 Total procesado: " . count($allTables) . " tabla(s), " . $totalRows . " fila(s)");
-            
+
             return [
                 'success' => true,
                 'data' => $allTables,
                 'count' => count($allTables),
-                'message' => count($allTables) > 0 
+                'message' => count($allTables) > 0
                     ? "Se encontraron " . count($allTables) . " tabla(s) con " . $totalRows . " materiales en " . count($relevantPages) . " página(s)"
                     : "No se encontraron tablas en las páginas con el header especificado",
                 'raw' => null,
@@ -122,7 +122,6 @@ class FileLector
                     'total_rows' => $totalRows
                 ]
             ];
-            
         } catch (\Exception $e) {
             error_log("❌ Exception en extractMaterialPrices: " . $e->getMessage());
             return [
@@ -141,14 +140,16 @@ class FileLector
     private function extraerYProcesarTexto($filePath, $relevantPages)
     {
         $textoPaginas = [];
-        
+
         foreach ($relevantPages as $pageNum) {
             $textoPage = $this->pdfExtractor->getPageText($filePath, $pageNum);
-            if (!$textoPage) continue;
-            
+            if (!$textoPage) {
+                continue;
+            }
+
             // Limpiar el texto
             $textoLimpio = $this->limpiarTextoTabla($textoPage);
-            
+
             if (!empty($textoLimpio)) {
                 $textoPaginas[] = [
                     'page' => $pageNum,
@@ -157,10 +158,10 @@ class FileLector
                 ];
             }
         }
-        
+
         $totalChars = array_sum(array_column($textoPaginas, 'length'));
-        error_log("📝 Texto extraído: " . count($textoPaginas) . " páginas, ~" . round($totalChars/1024, 1) . "KB");
-        
+        error_log("📝 Texto extraído: " . count($textoPaginas) . " páginas, ~" . round($totalChars / 1024, 1) . "KB");
+
         return $textoPaginas;
     }
 
@@ -173,10 +174,10 @@ class FileLector
         $lineasRelevantes = [];
         $enTabla = false;
         $lineasSinDatos = 0;
-        
+
         foreach ($lineas as $linea) {
             $lineaTrim = trim($linea);
-            
+
             if (strlen($lineaTrim) < 3) {
                 $lineasSinDatos++;
                 // Si hay muchas líneas vacías, probablemente salimos de la tabla
@@ -185,30 +186,34 @@ class FileLector
                 }
                 continue;
             }
-            
+
             $lineaLower = mb_strtolower($lineaTrim, 'UTF-8');
-            
+
             // Detectar header de tabla
-            if (preg_match('/(?:insumo|material|descripci)/ui', $lineaLower) &&
+            if (
+                preg_match('/(?:insumo|material|descripci)/ui', $lineaLower) &&
                 preg_match('/(?:und|unidad)/ui', $lineaLower) &&
-                preg_match('/(?:prec|precio|p\.u)/ui', $lineaLower)) {
+                preg_match('/(?:prec|precio|p\.u)/ui', $lineaLower)
+            ) {
                 $enTabla = true;
                 $lineasRelevantes[] = $lineaTrim;
                 $lineasSinDatos = 0;
                 continue;
             }
-            
+
             // Si estamos en tabla, incluir líneas con datos
             if ($enTabla) {
                 // Incluir líneas con precios o datos de productos
-                if (preg_match('/\d+[.,]\d{2}/', $lineaTrim) || 
-                    (strlen($lineaTrim) > 5 && !preg_match('/^[A-Z\s]{30,}$/', $lineaTrim))) {
+                if (
+                    preg_match('/\d+[.,]\d{2}/', $lineaTrim) ||
+                    (strlen($lineaTrim) > 5 && !preg_match('/^[A-Z\s]{30,}$/', $lineaTrim))
+                ) {
                     $lineasRelevantes[] = $lineaTrim;
                     $lineasSinDatos = 0;
                 }
             }
         }
-        
+
         return implode("\n", $lineasRelevantes);
     }
 
@@ -220,16 +225,16 @@ class FileLector
         $chunks = [];
         $currentText = "";
         $currentPages = [];
-        
+
         foreach ($textoPaginas as $pagina) {
             $lineas = explode("\n", $pagina['text']);
             $tempText = "";
             $tempLines = [];
-            
+
             foreach ($lineas as $linea) {
                 $tempLines[] = $linea;
                 $tempText = implode("\n", $tempLines);
-                
+
                 // Si el chunk actual + esta línea excede el límite, crear nuevo chunk
                 if (strlen($currentText . "\n" . $tempText) > self::MAX_CHUNK_SIZE) {
                     if (!empty($currentText)) {
@@ -238,7 +243,7 @@ class FileLector
                             'pages' => $currentPages
                         ];
                     }
-                    
+
                     $currentText = $tempText;
                     $currentPages = [$pagina['page']];
                     $tempText = "";
@@ -249,7 +254,7 @@ class FileLector
                     }
                 }
             }
-            
+
             // Agregar el resto de la página
             if (!empty($tempText)) {
                 if (strlen($currentText . "\n" . $tempText) > self::MAX_CHUNK_SIZE && !empty($currentText)) {
@@ -264,7 +269,7 @@ class FileLector
                 }
             }
         }
-        
+
         // Agregar el último chunk
         if (!empty($currentText)) {
             $chunks[] = [
@@ -272,7 +277,7 @@ class FileLector
                 'pages' => $currentPages
             ];
         }
-        
+
         return $chunks;
     }
 
@@ -282,7 +287,7 @@ class FileLector
     private function buildOptimizedPrompt($chunk)
     {
         $pagesInfo = implode(", ", $chunk['pages']);
-        
+
         return <<<PROMPT
 Extrae la tabla de precios del siguiente texto. Responde SOLO con JSON, sin markdown.
 
@@ -306,7 +311,7 @@ PROMPT;
     {
         // Una respuesta truncada típicamente termina de forma abrupta
         $lastChars = substr(trim($response), -20);
-        
+
         // Buscar patrones de truncamiento
         return (
             !preg_match('/\}\s*\]\s*\}\s*$/', $lastChars) && // No termina con }]}
@@ -332,31 +337,31 @@ PROMPT;
         // Buscar el JSON principal
         $start = strpos($cleaned, '{');
         $end = strrpos($cleaned, '}');
-        
+
         if ($start === false || $end === false) {
             return null;
         }
-        
+
         $jsonStr = substr($cleaned, $start, $end - $start + 1);
-        
+
         // Intentar decodificar directamente
         $decoded = json_decode($jsonStr, true);
         if (json_last_error() === JSON_ERROR_NONE) {
             return $decoded;
         }
-        
+
         // Si falla, intentar reparar
         error_log("🔧 Intentando reparar JSON...");
-        
+
         // Reparación 1: Cerrar arrays y objetos abiertos
         $repaired = $this->repairTruncatedJSON($jsonStr);
         $decoded = json_decode($repaired, true);
-        
+
         if (json_last_error() === JSON_ERROR_NONE) {
             error_log("✅ JSON reparado exitosamente");
             return $decoded;
         }
-        
+
         error_log("❌ No se pudo reparar el JSON: " . json_last_error_msg());
         return null;
     }
@@ -369,22 +374,22 @@ PROMPT;
         // Contar llaves y brackets abiertos
         $openBraces = substr_count($json, '{') - substr_count($json, '}');
         $openBrackets = substr_count($json, '[') - substr_count($json, ']');
-        
+
         // Si hay comillas abiertas en el último valor, cerrarlas
         if (preg_match('/"[^"]*$/', $json)) {
             $json .= '"';
         }
-        
+
         // Cerrar objetos abiertos
         for ($i = 0; $i < $openBraces; $i++) {
             $json .= '}';
         }
-        
+
         // Cerrar arrays abiertos
         for ($i = 0; $i < $openBrackets; $i++) {
             $json .= ']';
         }
-        
+
         return $json;
     }
 
@@ -397,7 +402,7 @@ PROMPT;
 
         foreach ($tables as $table) {
             $rows = $table['rows'] ?? [];
-            
+
             foreach ($rows as $row) {
                 $material = [
                     'nombre' => $this->findColumnValue($row, ['INSUMO', 'DESCRIPCION', 'MATERIAL', 'ITEM', 'DESCRIPCIÓN']),
@@ -433,7 +438,7 @@ PROMPT;
 
         $cleaned = preg_replace('/[^\d.,]/', '', $value);
         $cleaned = str_replace(',', '.', $cleaned);
-        
+
         return floatval($cleaned);
     }
 }

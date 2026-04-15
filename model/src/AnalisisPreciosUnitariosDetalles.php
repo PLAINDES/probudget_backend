@@ -68,7 +68,7 @@ class AnalisisPreciosUnitariosDetalles extends Mysql
         } else {
             return 0.00;
         }
-        // return $this->_precio; 
+        // return $this->_precio;
     }
     private $_parcial;
     public function getparcial()
@@ -108,11 +108,10 @@ class AnalisisPreciosUnitariosDetalles extends Mysql
     public function getinsumos_id()
     {
         if ($this->_insumos_id) {
-            // $this->_unidad_medidas_id = FG::validateMatrizKey('unidad_medidas_id',$array); // (array_key_exists('unidad_medidas_id',$array))?$array['unidad_medidas_id']:"" ;        
+            // $this->_unidad_medidas_id = FG::validateMatrizKey('unidad_medidas_id',$array); // (array_key_exists('unidad_medidas_id',$array))?$array['unidad_medidas_id']:"" ;
             $sql = 'SELECT id,precio FROM insumos WHERE id=:insumos_id  ';
             $insumos = self::fetchObj($sql, ["insumos_id" => $this->_insumos_id]);
             if ($insumos) {
-
                 return (float)$insumos->precio;
             }
         }
@@ -129,7 +128,7 @@ class AnalisisPreciosUnitariosDetalles extends Mysql
         return $this->_values;
     }
 
-    public function __construct($request = NULL)
+    public function __construct($request = null)
     {
 
         if ($request) {
@@ -147,7 +146,7 @@ class AnalisisPreciosUnitariosDetalles extends Mysql
                 'tipo_insumo',
             ];
 
-            foreach ($column as  $value) {
+            foreach ($column as $value) {
                 if (isset($request->{$value}) && !empty($request->{$value})) {
                     $this->_values[$value] = $request->{$value};
                     $this->{"_$value"} = $request->{$value};
@@ -183,7 +182,6 @@ class AnalisisPreciosUnitariosDetalles extends Mysql
     public function getSave()
     {
         try {
-
             if ($this->_cuadrilla == 0 && $this->_cantidad == 0 && $this->_precio == 0) {
                 $this->_values["precio"] = number_format($this->getinsumos_id(), 2, '.', '');
                 $this->_values["cantidad"] = number_format(0.00);
@@ -196,7 +194,7 @@ class AnalisisPreciosUnitariosDetalles extends Mysql
                 $this->_values["monto_parcial_ppto"] = number_format($this->getmonto_parcial_ppto(), 2, '.', '');
             }
 
-            //   var_dump($this->_values);exit;          
+            //   var_dump($this->_values);exit;
 
             if ($this->_id) {
                 $sql = 'SELECT id,analisis_precios_unitarios_id FROM analisis_precios_unitarios_detalles WHERE id = :id';

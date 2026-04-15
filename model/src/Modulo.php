@@ -5,28 +5,52 @@ require_once(__DIR__ . '/../persistence/Mysql.php');
 class Modulo extends Mysql
 {
     private $_id;
-    public function getid() { return $this->_id; }
+    public function getid()
+    {
+        return $this->_id;
+    }
 
     private $_presupuesto_id;
-    public function getpresupuesto_id() { return $this->_presupuesto_id; }
+    public function getpresupuesto_id()
+    {
+        return $this->_presupuesto_id;
+    }
 
     private $_codigo;
-    public function getcodigo() { return $this->_codigo; }
+    public function getcodigo()
+    {
+        return $this->_codigo;
+    }
 
     private $_nombre;
-    public function getnombre() { return $this->_nombre; }
+    public function getnombre()
+    {
+        return $this->_nombre;
+    }
 
     private $_descripcion;
-    public function getdescripcion() { return $this->_descripcion; }
+    public function getdescripcion()
+    {
+        return $this->_descripcion;
+    }
 
     private $_subtotal;
-    public function getsubtotal() { return $this->_subtotal; }
+    public function getsubtotal()
+    {
+        return $this->_subtotal;
+    }
 
     private $_estado;
-    public function getestado() { return $this->_estado; }
+    public function getestado()
+    {
+        return $this->_estado;
+    }
 
     private $_values = [];
-    public function getValue() { return $this->_values; }
+    public function getValue()
+    {
+        return $this->_values;
+    }
 
 
     public function __construct($request)
@@ -57,7 +81,6 @@ class Modulo extends Mysql
     public function getSave()
     {
         try {
-
             if ($this->_id) {
                 // Verificar si existe
                 $sql = "SELECT id FROM modulos WHERE id = :id";
@@ -77,7 +100,6 @@ class Modulo extends Mysql
                         'message' => 'No se puede actualizar: módulo no existe'
                     ];
                 }
-
             } else {
                 // Insertar
                 $insert = self::insert("modulos", $this->_values);
@@ -95,7 +117,6 @@ class Modulo extends Mysql
                     ];
                 }
             }
-
         } catch (\Throwable $th) {
             return [
                 'success' => false,

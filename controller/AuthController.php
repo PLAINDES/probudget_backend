@@ -11,28 +11,29 @@
  *
  * @author PLATAFORMA
  */
+
 require_once(__DIR__ . '/../model/src/auth/Auth.php');
 /**
- * 
+ *
  */
 
 class AuthController
 {
-  public function checkToken($token)
-  {
-    $auth = new Auth();
-    return $auth->checkToken($token);
-  }
+    public function checkToken($token)
+    {
+        $auth = new Auth();
+        return $auth->checkToken($token);
+    }
 
-  public function login($request)
-  {
-    $body = json_decode(file_get_contents('php://input'), true);
+    public function login($request)
+    {
+        $body = json_decode(file_get_contents('php://input'), true);
 
-    $username = $body['username'];
-    $password = $body['password'];
+        $username = $body['username'];
+        $password = $body['password'];
 
-    $auth = new Auth();
-    $resp = $auth->login($username, $password);
-    return $resp;
-  }
+        $auth = new Auth();
+        $resp = $auth->login($username, $password);
+        return $resp;
+    }
 }

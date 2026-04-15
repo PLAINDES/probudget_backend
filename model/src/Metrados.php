@@ -45,16 +45,20 @@ class Metrados extends Mysql
             'position'
         ];
 
-        foreach ($column as  $value) {
+        foreach ($column as $value) {
             if (isset($request->{$value}) && !empty($request->{$value})) {
-                if ($value != 'id') $this->_values[$value] = $request->{$value};
+                if ($value != 'id') {
+                    $this->_values[$value] = $request->{$value};
+                }
                 $this->{"_$value"} = $request->{$value};
             }
             if ($value == 'is_information' && isset($request->is_information)) {
                 $this->_values[$value] = 1;
                 $this->_is_information = 1;
             }
-            if (isset($request->subpresupuestos_id) && !empty($request->subpresupuestos_id)) $this->_subpresupuestos_id = $request->subpresupuestos_id;
+            if (isset($request->subpresupuestos_id) && !empty($request->subpresupuestos_id)) {
+                $this->_subpresupuestos_id = $request->subpresupuestos_id;
+            }
         }
         if (isset($request->subpartida_id)) {
             $this->_subpartida_id = $request->subpartida_id;
@@ -64,7 +68,6 @@ class Metrados extends Mysql
     public function getSave()
     {
         try {
-
             $valuesNullable = $this->setNullableValues();
 
             if (isset($_FILES["img"]["name"]) && $_FILES["img"]["name"]) {
@@ -94,7 +97,9 @@ class Metrados extends Mysql
                         $valueSets[] = "$key = NULL";
                     }
                     $valuesNullable = implode(", ", $valueSets);
-                    if ($valuesNullable) self::ex("UPDATE metrado_partida_presupuestos SET {$valuesNullable} WHERE id = " . $this->_id);
+                    if ($valuesNullable) {
+                        self::ex("UPDATE metrado_partida_presupuestos SET {$valuesNullable} WHERE id = " . $this->_id);
+                    }
                     $resp['success'] = true;
                     $resp['message'] = 'Metrado actualizado registrado';
                     $this->_values['id'] = $this->_id;
@@ -284,7 +289,7 @@ class Metrados extends Mysql
         $metrados = self::fetchAllObj($sql, ['id' => $this->_id]);
         $data = array();
         foreach ($presupuestos_general as $key => $value) {
-            if ($value->presupuestos_proyecto_generales_id == NULL || $value->presupuestos_proyecto_generales_id == 0) {
+            if ($value->presupuestos_proyecto_generales_id == null || $value->presupuestos_proyecto_generales_id == 0) {
                 $value->detail = $this->setMatrizPresupuestoCalculo($value->id, $presupuestos_general, $metrados);
                 array_push($data, $value);
             }
@@ -385,47 +390,47 @@ class Metrados extends Mysql
         $valuesNullable = [];
 
         if ($this->_is_information) {
-            $valuesNullable["metrado_largo"] = NULL;
-            $valuesNullable["metrado_ancho"] = NULL;
-            $valuesNullable["metrado_area"] = NULL;
-            $valuesNullable["metrado_volumen"] = NULL;
-            $valuesNullable["metrado_cantidad"] = NULL;
-            $valuesNullable["metrado_nro_elemto"] = NULL;
-            $valuesNullable["metrado_factor"] = NULL;
-            $valuesNullable["metrado_alto"] = NULL;
+            $valuesNullable["metrado_largo"] = null;
+            $valuesNullable["metrado_ancho"] = null;
+            $valuesNullable["metrado_area"] = null;
+            $valuesNullable["metrado_volumen"] = null;
+            $valuesNullable["metrado_cantidad"] = null;
+            $valuesNullable["metrado_nro_elemto"] = null;
+            $valuesNullable["metrado_factor"] = null;
+            $valuesNullable["metrado_alto"] = null;
             return $valuesNullable;
         }
 
         if (!$this->_metrado_largo) {
-            $valuesNullable["metrado_largo"] = NULL;
+            $valuesNullable["metrado_largo"] = null;
         }
         // 'metrado_largo',
         if (!$this->_metrado_ancho) {
-            $valuesNullable["metrado_ancho"] = NULL;
+            $valuesNullable["metrado_ancho"] = null;
         }
         // 'metrado_ancho',
         if (!$this->_metrado_area) {
-            $valuesNullable["metrado_area"] = NULL;
+            $valuesNullable["metrado_area"] = null;
         }
         // 'metrado_area',
         if (!$this->_metrado_volumen) {
-            $valuesNullable["metrado_volumen"] = NULL;
+            $valuesNullable["metrado_volumen"] = null;
         }
         // 'metrado_volumen',
         if (!$this->_metrado_cantidad) {
-            $valuesNullable["metrado_cantidad"] = NULL;
+            $valuesNullable["metrado_cantidad"] = null;
         }
         // 'metrado_cantidad',
         if (!$this->_metrado_nro_elemto) {
-            $valuesNullable["metrado_nro_elemto"] = NULL;
+            $valuesNullable["metrado_nro_elemto"] = null;
         }
         // 'metrado_nro_elemto',
         if (!$this->_metrado_factor) {
-            $valuesNullable["metrado_factor"] = NULL;
+            $valuesNullable["metrado_factor"] = null;
         }
         // 'metrado_factor',
         if (!$this->_metrado_alto) {
-            $valuesNullable["metrado_alto"] = NULL;
+            $valuesNullable["metrado_alto"] = null;
         }
         // 'metrado_alto',
 

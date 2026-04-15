@@ -11,17 +11,17 @@
  *
  * @author wheredia
  */
+
 require_once(__DIR__ . '/../model/src/Import.php');
 /**
- * 
+ *
  */
 
 class ImportController
 {
- 
     public function getImportType($request)
     {
-        $import = new Import($request,$_FILES['file']);
+        $import = new Import($request, $_FILES['file']);
         return $import->getImportType();
     }
 
@@ -29,7 +29,7 @@ class ImportController
     {
 
       //  var_dump(json_decode($request->data));exit;
-        $import = new Import($request,"");
+        $import = new Import($request, "");
         return $import->getUpdateRegsitro(json_decode($request->data));
     }
 
@@ -38,7 +38,7 @@ class ImportController
     {
 
     //   //  var_dump(json_decode($request->data));exit;
-        $import = new Import($request,"");
+        $import = new Import($request, "");
         return $import->getInfoTransaccion();
     }
 
@@ -46,9 +46,8 @@ class ImportController
     {
 
     //   //  var_dump(json_decode($request->data));exit;
-        $import = new Import($request,"");
-        return $import->getUpdateProyectoGeneralInsumo($request->proyecto_generales_id,json_decode($request->data));
+        $import = new Import($request, "");
+        return $import->getUpdateProyectoGeneralInsumo($request->proyecto_generales_id, json_decode($request->data));
     }
     //json_decode($request->data)
-
 }

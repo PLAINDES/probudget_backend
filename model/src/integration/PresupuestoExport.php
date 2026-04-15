@@ -11,7 +11,7 @@ class PresupuestoExport extends Mysql
     public function __construct($request = null)
     {
         parent::__construct();
-        
+
         if ($request) {
             if (isset($request->proyecto_generales_id)) {
                 $this->_proyecto_generales_id = $request->proyecto_generales_id;
@@ -21,7 +21,7 @@ class PresupuestoExport extends Mysql
             }
         }
     }
-    
+
     public function setParams($proyecto_id, $subpresupuesto_id = '1')
     {
         $this->_proyecto_generales_id = $proyecto_id;
@@ -41,7 +41,7 @@ class PresupuestoExport extends Mysql
 
             // Obtener todos los subpresupuestos del proyecto
             $subpresupuestos = $this->getSubpresupuestosList();
-            
+
             $subpresupuestos_data = [];
             $total_general = 0;
 
@@ -49,13 +49,13 @@ class PresupuestoExport extends Mysql
                 // Temporalmente cambiar el subpresupuesto_id
                 $original_id = $this->_subpresupuestos_id;
                 $this->_subpresupuestos_id = $sub->id;
-                
+
                 // Obtener datos del subpresupuesto
                 $presupuestos = $this->getPresupuestosData();
-                
+
                 $subtotal = floatval(str_replace(',', '', $presupuestos['total']));
                 $total_general += $subtotal;
-                
+
                 $subpresupuestos_data[] = [
                     'id' => $sub->id,
                     'nombre' => $sub->descripcion,
@@ -63,7 +63,7 @@ class PresupuestoExport extends Mysql
                     'items' => $presupuestos['items'],
                     'subtotal' => number_format($subtotal, 2, '.', ',')
                 ];
-                
+
                 // Restaurar el ID original
                 $this->_subpresupuestos_id = $original_id;
             }
@@ -107,7 +107,7 @@ class PresupuestoExport extends Mysql
 
             // Obtener todos los subpresupuestos del proyecto
             $subpresupuestos = $this->getSubpresupuestosList();
-            
+
             $subpresupuestos_data = [];
             $total_general = 0;
 
@@ -115,7 +115,7 @@ class PresupuestoExport extends Mysql
                 // Temporalmente cambiar el subpresupuesto_id
                 $original_id = $this->_subpresupuestos_id;
                 $this->_subpresupuestos_id = $sub->id;
-                
+
                 // Obtener items del subpresupuesto
                 $sql = "SELECT        
                             p.partidas_id,
@@ -131,24 +131,24 @@ class PresupuestoExport extends Mysql
                         AND p.deleted_at IS NULL
                         AND p.subpresupuestos_id = :sub_id
                         ORDER BY p.nro_orden ASC";
-                
+
                 $presupuestos = self::fetchAllObj($sql, [
                     'id' => $this->_proyecto_generales_id,
                     'sub_id' => $sub->id
                 ]);
-                
+
                 $items = [];
                 $subtotal = 0;
-                
+
                 foreach ($presupuestos as $p) {
                     $metrado = $p->metrado ?: 0;
                     $cu = $p->cu ?: 0;
                     $parcial = $metrado * $cu;
-                    
+
                     if ($p->type_item == '3') {
                         $subtotal += $parcial;
                     }
-                    
+
                     $items[] = [
                         'item' => $p->partidas_id ?: '',
                         'partida' => $p->partida,
@@ -158,9 +158,9 @@ class PresupuestoExport extends Mysql
                         'parcial' => number_format($parcial, 2, '.', ',')
                     ];
                 }
-                
+
                 $total_general += $subtotal;
-                
+
                 $subpresupuestos_data[] = [
                     'id' => $sub->id,
                     'nombre' => $sub->descripcion,
@@ -168,7 +168,7 @@ class PresupuestoExport extends Mysql
                     'items' => $items,
                     'subtotal' => number_format($subtotal, 2, '.', ',')
                 ];
-                
+
                 // Restaurar el ID original
                 $this->_subpresupuestos_id = $original_id;
             }
@@ -209,7 +209,7 @@ class PresupuestoExport extends Mysql
                 FROM subcategorias_proyecto_general spg
                 WHERE spg.proyecto_generales_id = :id
                 ORDER BY spg.orden ASC";
-        
+
         return self::fetchAllObj($sql, ['id' => $this->_proyecto_generales_id]);
     }
 
@@ -273,7 +273,7 @@ class PresupuestoExport extends Mysql
                 LEFT JOIN ub_provincias p ON p.id = pg.provincia
                 LEFT JOIN ub_departamentos dep ON dep.id = pg.departamento
                 WHERE pg.id = :id AND pg.deleted_at IS NULL";
-        
+
         return self::fetchObj($sql, ['id' => $this->_proyecto_generales_id]);
     }
 
@@ -290,7 +290,9 @@ class PresupuestoExport extends Mysql
 
     private function formatFecha($fecha)
     {
-        if (!$fecha) return '';
+        if (!$fecha) {
+            return '';
+        }
         $date = new DateTime($fecha);
         return $date->format('d-m-Y');
     }
@@ -305,7 +307,7 @@ class PresupuestoExport extends Mysql
                 AND subpresupuestos_id IN ({$this->_subpresupuestos_id})
                 ORDER BY nro_orden ASC 
                 LIMIT 1";
-        
+
         $result = self::fetchObj($sql, ['id' => $this->_proyecto_generales_id]);
         return $result ? $result->descripcion : 'PRESUPUESTO';
     }
@@ -335,12 +337,12 @@ class PresupuestoExport extends Mysql
                 AND p.deleted_at IS NULL
                 AND p.subpresupuestos_id IN ({$this->_subpresupuestos_id})
                 ORDER BY p.nro_orden ASC";
-        
+
         $presupuestos = self::fetchAllObj($sql, ['id' => $this->_proyecto_generales_id]);
-        
+
         $items = $this->buildHierarchy($presupuestos);
         $total = $this->calculateTotal($items);
-        
+
         return [
             'items' => $items,
             'total' => number_format($total, 2, '.', '')
@@ -351,7 +353,7 @@ class PresupuestoExport extends Mysql
     {
         $items = [];
         $lookup = [];
-        
+
         foreach ($presupuestos as $p) {
             $lookup[$p->id] = [
                 'item' => $p->partidas_id ?: '',
@@ -365,20 +367,22 @@ class PresupuestoExport extends Mysql
                 'children' => []
             ];
         }
-        
+
         foreach ($presupuestos as $p) {
             $item = &$lookup[$p->id];
-            
-            if ($p->presupuestos_proyecto_generales_id === null || 
-                $p->presupuestos_proyecto_generales_id == 0) {
+
+            if (
+                $p->presupuestos_proyecto_generales_id === null ||
+                $p->presupuestos_proyecto_generales_id == 0
+            ) {
                 $items[] = &$item;
-            } else if (isset($lookup[$p->presupuestos_proyecto_generales_id])) {
+            } elseif (isset($lookup[$p->presupuestos_proyecto_generales_id])) {
                 $lookup[$p->presupuestos_proyecto_generales_id]['children'][] = &$item;
             }
         }
-        
+
         $this->calculateParentTotals($items);
-        
+
         return $items;
     }
 
@@ -397,7 +401,7 @@ class PresupuestoExport extends Mysql
         foreach ($items as &$item) {
             if (!empty($item['children'])) {
                 $this->calculateParentTotals($item['children']);
-                
+
                 $total = 0;
                 foreach ($item['children'] as $child) {
                     $total += floatval(str_replace(',', '', $child['parcial']));
@@ -418,7 +422,9 @@ class PresupuestoExport extends Mysql
 
     private function formatNumber($number)
     {
-        if ($number === null || $number === '') return '0.00';
+        if ($number === null || $number === '') {
+            return '0.00';
+        }
         return number_format(floatval($number), 2, '.', ',');
     }
 
@@ -447,21 +453,21 @@ class PresupuestoExport extends Mysql
                     AND p.deleted_at IS NULL
                     AND p.subpresupuestos_id IN ({$this->_subpresupuestos_id})
                     ORDER BY p.nro_orden ASC";
-            
+
             $presupuestos = self::fetchAllObj($sql, ['id' => $this->_proyecto_generales_id]);
-            
+
             $items = [];
             $total = 0;
-            
+
             foreach ($presupuestos as $p) {
                 $metrado = $p->metrado ?: 0;
                 $cu = $p->cu ?: 0;
                 $parcial = $metrado * $cu;
-                
+
                 if ($p->type_item == '3') {
                     $total += $parcial;
                 }
-                
+
                 $items[] = [
                     'item' => $p->partidas_id ?: '',
                     'partida' => $p->partida,

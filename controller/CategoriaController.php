@@ -4,15 +4,14 @@ require_once(__DIR__ . '/../model/src/Categoria.php');
 
 class CategoriaController
 {
-    
     public function getList()
-    {   
+    {
         $categoria   = new Categoria();
         return $categoria->getList();
     }
-    
+
     public function getListProyectoGeneral($request)
-    {   
+    {
         $categoria   = new Categoria();
         return $categoria->getListProyectoGeneral($request->categoriaId);
     }
@@ -30,9 +29,8 @@ class CategoriaController
     }
 
     public function deleteCategory($request)
-    {   
+    {
         $categoria   = new Categoria();
         return $categoria->getDelete($request);
     }
-
 }

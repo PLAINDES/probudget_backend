@@ -7,7 +7,6 @@ require_once(__DIR__ . '/../src/RecalculoPrespuesto.php');
 
 class FormulaPolinomica extends Mysql
 {
-
     private $proyecto_general_id;
     private $subpresupuesto_id;
 
@@ -15,7 +14,6 @@ class FormulaPolinomica extends Mysql
     {
         $resp = [];
         try {
-
             $datainsumos = $this->getListInsumos($request);
             $list = $datainsumos->list;
             $sublist = $datainsumos->sublist;
@@ -76,8 +74,12 @@ class FormulaPolinomica extends Mysql
         $costs = ['GG' => 0, 'UT' => 0];
 
         foreach ($ppresupuesto as $item) {
-            if ($item->pie_presupuesto_id == 2) $costs['UT'] = $item->percentage;
-            if ($item->pie_presupuesto_id == 3) $costs['GG'] = $item->percentage;
+            if ($item->pie_presupuesto_id == 2) {
+                $costs['UT'] = $item->percentage;
+            }
+            if ($item->pie_presupuesto_id == 3) {
+                $costs['GG'] = $item->percentage;
+            }
         }
 
         $gg = round(($direct_cost * $costs['GG']), 2);
@@ -246,7 +248,6 @@ class FormulaPolinomica extends Mysql
     {
         $resp = [];
         try {
-
             $sql = 'SELECT id FROM formula_polinomica WHERE subpresupuesto_id =:subpresupuesto_id AND proyecto_general_id =:proyecto_general_id AND monomio =:monomio';
             $result = self::fetchObj(
                 $sql,
@@ -282,7 +283,6 @@ class FormulaPolinomica extends Mysql
     {
         $resp = [];
         try {
-
             $sql = 'SELECT COUNT(1) AS valid FROM (SELECT iu FROM apus_partida_presupuestos
                 WHERE subpresupuestos_id =:subpresupuestos_id AND proyectos_generales_id =:proyectos_generales_id AND monomio =:monomio
                 GROUP BY iu) AS total';
@@ -301,7 +301,7 @@ class FormulaPolinomica extends Mysql
             /*$sql = 'SELECT COUNT(1) AS valid FROM (SELECT monomio FROM apus_partida_presupuestos
                 WHERE subpresupuestos_id =:subpresupuestos_id AND proyectos_generales_id =:proyectos_generales_id AND monomio IS NOT NULL
                 GROUP BY monomio) AS total';
-            $result = self::fetchObj($sql,['subpresupuestos_id' => $request->subpresupuesto_id, 
+            $result = self::fetchObj($sql,['subpresupuestos_id' => $request->subpresupuesto_id,
             'proyectos_generales_id' => $request->proyecto_generales_id]);
 
             if($result->valid >= 3) {
@@ -334,7 +334,6 @@ class FormulaPolinomica extends Mysql
     {
         $resp = [];
         try {
-
             $sql = "UPDATE apus_partida_presupuestos SET iu = {$request->iu} 
             WHERE subpresupuestos_id = {$request->subpresupuesto_id} AND proyectos_generales_id = {$request->proyecto_generales_id}";
 
@@ -392,9 +391,9 @@ class FormulaPolinomica extends Mysql
         foreach ($pies as $key => $pie) {
             if (strtolower($pie['variable']) == 'gg') {
                 $pgg = $pie['monto'] * 0.13;
-            } else if (strtolower($pie['variable']) == 'ut') {
+            } elseif (strtolower($pie['variable']) == 'ut') {
                 $put = $pie['monto'] * 0.12;
-            } else if (strtolower($pie['variable']) == 'cd') {
+            } elseif (strtolower($pie['variable']) == 'cd') {
                 $pcd = $pie['monto'];
             }
         }
@@ -500,8 +499,12 @@ class FormulaPolinomica extends Mysql
         $costs = ['GG' => 0, 'UT' => 0];
 
         foreach ($ppresupuesto as $item) {
-            if ($item->pie_presupuesto_id == 2) $costs['UT'] = $item->percentage;
-            if ($item->pie_presupuesto_id == 3) $costs['GG'] = $item->percentage;
+            if ($item->pie_presupuesto_id == 2) {
+                $costs['UT'] = $item->percentage;
+            }
+            if ($item->pie_presupuesto_id == 3) {
+                $costs['GG'] = $item->percentage;
+            }
         }
 
         foreach ($list_unif as $item) {
@@ -523,7 +526,9 @@ class FormulaPolinomica extends Mysql
         $indiceUnificado39 = self::fetchObj("SELECT E.* FROM indice_unificado E WHERE E.iu = :iu", ["iu" => 39]);
 
         foreach ($filter as $e) {
-            if ($e->monto_parcial_ppto == 0) continue;
+            if ($e->monto_parcial_ppto == 0) {
+                continue;
+            }
             $e->indice_unificado = '';
             $coef_initial = number_format(0, 3, '.', '');
             if ($subtotal) {
@@ -570,7 +575,7 @@ class FormulaPolinomica extends Mysql
         }
 
         if ($insumoggu->add) {
-            $insumoggu->iu = NULL;
+            $insumoggu->iu = null;
             if ($pie_p_grupo && $pie_p_grupo->iu && isset($groups[$pie_p_grupo->iu])) {
                 $groups[$pie_p_grupo->iu] = $groups[$pie_p_grupo->iu] + 1;
                 $cfinal[$pie_p_grupo->iu] = $cfinal[$pie_p_grupo->iu] + $insumoggu->coef_initial;
@@ -600,7 +605,7 @@ class FormulaPolinomica extends Mysql
             foreach ($pies as $key => $pie) {
                 if (strtolower($pie['variable']) == 'gg') {
                     $pgg = $pie['monto'] * 0.1312;
-                } else if (strtolower($pie['variable']) == 'ut') {
+                } elseif (strtolower($pie['variable']) == 'ut') {
                     $put = $pie['monto'] * 0.12;
                 }
             }

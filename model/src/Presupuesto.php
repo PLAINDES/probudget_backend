@@ -36,9 +36,9 @@ class Presupuesto extends Mysql
     private $_rendimiento;
 
     public function setProyectoGeneralesId($id)
-{
-    $this->_proyecto_generales_id = $id;
-}
+    {
+        $this->_proyecto_generales_id = $id;
+    }
 
 
     public function __construct($request)
@@ -65,30 +65,41 @@ class Presupuesto extends Mysql
         ];
 
         if ($request) {
-            foreach ($column as  $value) {
+            foreach ($column as $value) {
                 if (isset($request->{$value}) && !empty($request->{$value})) {
                     $this->_values[$value] = $request->{$value};
                     $this->{"_$value"} = $request->{$value};
                 }
             }
-            if (isset($request->idspartida)) $this->idspartida = $request->idspartida;
-            if (isset($request->titulos) && $request->titulos) $this->titulos = $request->titulos;
-            if (isset($request->rendimiento_unid)) $this->_rendimiento_unid = $request->rendimiento_unid;
-            if (isset($request->rendimiento)) $this->_rendimiento = $request->rendimiento;
+            if (isset($request->idspartida)) {
+                $this->idspartida = $request->idspartida;
+            }
+            if (isset($request->titulos) && $request->titulos) {
+                $this->titulos = $request->titulos;
+            }
+            if (isset($request->rendimiento_unid)) {
+                $this->_rendimiento_unid = $request->rendimiento_unid;
+            }
+            if (isset($request->rendimiento)) {
+                $this->_rendimiento = $request->rendimiento;
+            }
         }
     }
 
     public function getSave()
     {
         try {
-
-            if ($this->_nro_orden) $this->_values["nro_orden"] = $this->_nro_orden;
+            if ($this->_nro_orden) {
+                $this->_values["nro_orden"] = $this->_nro_orden;
+            }
 
             $flag = true;
             if ($this->_presupuestos_proyecto_generales_id) {
                 $sql_a = 'SELECT type_item FROM presupuestos WHERE id = :id AND deleted_at is NULL';
                 $val_a = self::fetchObj($sql_a, ['id' => $this->_presupuestos_proyecto_generales_id]);
-                if ($val_a) $flag = $val_a->type_item != '3';
+                if ($val_a) {
+                    $flag = $val_a->type_item != '3';
+                }
             }
 
             if ($flag) {
@@ -101,7 +112,9 @@ class Presupuesto extends Mysql
                         'proyecto_generales_id' => $this->_proyecto_generales_id
                     ]);
                     $title_id = $presupuestosTitulos->getSave();
-                    if ($title_id) $this->_values["presupuestos_title_id"] = $title_id;
+                    if ($title_id) {
+                        $this->_values["presupuestos_title_id"] = $title_id;
+                    }
                 }
 
                 if ($this->idspartida) {
@@ -134,7 +147,6 @@ class Presupuesto extends Mysql
                     $sql = 'SELECT id, partidas_id, type_item FROM presupuestos WHERE id = :id  AND deleted_at is NULL';
                     $presupuestos = self::fetchObj($sql, ['id' => $this->_id]);
                     if ($presupuestos && $presupuestos->id) {
-
                         $sql = 'SELECT COUNT(1) AS checked FROM apus_partida_presupuestos WHERE presupuestos_id = :id  AND deleted_at is NULL';
                         $verify = self::fetchObj($sql, ['id' => $this->_id]);
 
@@ -144,7 +156,7 @@ class Presupuesto extends Mysql
                             return $resp;
                         }
 
-                        $update = self::update("presupuestos",  $this->_values, ['id' => $this->_id]);
+                        $update = self::update("presupuestos", $this->_values, ['id' => $this->_id]);
 
                         if (!$presupuestos->partidas_id && $presupuestos->type_item == '3' && $this->_partidas_id) {
                             $partidaDetail = new PartidaDetail();
@@ -185,9 +197,8 @@ class Presupuesto extends Mysql
                         $resp['message'] = $result['message'];
                         return $resp;
                     }
-                    $insert = self::insert("presupuestos",  $this->_values);
+                    $insert = self::insert("presupuestos", $this->_values);
                     if ($insert && $insert["lastInsertId"]) {
-
                         if ($this->_partidas_id) {
                             $partidaDetail = new PartidaDetail();
                             $partidaDetail->getSave([
@@ -273,22 +284,22 @@ class Presupuesto extends Mysql
         }
     }
 
-   public function getListPresupuesto()
-{
-    // ✅ CONSTRUIR LA CONDICIÓN DINÁMICAMENTE
-    $subpresupuestoCondition = "";
-    
-    if (!empty($this->_subpresupuestos_id)) {
-        // Si hay subpresupuesto, agregar la condición
-        $subpresupuestoCondition = "AND subpresupuestos_id IN ({$this->_subpresupuestos_id})";
-    }
+    public function getListPresupuesto()
+    {
+     // ✅ CONSTRUIR LA CONDICIÓN DINÁMICAMENTE
+        $subpresupuestoCondition = "";
 
-    // ❌ ELIMINAR ESTA LÍNEA - YA NO SE USA:
-    // $subpresupuestos_list = !empty($this->_subpresupuestos_id) ? 
-    //                 $this->_subpresupuestos_id : 
-    //                 '0';
+        if (!empty($this->_subpresupuestos_id)) {
+              // Si hay subpresupuesto, agregar la condición
+              $subpresupuestoCondition = "AND subpresupuestos_id IN ({$this->_subpresupuestos_id})";
+        }
 
-    $sql_general = "SELECT        
+     // ❌ ELIMINAR ESTA LÍNEA - YA NO SE USA:
+     // $subpresupuestos_list = !empty($this->_subpresupuestos_id) ?
+     //                 $this->_subpresupuestos_id :
+     //                 '0';
+
+        $sql_general = "SELECT        
                     id,
                     descripcion AS 'name',
                     unidad_medidas_id AS 'uni',
@@ -311,25 +322,25 @@ class Presupuesto extends Mysql
                     AND deleted_at IS NULL
                     {$subpresupuestoCondition}
             ORDER BY nro_orden ASC";
-            
-    $presupuestos_general = self::fetchAllObj($sql_general, ['id' => $this->_id]);
-    $data = array();
-    
-    foreach ($presupuestos_general as $key => $value) {
-        if ($value->presupuestos_proyecto_generales_id == NULL || $value->presupuestos_proyecto_generales_id == 0) {
-            $detail = $this->setMatrizPresupuesto($value->id, $presupuestos_general);
-            $total = 0;
-            foreach ($detail as $item) {
-                $total += ($item->total_parcial * 1);
-            }
-            $presupuestos_general[$key]->detail = $detail;
-            $presupuestos_general[$key]->total_parcial = $total;
-            array_push($data, $presupuestos_general[$key]);
-        }
-    }
 
-    return $data;
-}
+        $presupuestos_general = self::fetchAllObj($sql_general, ['id' => $this->_id]);
+        $data = array();
+
+        foreach ($presupuestos_general as $key => $value) {
+            if ($value->presupuestos_proyecto_generales_id == null || $value->presupuestos_proyecto_generales_id == 0) {
+                $detail = $this->setMatrizPresupuesto($value->id, $presupuestos_general);
+                $total = 0;
+                foreach ($detail as $item) {
+                     $total += ($item->total_parcial * 1);
+                }
+                $presupuestos_general[$key]->detail = $detail;
+                $presupuestos_general[$key]->total_parcial = $total;
+                array_push($data, $presupuestos_general[$key]);
+            }
+        }
+
+        return $data;
+    }
     public function setMatrizPresupuesto($searchedValue, $dataPresupuesto)
     {
         $array = [];
@@ -382,15 +393,23 @@ class Presupuesto extends Mysql
             $sql_a = 'SELECT id FROM presupuestos_partida 
                   WHERE presupuestos_id = :presupuestos_id AND proyectos_generales_id = :proyectos_generales_id AND subpartida_id IS NULL';
             $val_a = self::fetchObj($sql_a, ['presupuestos_id' => $this->_id, 'proyectos_generales_id' => $this->_proyecto_generales_id]);
-            if ($this->_rendimiento) $var['rendimiento'] = $this->_rendimiento;
-            if ($this->_rendimiento_unid) $var['rendimiento_unid'] = $this->_rendimiento_unid;
-            if ($this->_partidas_id) $var['partida_id'] = $this->_partidas_id;
+            if ($this->_rendimiento) {
+                $var['rendimiento'] = $this->_rendimiento;
+            }
+            if ($this->_rendimiento_unid) {
+                $var['rendimiento_unid'] = $this->_rendimiento_unid;
+            }
+            if ($this->_partidas_id) {
+                $var['partida_id'] = $this->_partidas_id;
+            }
             if ($val_a) {
-                if (!empty($var)) self::update(
-                    "presupuestos_partida",
-                    $var,
-                    ['presupuestos_id' => $this->_id, 'proyectos_generales_id' => $this->_proyecto_generales_id]
-                );
+                if (!empty($var)) {
+                    self::update(
+                        "presupuestos_partida",
+                        $var,
+                        ['presupuestos_id' => $this->_id, 'proyectos_generales_id' => $this->_proyecto_generales_id]
+                    );
+                }
             } else {
                 $var['presupuestos_id'] = $this->_id;
                 $var['proyectos_generales_id'] = $this->_proyecto_generales_id;
@@ -437,7 +456,7 @@ class Presupuesto extends Mysql
             foreach ($presupuestos as $key => $value) {
                 $this->removerRecursive($value->id, $value->type_item);
             }
-        } else if ($type_item == 3) {
+        } elseif ($type_item == 3) {
             self::update("apus_partida_presupuestos", ['deleted_at' => $deleted_at], ['presupuestos_id' => $id]);
         }
     }
@@ -470,37 +489,37 @@ class Presupuesto extends Mysql
 
 
 
-    public function searchPresupuestoByTerm($term, $proyectoId, $subpresupuestoId = null) 
-{
-    try {
-        error_log("=== searchPresupuestoByTerm ===");
-        error_log("term: " . $term);
-        error_log("proyectoId: " . $proyectoId);
-        error_log("subpresupuestoId: " . ($subpresupuestoId ?? 'NULL'));
-        
-        // ✅ Preparar el término de búsqueda
-        $searchTerm = "%" . $term . "%";
-        
-        // ✅ Construir la condición del subpresupuesto
-        $subpresupuestoCondition = "";
-        $params = [
+    public function searchPresupuestoByTerm($term, $proyectoId, $subpresupuestoId = null)
+    {
+        try {
+            error_log("=== searchPresupuestoByTerm ===");
+            error_log("term: " . $term);
+            error_log("proyectoId: " . $proyectoId);
+            error_log("subpresupuestoId: " . ($subpresupuestoId ?? 'NULL'));
+
+            // ✅ Preparar el término de búsqueda
+            $searchTerm = "%" . $term . "%";
+
+            // ✅ Construir la condición del subpresupuesto
+            $subpresupuestoCondition = "";
+            $params = [
             'search' => $searchTerm,
             'proyecto_id' => (int)$proyectoId // ✅ Cast a int
-        ];
-        
-        if (!empty($subpresupuestoId)) {
-            // ✅ Agregar condición y parámetro para subpresupuesto
-            $subpresupuestoCondition = "AND p.subpresupuestos_id = :subpresupuesto_id";
-            $params['subpresupuesto_id'] = (int)$subpresupuestoId; // ✅ Cast a int
-            
-            error_log("Condición subpresupuesto: " . $subpresupuestoCondition);
-            error_log("Valor subpresupuesto: " . $params['subpresupuesto_id']);
-        } else {
-            error_log("Sin filtro de subpresupuesto");
-        }
+            ];
 
-        // ✅ Construir SQL con condición dinámica
-        $sql = "SELECT DISTINCT p.*
+            if (!empty($subpresupuestoId)) {
+                // ✅ Agregar condición y parámetro para subpresupuesto
+                $subpresupuestoCondition = "AND p.subpresupuestos_id = :subpresupuesto_id";
+                $params['subpresupuesto_id'] = (int)$subpresupuestoId; // ✅ Cast a int
+
+                error_log("Condición subpresupuesto: " . $subpresupuestoCondition);
+                error_log("Valor subpresupuesto: " . $params['subpresupuesto_id']);
+            } else {
+                error_log("Sin filtro de subpresupuesto");
+            }
+
+            // ✅ Construir SQL con condición dinámica
+            $sql = "SELECT DISTINCT p.*
                 FROM presupuestos p
                 LEFT JOIN apus_partida_presupuestos apu 
                     ON p.id = apu.presupuestos_id 
@@ -517,26 +536,24 @@ class Presupuesto extends Mysql
                     )
                 ORDER BY p.nro_orden ASC";
 
-        error_log("SQL generado:");
-        error_log($sql);
-        error_log("Parámetros SQL: " . print_r($params, true));
-        
-        // ✅ Ejecutar query
-        $resultados = self::fetchAllObj($sql, $params);
-        
-        error_log("Filas encontradas: " . count($resultados));
-        
-        if (count($resultados) > 0) {
-            error_log("Primera fila: " . print_r($resultados[0], true));
-        }
-        
-        return $resultados;
-        
-    } catch (\Exception $e) {
-        error_log("ERROR en searchPresupuestoByTerm: " . $e->getMessage());
-        error_log("Stack: " . $e->getTraceAsString());
-        throw $e;
-    }
-}
+            error_log("SQL generado:");
+            error_log($sql);
+            error_log("Parámetros SQL: " . print_r($params, true));
 
+            // ✅ Ejecutar query
+            $resultados = self::fetchAllObj($sql, $params);
+
+            error_log("Filas encontradas: " . count($resultados));
+
+            if (count($resultados) > 0) {
+                error_log("Primera fila: " . print_r($resultados[0], true));
+            }
+
+            return $resultados;
+        } catch (\Exception $e) {
+            error_log("ERROR en searchPresupuestoByTerm: " . $e->getMessage());
+            error_log("Stack: " . $e->getTraceAsString());
+            throw $e;
+        }
+    }
 }

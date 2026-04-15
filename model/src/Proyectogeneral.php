@@ -7,7 +7,6 @@ require_once(__DIR__ . '/../src/Plan.php');
 
 class Proyectogeneral extends Mysql
 {
-
     private $_id;
     public function getid()
     {
@@ -141,7 +140,7 @@ class Proyectogeneral extends Mysql
                 'newsubcategorias'
             ];
 
-            foreach ($column as  $value) {
+            foreach ($column as $value) {
                 if (isset($request->{$value}) && !empty($request->{$value})) {
                     if ($value != "subcategorias" && $value != 'newsubcategorias') {
                         $this->_values[$value] = $request->{$value};
@@ -155,9 +154,9 @@ class Proyectogeneral extends Mysql
     public function getSave()
     {
             error_log("=== DEBUG CATEGORIA ===");
-    error_log("_values completo: " . print_r($this->_values, true));
-    error_log("categoriaId directa: " . ($this->_categoriaId ?? 'NO DEFINIDA'));
-    error_log("=====================");
+        error_log("_values completo: " . print_r($this->_values, true));
+        error_log("categoriaId directa: " . ($this->_categoriaId ?? 'NO DEFINIDA'));
+        error_log("=====================");
         try {
             if ($this->_id) {
                 $sql = 'SELECT COUNT(id) FROM proyecto_generales WHERE id = :id';
@@ -249,29 +248,29 @@ class Proyectogeneral extends Mysql
     }
 
     public function getListProyectoGeneral()
-{
+    {
     // Obtener IDs de proyectos compartidos
-    $sql = 'SELECT proyectogeneralId 
+        $sql = 'SELECT proyectogeneralId 
             FROM usuarios_invitados 
             WHERE userId = :userId';
 
-    $rs = self::fetchAllObj($sql, ['userId' => $this->_users_id]);
+        $rs = self::fetchAllObj($sql, ['userId' => $this->_users_id]);
 
     // Convertir a enteros y limpiar basura
-    $compartidos = array_filter(array_map(function ($v) {
-        return intval($v->proyectogeneralId);
-    }, $rs));
+        $compartidos = array_filter(array_map(function ($v) {
+            return intval($v->proyectogeneralId);
+        }, $rs));
 
     // Armar filtro
-    $filter = 'pg.users_id = :users_id';
+        $filter = 'pg.users_id = :users_id';
 
-    if (!empty($compartidos)) {
-        $inList = implode(',', $compartidos);
-        $filter = "(pg.users_id = :users_id OR pg.id IN ($inList))";
-    }
+        if (!empty($compartidos)) {
+            $inList = implode(',', $compartidos);
+            $filter = "(pg.users_id = :users_id OR pg.id IN ($inList))";
+        }
 
     // Query final
-    $sql = "SELECT        
+        $sql = "SELECT        
                 pg.id,
                 pg.users_id,
                 pg.proyecto,
@@ -297,8 +296,8 @@ class Proyectogeneral extends Mysql
         AND pg.deleted_at IS NULL
         ORDER BY pg.id ASC";
 
-    return self::fetchAllObj($sql, ['users_id' => $this->_users_id]);
-}
+        return self::fetchAllObj($sql, ['users_id' => $this->_users_id]);
+    }
 
 
 

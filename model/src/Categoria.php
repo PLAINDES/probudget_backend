@@ -6,14 +6,15 @@ require_once(__DIR__ . '/../persistence/Mysql.php'); // Cambiado de Mariadb a My
 
 class Categoria extends Mysql
 {
-
     public function getList()
     {
         $sql = 'SELECT id, descripcion, icono FROM categorias WHERE deleted_at IS NULL';
         $resp['success'] = true;
         $resp['data'] = [];
         $result = self::fetchAllObj($sql);
-        if ($result) $resp['data'] = $result;
+        if ($result) {
+            $resp['data'] = $result;
+        }
         return $resp;
     }
 
@@ -138,7 +139,9 @@ class Categoria extends Mysql
             WHERE categoriaId = :categoriaId AND deleted_at is NULL
             ORDER BY id ASC";
         $result = self::fetchAllObj($sql, ['categoriaId' => $categoriaId]);
-        if ($result) $response = $result;
+        if ($result) {
+            $response = $result;
+        }
         return $response;
     }
 }

@@ -64,7 +64,7 @@ class DetalleInsumos extends Mysql
                 'subpresupuestos_id',
             ];
 
-            foreach ($column as  $value) {
+            foreach ($column as $value) {
                 if (isset($request->{$value}) && !empty($request->{$value})) {
                     if ($value == 'precio') {
                         $this->_precio = number_format($request->{$value}, 2, '.', '');
@@ -142,7 +142,6 @@ class DetalleInsumos extends Mysql
     public function getListadoAcumulacion()
     {
         try {
-
             $sql = "SELECT  ip.id,
                             app.unidad_medidas_id,
                             ip.iu,
@@ -296,7 +295,7 @@ class DetalleInsumos extends Mysql
                     if (strtolower($val->alias) == '%mo') {
                         if ($val->presupuestos_id > 0 && isset($moKeys[$val->presupuestos_id])) {
                             if ($val->sp) {
-                                $keys[$k][$k2]->precio = $keys[$k][$k2]->partida_cantidad * $keys[$k][$k2]->metrado * $keys[$k][$k2]->parcial; // precio sera su parcial para este tipo %mo                                                                
+                                $keys[$k][$k2]->precio = $keys[$k][$k2]->partida_cantidad * $keys[$k][$k2]->metrado * $keys[$k][$k2]->parcial; // precio sera su parcial para este tipo %mo
                             } else {
                                 $moParcials = $moKeys[$val->presupuestos_id];
                                 $moTotal = 0;
@@ -543,7 +542,9 @@ class DetalleInsumos extends Mysql
     public function actualizarPartidas($proyectos_generales_id, $isdel = false)
     {
         $del = 'AND app.deleted_at IS NULL';
-        if ($isdel) $del = '';
+        if ($isdel) {
+            $del = '';
+        }
         $sql = "SELECT app.presupuestos_id, app.subpartida_id FROM apus_partida_presupuestos app
         WHERE app.proyectos_generales_id = :proyecto_generales_id AND app.insumo_id = :insumo_id {$del}";
 
