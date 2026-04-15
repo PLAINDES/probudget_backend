@@ -11,23 +11,23 @@
  *
  * @author AJAC
  */
+
 require_once(__DIR__ . '/../persistence/Mysql.php');
 //require_once (__DIR__ . '/../persistence/Mariadb.php');
-require_once (__DIR__ . '/../utilitarian/FG.php');
-require_once (__DIR__ . '/Subcategoria.php');
+require_once(__DIR__ . '/../utilitarian/FG.php');
+require_once(__DIR__ . '/Subcategoria.php');
 
 class RecalculoPrespuesto extends Mariadb
 {
-  
-  public function getRecalculoPrespuesto($presupuestos_proyecto_generales_id)
-  {
+    public function getRecalculoPrespuesto($presupuestos_proyecto_generales_id)
+    {
         try {
             do {
                 $sql_presupuestos = "SELECT id,presupuestos_proyecto_generales_id
                                     FROM presupuestos WHERE id = :presupuestos_proyecto_generales_id";
-                $presupuestos_h = self::fetchObj($sql_presupuestos,['presupuestos_proyecto_generales_id'=> $presupuestos_proyecto_generales_id]);
+                $presupuestos_h = self::fetchObj($sql_presupuestos, ['presupuestos_proyecto_generales_id' => $presupuestos_proyecto_generales_id]);
 
-                if($presupuestos_h){
+                if ($presupuestos_h) {
                     $presupuestos_proyecto_generales_id = $presupuestos_h->presupuestos_proyecto_generales_id;
                     $sql = "SELECT   SUM(apu_mo) AS 'sum_apu_mo', 
                                      SUM(apu_mat) AS 'sum_apu_mat',
@@ -36,79 +36,79 @@ class RecalculoPrespuesto extends Mariadb
                                      SUM(parcial) AS 'sum_parcial',
                                      SUM(apu_cu) AS 'sum_apu_cu' 
                             FROM presupuestos WHERE presupuestos_proyecto_generales_id = :id";
-                    $presupuestos = self::fetchObj($sql,['id'=>$presupuestos_proyecto_generales_id]);
-                    if($presupuestos->sum_parcial){
+                    $presupuestos = self::fetchObj($sql, ['id' => $presupuestos_proyecto_generales_id]);
+                    if ($presupuestos->sum_parcial) {
                         $parcial = $presupuestos->sum_parcial;
-                    }else{
-                        $parcial = (($presupuestos->sum_metrado_parcial)?$presupuestos->sum_metrado_parcial:0)*(($presupuestos->sum_apu_cu)?$presupuestos->sum_apu_cu:0);
+                    } else {
+                        $parcial = (($presupuestos->sum_metrado_parcial) ? $presupuestos->sum_metrado_parcial : 0) * (($presupuestos->sum_apu_cu) ? $presupuestos->sum_apu_cu : 0);
                     }
 
-                    if($presupuestos->sum_apu_eq){
-                        if(is_nan($presupuestos->sum_apu_eq)){
-                            $presupuestos->sum_apu_eq =  0.00;                
+                    if ($presupuestos->sum_apu_eq) {
+                        if (is_nan($presupuestos->sum_apu_eq)) {
+                            $presupuestos->sum_apu_eq =  0.00;
                         }
-                    }else{
+                    } else {
                         $presupuestos->sum_apu_eq = 0.00;
                     }
 
-                    if($presupuestos->sum_apu_mat){
-                        if(is_nan($presupuestos->sum_apu_mat)){
-                            $presupuestos->sum_apu_mat =  0.00;                
+                    if ($presupuestos->sum_apu_mat) {
+                        if (is_nan($presupuestos->sum_apu_mat)) {
+                            $presupuestos->sum_apu_mat =  0.00;
                         }
-                    }else{
+                    } else {
                         $presupuestos->sum_apu_mat = 0.00;
                     }
 
 
-                    if($presupuestos->sum_apu_mo){
-                        if(is_nan($presupuestos->sum_apu_mo)){
-                            $presupuestos->sum_apu_mo =  0.00;                
+                    if ($presupuestos->sum_apu_mo) {
+                        if (is_nan($presupuestos->sum_apu_mo)) {
+                            $presupuestos->sum_apu_mo =  0.00;
                         }
-                    }else{
+                    } else {
                         $presupuestos->sum_apu_mo = 0.00;
                     }
 
 
-                    if($presupuestos->sum_metrado_parcial){
-                        if(is_nan($presupuestos->sum_metrado_parcial)){
-                            $presupuestos->sum_metrado_parcial =  0.00;                
+                    if ($presupuestos->sum_metrado_parcial) {
+                        if (is_nan($presupuestos->sum_metrado_parcial)) {
+                            $presupuestos->sum_metrado_parcial =  0.00;
                         }
-                    }else{
+                    } else {
                         $presupuestos->sum_metrado_parcial = 0.00;
                     }
 
-                    if($presupuestos->sum_apu_cu){
-                        if(is_nan($presupuestos->sum_apu_cu)){
-                            $presupuestos->sum_apu_cu =  0.00;                
+                    if ($presupuestos->sum_apu_cu) {
+                        if (is_nan($presupuestos->sum_apu_cu)) {
+                            $presupuestos->sum_apu_cu =  0.00;
                         }
-                    }else{
+                    } else {
                         $presupuestos->sum_apu_cu = 0.00;
                     }
 
-                    if($parcial){
-                        if(is_nan($parcial)){
-                            $parcial =  0.00;                
+                    if ($parcial) {
+                        if (is_nan($parcial)) {
+                            $parcial =  0.00;
                         }
-                    }else{
+                    } else {
                         $parcial = 0.00;
                     }
 
-                    if($presupuestos->sum_parcial){
+                    if ($presupuestos->sum_parcial) {
                         $value = [
-                                "parcial" =>number_format($parcial,2,'.',''),
+                                "parcial" => number_format($parcial, 2, '.', ''),
                             ];
-                    }else{
+                    } else {
                         $value = [
-                            "apu_mo"  =>number_format( $presupuestos->sum_apu_mo,2,'.',''),
-                            "apu_mat" =>number_format( $presupuestos->sum_apu_mat,2,'.',''),
-                           "apu_eq" =>number_format( $presupuestos->sum_apu_eq,2,'.',''),
-                           "metrado" =>number_format( $presupuestos->sum_metrado_parcial,2,'.',''),
-                            "apu_cu" =>number_format($presupuestos->sum_apu_cu,2,'.',''),
-                            "parcial" =>number_format($parcial,2,'.',''),
+                            "apu_mo"  => number_format($presupuestos->sum_apu_mo, 2, '.', ''),
+                            "apu_mat" => number_format($presupuestos->sum_apu_mat, 2, '.', ''),
+                           "apu_eq" => number_format($presupuestos->sum_apu_eq, 2, '.', ''),
+                           "metrado" => number_format($presupuestos->sum_metrado_parcial, 2, '.', ''),
+                            "apu_cu" => number_format($presupuestos->sum_apu_cu, 2, '.', ''),
+                            "parcial" => number_format($parcial, 2, '.', ''),
                         ];
                     }
-                    self::update("presupuestos",$value,['id' =>$presupuestos_proyecto_generales_id ] );    
-                }else{                    
+                    self::update("presupuestos", $value, ['id' => $presupuestos_proyecto_generales_id ]);
+                } else {
                     $presupuestos_proyecto_generales_id = 0;
                 }
             } while ($presupuestos_proyecto_generales_id != 0);
@@ -116,51 +116,50 @@ class RecalculoPrespuesto extends Mariadb
         } catch (\Throwable $th) {
             return false;
         }
-  }
+    }
 
-  public function getBudgetFooter($array =[])
-  { 
+    public function getBudgetFooter($array = [])
+    {
         try {
-            if(array_key_exists('id', $array)){    
+            if (array_key_exists('id', $array)) {
                 $id = $array['id'];
                 $sql_general = "SELECT metrado, cu, mo, mt, eq
                                     FROM presupuestos 
                                     WHERE proyecto_generales_id = :id AND type_item = 3 AND deleted_at is NULL";
-                    
-                $presupuestos_general = self::fetchAllObj($sql_general,['id'=> $id]);
+
+                $presupuestos_general = self::fetchAllObj($sql_general, ['id' => $id]);
 
                 $suma_ppa = 0;
-                foreach($presupuestos_general as $item){
+                foreach ($presupuestos_general as $item) {
                     $metrado = $item->metrado ? $item->metrado : 0;
                     $cu = $item->cu ? $item->cu : 0;
                     $suma_ppa += ($metrado * $cu);
                 }
 
-                $proceso_calculo = $this->getFormulaPiePresupuesto($suma_ppa, $id);                
+                $proceso_calculo = $this->getFormulaPiePresupuesto($suma_ppa, $id);
                 return $proceso_calculo;
-            }else{
-                return ["success"=> false, "message"=>"Especificar el proyecto"];
+            } else {
+                return ["success" => false, "message" => "Especificar el proyecto"];
             }
         } catch (\Throwable $th) {
-            return ["success"=> false, "message"=>"Ocurrio un problema"];
+            return ["success" => false, "message" => "Ocurrio un problema"];
         }
-          
-  }
+    }
 
-  public function getPiePresupuesto($array =[])
-  { 
+    public function getPiePresupuesto($array = [])
+    {
         try {
-            if(array_key_exists('id', $array)){
-                $response = [];    
+            if (array_key_exists('id', $array)) {
+                $response = [];
                 $id = $array['id'];
                 $sql_general = "SELECT metrado, cu, mo, mt, eq, sc
                                     FROM presupuestos 
                                     WHERE proyecto_generales_id = :id AND type_item = 3 AND deleted_at is NULL";
-                    
-                $presupuestos_general = self::fetchAllObj($sql_general,['id'=> $id]);
+
+                $presupuestos_general = self::fetchAllObj($sql_general, ['id' => $id]);
 
                 $suma_ppa = 0;
-                foreach($presupuestos_general as $item){
+                foreach ($presupuestos_general as $item) {
                     $metrado = $item->metrado ? $item->metrado : 0;
                     $cu = $item->cu ? $item->cu : 0;
                     $suma_ppa += ($metrado * $cu);
@@ -178,18 +177,17 @@ class RecalculoPrespuesto extends Mariadb
                 );
 
                 return $response;
-            }else{
-                return ["success"=> false, "message"=>"Especificar el proyecto"];
+            } else {
+                return ["success" => false, "message" => "Especificar el proyecto"];
             }
         } catch (\Throwable $th) {
-            return ["success"=> false, "message"=>"Ocurrio un problema"];
+            return ["success" => false, "message" => "Ocurrio un problema"];
         }
-          
-  }
+    }
 
-  public function getFormulaPiePresupuesto($monto, $id)
-  {
-    $sql = "SELECT        
+    public function getFormulaPiePresupuesto($monto, $id)
+    {
+        $sql = "SELECT        
                 ppo.id,
                 ppo.variable,
                 ppo.descripcion,
@@ -202,40 +200,38 @@ class RecalculoPrespuesto extends Mariadb
         ON ppo.id = ppp.pie_presupuesto_id AND ppp.proyectos_generales_id = :id AND ppp.type_percentage = 'PIE'
         ORDER BY ppo.posicion ASC";
         $priPresupuesto = self::fetchAllObj($sql, ['id' => $id]);
-        $ppa = [];        
-        
+        $ppa = [];
+
         foreach ($priPresupuesto as $key => $value) {
-            if( $value->id == 1){
+            if ($value->id == 1) {
                 $array["descripcion"]  = $value->descripcion;
                 $array["monto"]  = $monto;
                 $array["variable"]  = $value->variable;
                 $array["percentage"]  = $value->percentage;
                 $array["id"]  = $value->id;
                 $array["proyectos_generales_id"]  = $id;
-            }else{
+            } else {
                 $porciones = explode(";", $value->formula);
-                if(count($porciones) == 3){
-                    if($porciones[0] == "CD")
-                    { 
+                if (count($porciones) == 3) {
+                    if ($porciones[0] == "CD") {
                         $calculo_monto = $monto;
-                    }else{
-                        
-                        $found_key = array_search($porciones[0],  array_column($ppa, 'variable') );
-                        $calculo_monto =$ppa[$found_key]['monto'];                        
+                    } else {
+                        $found_key = array_search($porciones[0], array_column($ppa, 'variable'));
+                        $calculo_monto = $ppa[$found_key]['monto'];
                     }
 
-                    if(floatval($porciones[2]) || is_int($porciones[2])){
+                    if (floatval($porciones[2]) || is_int($porciones[2])) {
                         $porcion_dos = $porciones[2];
-                    }else{
-                        $found_key = array_search($porciones[2],  array_column($ppa, 'variable') );
-                        $porcion_dos =$ppa[$found_key]['monto'];     
+                    } else {
+                        $found_key = array_search($porciones[2], array_column($ppa, 'variable'));
+                        $porcion_dos = $ppa[$found_key]['monto'];
                     }
 
                     switch ($porciones[1]) {
                         case '+':
                             // $array["monto"]  = (float) number_format(($calculo_monto + floatval($porcion_dos)),2,'.','');
                             $array["monto"]  = (float) ($calculo_monto + floatval($porcion_dos));
-                            break; 
+                            break;
                         case '-':
                             // $array["monto"]  = (float) number_format(($calculo_monto - floatval($porcion_dos) ),2,'.','');
                             $array["monto"]  = (float) ($calculo_monto - floatval($porcion_dos));
@@ -243,43 +239,40 @@ class RecalculoPrespuesto extends Mariadb
                         case '*':
                             // $array["monto"]  = (float) number_format(($calculo_monto * floatval($porcion_dos)),2,'.','');
                             $array["monto"]  = (float) ($calculo_monto * floatval($porcion_dos));
-                            break;                      
+                            break;
                         default:
                             // $array["monto"]  = (float) number_format(( $calculo_monto / floatval($porcion_dos)),2,'.','');
                             $array["monto"]  = (float) ($calculo_monto / floatval($porcion_dos));
                             break;
                     }
-                   
-                }else if(count($porciones) == 5){
-                     
-                    if($porciones[0] == "CD")
-                    { 
+                } elseif (count($porciones) == 5) {
+                    if ($porciones[0] == "CD") {
                         $calculo_monto = $monto;
-                    }else{
-                        $found_key = array_search($porciones[0],  array_column($ppa, 'variable') );
-                        $calculo_monto =$ppa[$found_key]['monto'];                          
+                    } else {
+                        $found_key = array_search($porciones[0], array_column($ppa, 'variable'));
+                        $calculo_monto = $ppa[$found_key]['monto'];
                     }
 
 
-                    if(floatval($porciones[2]) || is_int($porciones[2])){
+                    if (floatval($porciones[2]) || is_int($porciones[2])) {
                         $porcion_dos = $porciones[2];
-                    }else{
-                        $found_key = array_search($porciones[2],  array_column($ppa, 'variable') );
-                        $porcion_dos =$ppa[$found_key]['monto'];     
+                    } else {
+                        $found_key = array_search($porciones[2], array_column($ppa, 'variable'));
+                        $porcion_dos = $ppa[$found_key]['monto'];
                     }
 
-                    if(floatval($porciones[4]) || is_int($porciones[4])){
+                    if (floatval($porciones[4]) || is_int($porciones[4])) {
                         $porcion_tres = $porciones[4];
-                    }else{
-                        $found_key = array_search($porciones[4],  array_column($ppa, 'variable') );
-                        $porcion_tres =$ppa[$found_key]['monto'];     
+                    } else {
+                        $found_key = array_search($porciones[4], array_column($ppa, 'variable'));
+                        $porcion_tres = $ppa[$found_key]['monto'];
                     }
 
                     switch ($porciones[1]) {
                         case '+':
                             // $array["monto"]  = (float) number_format(($calculo_monto + floatval($porcion_dos) + floatval($porcion_tres)),2);
                             $array["monto"]  = (float) ($calculo_monto + floatval($porcion_dos) + floatval($porcion_tres));
-                            break; 
+                            break;
                         case '-':
                             // $array["monto"]  = (float) number_format(($calculo_monto - floatval($porcion_dos) + floatval($porcion_tres)),2);
                             $array["monto"]  = (float) ($calculo_monto - floatval($porcion_dos) + floatval($porcion_tres));
@@ -287,7 +280,7 @@ class RecalculoPrespuesto extends Mariadb
                         case '*':
                             // $array["monto"]  = (float) number_format(($calculo_monto * floatval($porcion_dos) + floatval($porcion_tres)),2);
                             $array["monto"]  = (float) ($calculo_monto * floatval($porcion_dos) + floatval($porcion_tres));
-                            break;                      
+                            break;
                     }
                 }
                 $array["descripcion"]  = $value->descripcion;
@@ -298,7 +291,6 @@ class RecalculoPrespuesto extends Mariadb
             }
             array_push($ppa, $array);
         }
-        return $ppa;        
-  }
-
+        return $ppa;
+    }
 }

@@ -5,14 +5,12 @@ require_once(__DIR__ . '/../utilitarian/FG.php');
 
 class Plan extends Mysql
 {
-
     public function getValidate($args)
     {
 
 
         $rsp = ['success' => false, 'message' => 'No sé proceso ninguna validación'];
         try {
-
             $user_id = $args['user_id'];
             $modulo = $args['modulo'];
             $store = isset($args['store']) ? $args['store'] : true;

@@ -18,7 +18,9 @@ class Import extends Mysql
     {
         $this->_file = $file;
         $this->_type = $request->type;
-        if (isset($request->proyecto_generales_id)) $this->_proyecto_generales_id = $request->proyecto_generales_id;
+        if (isset($request->proyecto_generales_id)) {
+            $this->_proyecto_generales_id = $request->proyecto_generales_id;
+        }
     }
 
     public function getImportType()
@@ -129,9 +131,11 @@ class Import extends Mysql
             $created = 0;
             $updated = 0;
             $array_update = [];
-            foreach ($data as  $row) {
+            foreach ($data as $row) {
                 if ($cont) {
-                    if (!$row[0]) continue;
+                    if (!$row[0]) {
+                        continue;
+                    }
                     if ($row[0]) {
                         $searchedInsumo = $row[0];
                         $objectInsumo =   array_filter(
@@ -170,7 +174,9 @@ class Import extends Mysql
                                 "descripcion" => $searchedUM,
                                 "alias" => $searchedUM
                             ];
-                            if ($searchedUM == '%MO') $var_un['apu_cantidad'] = 1;
+                            if ($searchedUM == '%MO') {
+                                $var_un['apu_cantidad'] = 1;
+                            }
                             $insert = self::insert("unidad_medidas", $var_un);
                             $idUM = $insert["lastInsertId"];
                             $sql_um = "SELECT
@@ -192,8 +198,12 @@ class Import extends Mysql
                         "importacion_id" => $this->_id,
                     ];
 
-                    if ($row[1]) $var['iu'] = (int)$row[1];
-                    if ($row[6]) $var['precio'] = number_format($row[6], 2, '.', '');
+                    if ($row[1]) {
+                        $var['iu'] = (int)$row[1];
+                    }
+                    if ($row[6]) {
+                        $var['precio'] = number_format($row[6], 2, '.', '');
+                    }
 
                     if ($type == "INSERT") {
                         self::insert("insumos", $var);
@@ -243,9 +253,11 @@ class Import extends Mysql
             $cont = 0;
             $created = 0;
             $array_update = [];
-            foreach ($dataPartidas as  $row) {
+            foreach ($dataPartidas as $row) {
                 if ($cont) {
-                    if (!$row[0]) continue;
+                    if (!$row[0]) {
+                        continue;
+                    }
                     if ($row[1]) {
                         $searchedInsumo = $row[1];
                         $objectInsumo =   array_filter(
@@ -276,7 +288,9 @@ class Import extends Mysql
                         "importacion_id" => $this->_id,
                     ];
 
-                    if ($row[4]) $var['rendimiento'] = number_format($row[4], 2, '.', '');
+                    if ($row[4]) {
+                        $var['rendimiento'] = number_format($row[4], 2, '.', '');
+                    }
 
                     $searchedPartida = $row[0];
                     $objectApus = array_filter(
@@ -296,10 +310,14 @@ class Import extends Mysql
                                 'partida_id' => $lastInsert['lastInsertId'],
                                 'unidad_medidas_id' => $idUM2,
                             ];
-                            if ($item[5]) $create['cuadrilla'] = number_format($item[5], 2, '.', '');
+                            if ($item[5]) {
+                                $create['cuadrilla'] = number_format($item[5], 2, '.', '');
+                            }
                             if ($item[6]) {
                                 $cant = $item[6];
-                                if (strtoupper($item[4]) == '%MO') $cant = $cant / 100;
+                                if (strtoupper($item[4]) == '%MO') {
+                                    $cant = $cant / 100;
+                                }
                                 $create['cantidad'] = number_format($cant, 4, '.', '');
                             }
                             self::insert("apus_partidas", $create);
@@ -335,7 +353,9 @@ class Import extends Mysql
                                 'precio' => $item[7],
                                 'partida_id' => $objectInsumo->id
                             );
-                            if ($item[6] && strtoupper($item[4]) == '%MO') $napu['cantidad'] = $item[6] / 100;
+                            if ($item[6] && strtoupper($item[4]) == '%MO') {
+                                $napu['cantidad'] = $item[6] / 100;
+                            }
                             if ($objectUpApu && count($objectUpApu) > 0) {
                                 $key = array_keys($objectUpApu)[0];
                                 $napu['id'] = $objectUpApu[$key]->id;
@@ -371,9 +391,8 @@ class Import extends Mysql
     public function getSubProyectos($data, $subProyectos)
     {
         $cont = 0;
-        foreach ($data as  $row) {
+        foreach ($data as $row) {
             if ($cont) {
-
                 if ($row[0]) {
                     $searchedInsumo = $row[0];
                     $objectInsumo =   array_filter(
@@ -411,9 +430,11 @@ class Import extends Mysql
     public function getTitulos($data, $titulos)
     {
         $cont = 0;
-        foreach ($data as  $row) {
+        foreach ($data as $row) {
             if ($cont) {
-                if (!$row[1]) continue;
+                if (!$row[1]) {
+                    continue;
+                }
                 if ($row[0]) {
                     $searchedTitulo = $row[0];
                     $objectTitulo =   array_filter(
@@ -466,10 +487,14 @@ class Import extends Mysql
                             "importacion_id" => $value->importacion_id,
                             "notify_id" => $idnotify
                         ];
-                        if ($value->iu) $var['iu'] = (int)$value->iu;
-                        if ($value->precio) $var['precio'] = number_format($value->precio, 2, '.', '');
+                        if ($value->iu) {
+                            $var['iu'] = (int)$value->iu;
+                        }
+                        if ($value->precio) {
+                            $var['precio'] = number_format($value->precio, 2, '.', '');
+                        }
                         self::update("insumos", $var, ['id' =>  $value->id]);
-                        if ($value->precio == NULL) {
+                        if ($value->precio == null) {
                             self::ex("UPDATE insumos SET precio = NULL WHERE id = " . $value->id);
                         }
                     }
@@ -484,7 +509,9 @@ class Import extends Mysql
                             "unidad_medidas_id" => $value->unidad_medidas_id,
                             "importacion_id" => $value->importacion_id,
                         ];
-                        if ($value->rendimiento) $var['rendimiento'] = number_format($value->rendimiento, 2, '.', '');
+                        if ($value->rendimiento) {
+                            $var['rendimiento'] = number_format($value->rendimiento, 2, '.', '');
+                        }
                         self::update("partidas", $var, ['id' => $value->id]);
                         foreach ($value->apus as $row) {
                             $up = [
@@ -492,8 +519,12 @@ class Import extends Mysql
                                 'partida_id' => $row->partida_id,
                                 'unidad_medidas_id' => $row->unidad_medidas_id
                             ];
-                            if ($row->cuadrilla) $up['cuadrilla'] = number_format($row->cuadrilla, 2, '.', '');
-                            if ($row->cantidad) $up['cantidad'] = number_format($row->cantidad, 4, '.', '');
+                            if ($row->cuadrilla) {
+                                $up['cuadrilla'] = number_format($row->cuadrilla, 2, '.', '');
+                            }
+                            if ($row->cantidad) {
+                                $up['cantidad'] = number_format($row->cantidad, 4, '.', '');
+                            }
                             if ($row->id == 0) {
                                 self::insert("apus_partidas", $up);
                                 continue;
@@ -518,7 +549,6 @@ class Import extends Mysql
         $importacion = self::fetchObj($sql, ["id" => $this->_proyecto_generales_id]);
 
         if ($importacion) {
-
             switch ($this->_type) {
                 case 1:
                     $sql = 'SELECT
@@ -561,7 +591,6 @@ class Import extends Mysql
     public function getUpdateProyectoGeneralInsumo($proyecto_generales_id, $insumos)
     {
         try {
-
             $masterid = "";
 
             foreach ($insumos as $value) {
@@ -571,7 +600,6 @@ class Import extends Mysql
             $masterid = ltrim($masterid, ',');
 
             if ($masterid) {
-
                 $sql = "SELECT id, iu, indice_unificado, tipo, insumos, precio, unidad_medidas_id, notify_id FROM insumos WHERE id IN ($masterid)";
                 $insumos = self::fetchAllObj($sql);
                 if (!empty($insumos)) {
@@ -584,15 +612,19 @@ class Import extends Mysql
                             'insumos' => $insumo->insumos,
                             'unidad_medidas_id' => $insumo->unidad_medidas_id
                         );
-                        if ($insumo->precio) $var['precio'] = number_format($insumo->precio, 2, '.', '');
+                        if ($insumo->precio) {
+                            $var['precio'] = number_format($insumo->precio, 2, '.', '');
+                        }
                         self::update("insumos_proyecto", $var, ['master_insumo_id' => $insumo->id]);
-                        if ($insumo->precio == NULL) {
+                        if ($insumo->precio == null) {
                             self::ex("UPDATE insumos_proyecto SET precio = NULL WHERE master_insumo_id = " . $insumo->id);
                         }
                         $notify_id = $insumo->notify_id;
                     }
 
-                    if ($notify_id) self::update("notificacion_proyecto", ['estado' => '0', 'omitir' => 'Si'], ['id' => $notify_id]);
+                    if ($notify_id) {
+                        self::update("notificacion_proyecto", ['estado' => '0', 'omitir' => 'Si'], ['id' => $notify_id]);
+                    }
 
                     $detalleInsumos = new DetalleInsumos(false);
                     $detalleInsumos->actualizarPartidas($proyecto_generales_id);
@@ -639,7 +671,9 @@ class Import extends Mysql
                     "descripcion" => $searchedUM,
                     "alias" => $searchedUM,
                 ];
-                if (strtoupper($searchedUM) == '%MO') $var_un['apu_cantidad'] = 1;
+                if (strtoupper($searchedUM) == '%MO') {
+                    $var_un['apu_cantidad'] = 1;
+                }
                 $insert = self::insert("unidad_medidas", $var_un);
                 $idUM = $insert["lastInsertId"];
                 $newUnidMeds[bin2hex($searchedUM)] = array(
@@ -691,13 +725,27 @@ class Import extends Mysql
 
     private function check_changes_supply($oldinfo, $newinfo, $uni)
     {
-        if ($oldinfo->iu != $newinfo[1]) return true;
-        if ($oldinfo->indice_unificado != $newinfo[2]) return true;
-        if ($oldinfo->tipo != $newinfo[3]) return true;
-        if ($oldinfo->insumos != $newinfo[4]) return true;
-        if (empty($oldinfo->precio) && empty($newinfo[6])) return false;
-        if ($oldinfo->precio != $newinfo[6]) return true;
-        if ($oldinfo->unidad_medidas_id != $uni) return true;
+        if ($oldinfo->iu != $newinfo[1]) {
+            return true;
+        }
+        if ($oldinfo->indice_unificado != $newinfo[2]) {
+            return true;
+        }
+        if ($oldinfo->tipo != $newinfo[3]) {
+            return true;
+        }
+        if ($oldinfo->insumos != $newinfo[4]) {
+            return true;
+        }
+        if (empty($oldinfo->precio) && empty($newinfo[6])) {
+            return false;
+        }
+        if ($oldinfo->precio != $newinfo[6]) {
+            return true;
+        }
+        if ($oldinfo->unidad_medidas_id != $uni) {
+            return true;
+        }
         return false;
     }
 

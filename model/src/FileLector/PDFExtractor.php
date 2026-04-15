@@ -25,71 +25,68 @@ class PDFExtractor
  * @param string $headerText Texto a buscar en el header (case-insensitive)
  * @return array Números de página (1-indexed)
  */
-public function findPagesByHeader(string $filePath, string $headerText)
-{
-    if (!file_exists($filePath)) {
-        throw new \Exception("Archivo no encontrado: $filePath");
-    }
-
-    try {
-
-        error_log("=== DEBUG: Iniciando análisis de PDF ===");
-        error_log("Archivo: $filePath");
-        error_log("Buscando header: $headerText");
-
-        // 🔍 Parsear PDF
-        $pdf = $this->parser->parseFile($filePath);
-
-        // 🔎 Log de estructura general del PDF (sin imprimir miles de líneas)
-        error_log("PDF parsed:\n" . print_r([
-            'pages_count' => count($pdf->getPages()),
-            'details'     => get_class($pdf)
-        ], true));
-
-        $pages = $pdf->getPages();
-        $relevantPages = [];
-        $searchText = mb_strtolower($headerText, 'UTF-8');
-
-        // 🔁 Recorrer páginas
-        foreach ($pages as $pageNum => $page) {
-
-            error_log("---- Página " . ($pageNum + 1) . " ----");
-
-            // Obtener texto completo de la página
-            $text = $page->getText();
-
-            // Debugear solo primeros 1000 caracteres para evitar log gigante
-            $preview = mb_substr($text, 0, 1000, 'UTF-8');
-
-            error_log("Texto extraído (primeros 1000 chars):\n" . $preview);
-
-            // Convertir a minúsculas
-            $textLower = mb_strtolower($text, 'UTF-8');
-
-            // Leer solo primeras 500 chars (zona del header)
-            $headerZone = mb_substr($textLower, 0, 500, 'UTF-8');
-
-            error_log("HeaderZone (primeros 500 chars):\n" . $headerZone);
-
-            // Buscar coincidencia
-            if (mb_strpos($headerZone, $searchText, 0, 'UTF-8') !== false) {
-                error_log("✔ Coincidencia encontrada en página " . ($pageNum + 1));
-                $relevantPages[] = $pageNum + 1;
-            } else {
-                error_log("✘ No coincide");
-            }
+    public function findPagesByHeader(string $filePath, string $headerText)
+    {
+        if (!file_exists($filePath)) {
+            throw new \Exception("Archivo no encontrado: $filePath");
         }
 
-        error_log("=== Páginas relevantes ===");
-        error_log(print_r($relevantPages, true));
+        try {
+            error_log("=== DEBUG: Iniciando análisis de PDF ===");
+            error_log("Archivo: $filePath");
+            error_log("Buscando header: $headerText");
 
-        return $relevantPages;
+            // 🔍 Parsear PDF
+            $pdf = $this->parser->parseFile($filePath);
 
-    } catch (\Exception $e) {
-        error_log("❌ ERROR en findPagesByHeader: " . $e->getMessage());
-        throw new \Exception("Error al analizar PDF: " . $e->getMessage());
+            // 🔎 Log de estructura general del PDF (sin imprimir miles de líneas)
+            error_log("PDF parsed:\n" . print_r([
+            'pages_count' => count($pdf->getPages()),
+            'details'     => get_class($pdf)
+            ], true));
+
+            $pages = $pdf->getPages();
+            $relevantPages = [];
+            $searchText = mb_strtolower($headerText, 'UTF-8');
+
+            // 🔁 Recorrer páginas
+            foreach ($pages as $pageNum => $page) {
+                error_log("---- Página " . ($pageNum + 1) . " ----");
+
+                // Obtener texto completo de la página
+                $text = $page->getText();
+
+                // Debugear solo primeros 1000 caracteres para evitar log gigante
+                $preview = mb_substr($text, 0, 1000, 'UTF-8');
+
+                error_log("Texto extraído (primeros 1000 chars):\n" . $preview);
+
+                // Convertir a minúsculas
+                $textLower = mb_strtolower($text, 'UTF-8');
+
+                // Leer solo primeras 500 chars (zona del header)
+                $headerZone = mb_substr($textLower, 0, 500, 'UTF-8');
+
+                error_log("HeaderZone (primeros 500 chars):\n" . $headerZone);
+
+                // Buscar coincidencia
+                if (mb_strpos($headerZone, $searchText, 0, 'UTF-8') !== false) {
+                    error_log("✔ Coincidencia encontrada en página " . ($pageNum + 1));
+                    $relevantPages[] = $pageNum + 1;
+                } else {
+                    error_log("✘ No coincide");
+                }
+            }
+
+            error_log("=== Páginas relevantes ===");
+            error_log(print_r($relevantPages, true));
+
+            return $relevantPages;
+        } catch (\Exception $e) {
+            error_log("❌ ERROR en findPagesByHeader: " . $e->getMessage());
+            throw new \Exception("Error al analizar PDF: " . $e->getMessage());
+        }
     }
-}
 
     /**
      * Extrae páginas específicas y crea un nuevo PDF temporal
@@ -113,7 +110,7 @@ public function findPagesByHeader(string $filePath, string $headerText)
             $pageCount = $pdf->setSourceFile($filePath);
 
             // Validar números de página
-            $validPages = array_filter($pageNumbers, function($p) use ($pageCount) {
+            $validPages = array_filter($pageNumbers, function ($p) use ($pageCount) {
                 return $p > 0 && $p <= $pageCount;
             });
 
@@ -125,7 +122,7 @@ public function findPagesByHeader(string $filePath, string $headerText)
             foreach ($validPages as $pageNum) {
                 $templateId = $pdf->importPage($pageNum);
                 $size = $pdf->getTemplateSize($templateId);
-                
+
                 $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
                 $pdf->useTemplate($templateId);
             }
@@ -133,11 +130,10 @@ public function findPagesByHeader(string $filePath, string $headerText)
             // Guardar PDF temporal
             $tempFileName = 'extracted_' . uniqid() . '_' . time() . '.pdf';
             $tempPath = $this->tempDir . DIRECTORY_SEPARATOR . $tempFileName;
-            
+
             $pdf->Output($tempPath, 'F');
 
             return $tempPath;
-
         } catch (\Exception $e) {
             throw new \Exception("Error al extraer páginas: " . $e->getMessage());
         }
@@ -165,7 +161,7 @@ public function findPagesByHeader(string $filePath, string $headerText)
         try {
             $pdf = $this->parser->parseFile($filePath);
             $pages = $pdf->getPages();
-            
+
             if (!isset($pages[$pageNumber - 1])) {
                 return null;
             }

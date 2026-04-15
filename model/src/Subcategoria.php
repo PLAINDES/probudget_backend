@@ -5,11 +5,11 @@ require_once(__DIR__ . '/../utilitarian/FG.php');
 
 class Subcategoria extends Mysql
 {
-    private  $_id;
-    private  $_descripcion;
-    private  $_subcategorias_id;
-    private  $_proyecto_generales_id;
-    private  $_subcategorias;
+    private $_id;
+    private $_descripcion;
+    private $_subcategorias_id;
+    private $_proyecto_generales_id;
+    private $_subcategorias;
 
     public function getId()
     {
@@ -79,9 +79,11 @@ class Subcategoria extends Mysql
                             'orden' => $i,
                             "proyecto_generales_id" =>  $this->_proyecto_generales_id,
                         ];
-                        if ($value->masterId) $val['subcategorias_master_id'] = $value->masterId;
+                        if ($value->masterId) {
+                            $val['subcategorias_master_id'] = $value->masterId;
+                        }
                         self::update("subcategorias_proyecto_general", $val, ['id' => $value->id]);
-                    } else if ($value->id == 0 && $value->masterId != 0) {
+                    } elseif ($value->id == 0 && $value->masterId != 0) {
                         $value = [
                             'descripcion' => $value->name,
                             'subcategorias_master_id' => $value->masterId,
@@ -208,8 +210,8 @@ class Subcategoria extends Mysql
                 WHERE proyecto_generales_id = :id  AND deleted_at is NULL";
         $presupuestos_general = self::fetchAllObj($sql_general, ['id' => $this->_id]);
         $data = [];
-        foreach ($presupuestos_general as  $key => $value) {
-            if ($value->presupuestos_proyecto_generales_id == NULL || $value->presupuestos_proyecto_generales_id == 0) {
+        foreach ($presupuestos_general as $key => $value) {
+            if ($value->presupuestos_proyecto_generales_id == null || $value->presupuestos_proyecto_generales_id == 0) {
                 $detail = $this->setMatrizPresupuesto($value->id, $presupuestos_general);
                 $total = 0;
                 foreach ($detail as $item) {

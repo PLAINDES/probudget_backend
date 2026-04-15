@@ -54,7 +54,7 @@ class EspecificacionesTecnicas extends Mysql
                 'position'
             ];
 
-            foreach ($column as  $value) {
+            foreach ($column as $value) {
                 if (isset($request->{$value}) && !empty($request->{$value})) {
                     if ($value != 'id') {
                         $this->_values[$value] = $request->{$value};
@@ -62,14 +62,15 @@ class EspecificacionesTecnicas extends Mysql
                     $this->{"_$value"} = $request->{$value};
                 }
             }
-            if ($request->subpresupuesto_id) $this->_subpresupuesto_id = $request->subpresupuesto_id;
+            if ($request->subpresupuesto_id) {
+                $this->_subpresupuesto_id = $request->subpresupuesto_id;
+            }
         }
     }
 
     public function getSave()
     {
         try {
-
             if ($this->_id) {
                 $sql = 'SELECT presupuestos_id, position FROM especificaciones_tecnicas WHERE id = :id';
                 $eept = self::fetchObj($sql, ['id' => $this->_id]);
@@ -163,7 +164,7 @@ class EspecificacionesTecnicas extends Mysql
             $detail = [];
             $k = $this->getOrderSubBudget($this->_subpresupuesto_id);
             foreach ($data as $i => $value) {
-                if ($value->presupuestos_proyecto_generales_id == NULL || $value->presupuestos_proyecto_generales_id == '') {
+                if ($value->presupuestos_proyecto_generales_id == null || $value->presupuestos_proyecto_generales_id == '') {
                     $index = $k + 1;
                     $index = $this->baseindex('', $index);
                     $this->assembled($data, $value->id, $index, $detail);
@@ -202,7 +203,6 @@ class EspecificacionesTecnicas extends Mysql
     public function getUnitaria()
     {
         try {
-
             $sql = "SELECT         
                            	especificaciones_tecnicas.id,
                             especificaciones_tecnicas.presupuestos_id,
@@ -273,7 +273,7 @@ class EspecificacionesTecnicas extends Mysql
             $k = 0;
             $groups = [];
             foreach ($items as $i => $value) {
-                if ($value->presupuestos_proyecto_generales_id == NULL || $value->presupuestos_proyecto_generales_id == '') {
+                if ($value->presupuestos_proyecto_generales_id == null || $value->presupuestos_proyecto_generales_id == '') {
                     $index = $k + 1;
                     $index = $this->baseindex('', $index);
                     $this->assembled($items, $value->id, $index, $detail);
@@ -303,91 +303,90 @@ class EspecificacionesTecnicas extends Mysql
         $subpresupuesto = self::fetchObj($sql, [
             'id' => $subpresupuestos_id
         ]);
-        if (!$subpresupuesto) return 0;
+        if (!$subpresupuesto) {
+            return 0;
+        }
 
         return ($subpresupuesto->orden - 1);
     }
 
     // Agregar este método en la clase EspecificacionesTecnicas
 
-public function getAll()
-{
-    try {
-        // Obtener todas las partidas del subpresupuesto
-        $sql_general = "SELECT id, `index`, descripcion, presupuestos_proyecto_generales_id, type_item
+    public function getAll()
+    {
+        try {
+            // Obtener todas las partidas del subpresupuesto
+            $sql_general = "SELECT id, `index`, descripcion, presupuestos_proyecto_generales_id, type_item
                         FROM presupuestos
                         WHERE proyecto_generales_id = :proyecto_generales_id
                         AND deleted_at IS NULL
                         AND subpresupuestos_id = :subpresupuesto_id
                         ORDER BY nro_orden ASC";
-        
-        $data = self::fetchAllObj($sql_general, [
+
+            $data = self::fetchAllObj($sql_general, [
             'proyecto_generales_id' => $this->_proyecto_generales_id,
             'subpresupuesto_id' => $this->_subpresupuesto_id
-        ]);
+            ]);
 
-        // Obtener todas las especificaciones técnicas
-        $sql_especs = "SELECT et.id, et.titulo, et.descripcion, et.presupuestos_id, et.position
+            // Obtener todas las especificaciones técnicas
+            $sql_especs = "SELECT et.id, et.titulo, et.descripcion, et.presupuestos_id, et.position
                        FROM especificaciones_tecnicas et
                        INNER JOIN presupuestos pt ON pt.id = et.presupuestos_id
                        WHERE et.proyecto_generales_id = :proyecto_generales_id 
                        AND et.deleted_at IS NULL
                        AND pt.subpresupuestos_id = :subpresupuesto_id
                        ORDER BY et.position ASC";
-        
-        $especs = self::fetchAllObj($sql_especs, [
-            'proyecto_generales_id' => $this->_proyecto_generales_id,
-            'subpresupuesto_id' => $this->_subpresupuesto_id
-        ]);
 
-        // Construir la estructura jerárquica de partidas
-        $detail = [];
-        $k = $this->getOrderSubBudget($this->_subpresupuesto_id);
-        
-        foreach ($data as $i => $value) {
-            if ($value->presupuestos_proyecto_generales_id == NULL || $value->presupuestos_proyecto_generales_id == '') {
-                $index = $k + 1;
-                $index = $this->baseindex('', $index);
-                $this->assembled($data, $value->id, $index, $detail);
-                $k++;
+            $especs = self::fetchAllObj($sql_especs, [
+                'proyecto_generales_id' => $this->_proyecto_generales_id,
+                'subpresupuesto_id' => $this->_subpresupuesto_id
+            ]);
+
+            // Construir la estructura jerárquica de partidas
+            $detail = [];
+            $k = $this->getOrderSubBudget($this->_subpresupuesto_id);
+
+            foreach ($data as $i => $value) {
+                if ($value->presupuestos_proyecto_generales_id == null || $value->presupuestos_proyecto_generales_id == '') {
+                    $index = $k + 1;
+                    $index = $this->baseindex('', $index);
+                    $this->assembled($data, $value->id, $index, $detail);
+                    $k++;
+                }
             }
-        }
 
-        // Ordenar por índice
-        usort($detail, function ($a, $b) {
-            return $a->index > $b->index;
-        });
+            // Ordenar por índice
+            usort($detail, function ($a, $b) {
+                return $a->index > $b->index;
+            });
 
-        // Agrupar especificaciones por presupuesto_id
-        $group = [];
-        foreach ($especs as $key => $value) {
-            if (!isset($group[$value->presupuestos_id])) {
-                $group[$value->presupuestos_id] = [];
+            // Agrupar especificaciones por presupuesto_id
+            $group = [];
+            foreach ($especs as $key => $value) {
+                if (!isset($group[$value->presupuestos_id])) {
+                    $group[$value->presupuestos_id] = [];
+                }
+                array_push($group[$value->presupuestos_id], $value);
             }
-            array_push($group[$value->presupuestos_id], $value);
-        }
 
-        // Asignar las especificaciones a cada partida
-        foreach ($detail as $key => $value) {
-            if (isset($group[$value->id])) {
-                $detail[$key]->detail = $group[$value->id];
-            } else {
-                $detail[$key]->detail = [];
+            // Asignar las especificaciones a cada partida
+            foreach ($detail as $key => $value) {
+                if (isset($group[$value->id])) {
+                    $detail[$key]->detail = $group[$value->id];
+                } else {
+                    $detail[$key]->detail = [];
+                }
             }
-        }
 
-        $resp['success'] = true;
-        $resp['data'] = $detail;
-        $resp['message'] = 'successfully';
-        
-        return $resp;
-        
-    } catch (\Throwable $th) {
-        $resp['success'] = false;
-        $resp['message'] = $th->getMessage();
-        return $resp;
+            $resp['success'] = true;
+            $resp['data'] = $detail;
+            $resp['message'] = 'successfully';
+
+            return $resp;
+        } catch (\Throwable $th) {
+            $resp['success'] = false;
+            $resp['message'] = $th->getMessage();
+            return $resp;
+        }
     }
-}
-
-    
 }

@@ -5,7 +5,6 @@ require_once(__DIR__ . '/../utilitarian/FG.php');
 
 class PresupuestosTitulos extends Mysql
 {
-
     private $_titulo;
     public function getpartidas()
     {
@@ -31,7 +30,9 @@ class PresupuestosTitulos extends Mysql
                     $sql = 'SELECT COUNT(id) AS id FROM titulos_proyecto WHERE id = :id  AND proyectos_generales_id = :proyectos_generales_id';
                     $presupuestos_title = self::fetchObj($sql, ['id' => $titleData->id, 'proyectos_generales_id' => $this->_proyecto_generales_id]);
                     $var = ["titulo" => $this->_titulo, 'proyectos_generales_id' => $this->_proyecto_generales_id];
-                    if ($titleData->masterid) $var['master_title_id'] = $titleData->masterid;
+                    if ($titleData->masterid) {
+                        $var['master_title_id'] = $titleData->masterid;
+                    }
                     if ($presupuestos_title && $presupuestos_title->id == 0) {
                         $insert = self::insert("titulos_proyecto", $var);
                         if ($insert && $insert["lastInsertId"]) {
@@ -42,7 +43,7 @@ class PresupuestosTitulos extends Mysql
                         self::update("titulos_proyecto", $var, ['id' => $titleData->id]);
                     }
                     return $titleData->id;
-                } else if ($titleData->id == 0 && $titleData->masterid != 0) {
+                } elseif ($titleData->id == 0 && $titleData->masterid != 0) {
                     $sql = 'SELECT COUNT(id) AS id FROM titulos_proyecto WHERE master_title_id = :master_title_id  AND proyectos_generales_id = :proyectos_generales_id';
                     $presupuestos_title = self::fetchObj($sql, ['master_title_id' => $titleData->masterid, 'proyectos_generales_id' => $this->_proyecto_generales_id]);
                     if ($presupuestos_title && $presupuestos_title->id == 0) {
@@ -62,7 +63,7 @@ class PresupuestosTitulos extends Mysql
                             'master_title_id' => $titleData->masterid
                         ]);
                     }
-                } else if ($titleData->id == 0 && $titleData->masterid == 0) {
+                } elseif ($titleData->id == 0 && $titleData->masterid == 0) {
                     $var = [
                         'titulo' => $this->_titulo,
                         'proyectos_generales_id' => $this->_proyecto_generales_id

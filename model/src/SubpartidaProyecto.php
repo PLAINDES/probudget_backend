@@ -6,7 +6,6 @@ require_once(__DIR__ . '/PartidaDetail.php');
 
 class SubpartidaProyecto extends Mysql
 {
-
     public function save($request)
     {
         $response = [];
@@ -66,7 +65,7 @@ class SubpartidaProyecto extends Mysql
                 }
             }
             if ($partida_id) {
-                $exist = NULL;
+                $exist = null;
                 if ($request->subpartida_id) {
                     $sql = "SELECT id FROM apus_partida_presupuestos WHERE partida_id = :partida_id AND subpartida_id = :uuid AND deleted_at IS NULL";
                     $exist = self::fetchObj($sql, ['partida_id' => $partida_id, 'uuid' => $request->subpartida_id]);
@@ -78,7 +77,7 @@ class SubpartidaProyecto extends Mysql
                             $response['message'] = 'Error la partida no puede incluirse';
                             return $response;
                         }
-                        $exist = NULL;
+                        $exist = null;
                     }
                 } else {
                     $sql = "SELECT id FROM apus_partida_presupuestos WHERE partida_id = :partida_id AND presupuestos_id = :uuid AND subpartida_id IS NULL AND deleted_at IS NULL";
@@ -135,7 +134,9 @@ class SubpartidaProyecto extends Mysql
             'presupuestos_id' => $request->presupuestos_id,
             'subpresupuestos_id' => $request->subpresupuestos_id
         ];
-        if ($request->parent_subpartida_id) $var['subpartida_id'] = $request->parent_subpartida_id;
+        if ($request->parent_subpartida_id) {
+            $var['subpartida_id'] = $request->parent_subpartida_id;
+        }
         $lastInsert = self::insert("apus_partida_presupuestos", $var);
         $request->subpartida_id = $lastInsert["lastInsertId"];
         $this->savePresupuestoPartida($request);
@@ -199,7 +200,9 @@ class SubpartidaProyecto extends Mysql
                 'master_insumo_id' => $insumo->id,
                 'proyectos_generales_id' => $proyectos_generales_id
             );
-            if ($insumo->precio) $var['precio'] = number_format($insumo->precio, 2, '.', '');
+            if ($insumo->precio) {
+                $var['precio'] = number_format($insumo->precio, 2, '.', '');
+            }
             $lastInsert = self::insert("insumos_proyecto", $var);
             $args->id = $lastInsert['lastInsertId'];
             $args->insumo = $insumo;
@@ -217,15 +220,23 @@ class SubpartidaProyecto extends Mysql
         $sql_a = 'SELECT id FROM presupuestos_partida 
                 WHERE subpartida_id = :subpartida_id AND proyectos_generales_id = :proyectos_generales_id';
         $val_a = self::fetchObj($sql_a, ['subpartida_id' => $request->subpartida_id, 'proyectos_generales_id' => $request->proyectos_generales_id]);
-        if ($request->rendimiento) $var['rendimiento'] = $request->rendimiento;
-        if ($request->rendimiento_unid) $var['rendimiento_unid'] = $request->rendimiento_unid;
-        if ($request->partida_proyecto_id) $var['partida_id'] = $request->partida_proyecto_id;
+        if ($request->rendimiento) {
+            $var['rendimiento'] = $request->rendimiento;
+        }
+        if ($request->rendimiento_unid) {
+            $var['rendimiento_unid'] = $request->rendimiento_unid;
+        }
+        if ($request->partida_proyecto_id) {
+            $var['partida_id'] = $request->partida_proyecto_id;
+        }
         if ($val_a) {
-            if (!empty($var)) self::update(
-                "presupuestos_partida",
-                $var,
-                ['subpartida_id' => $request->subpartida_id, 'proyectos_generales_id' => $request->proyectos_generales_id]
-            );
+            if (!empty($var)) {
+                self::update(
+                    "presupuestos_partida",
+                    $var,
+                    ['subpartida_id' => $request->subpartida_id, 'proyectos_generales_id' => $request->proyectos_generales_id]
+                );
+            }
         } else {
             $var['subpartida_id'] = $request->subpartida_id;
             $var['presupuestos_id'] = $request->presupuestos_id;

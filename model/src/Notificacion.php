@@ -4,7 +4,6 @@ require_once(__DIR__ . '/../persistence/Mysql.php'); // Cambiado de Mariadb a My
 
 class Notificacion extends Mysql
 {
-
     public function searchNotification($request)
     {
         $resp = [];

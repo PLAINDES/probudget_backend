@@ -2,18 +2,19 @@
 
 use Aws\Credentials\Credentials;
 use Aws\S3\S3Client;
-
 use Aws\S3\MultipartUploader;
+
 /**
 * @author A.joel
 */
-class Storage {
-
+class Storage
+{
     private $bucket = "platform-owlfiles";
 
     private $s3Client;
 
-    function __construct($bucket = "platform-owlfiles") {
+    function __construct($bucket = "platform-owlfiles")
+    {
 
         $access = "";
         $secret = "";
@@ -40,18 +41,18 @@ class Storage {
         $this->bucket = $bucket;
     }
 
-    public function storeAs( $source, $key, $size ) {
+    public function storeAs($source, $key, $size)
+    {
         $response = [];
-        if( $size ) {
+        if ($size) {
             try {
                 $uploader = new MultipartUploader($this->s3Client, $source, [
                     'bucket' => $this->bucket,
                     'key'    => $key,
-                ]);                    
-                $result = $uploader->upload();            
+                ]);
+                $result = $uploader->upload();
                 $response["success"] = true;
                 $response["data"] = $result['ObjectURL'];
-    
             } catch (Aws\Exception\MultipartUploadException $e) {
                 $response["success"] = false;
                 $response["message"] = $e->getMessage();
@@ -73,23 +74,28 @@ class Storage {
         return $response;
     }
 
-    public function _unlink($key) {
+    public function _unlink($key)
+    {
         return unlink("s3://{$this->bucket}/$key");
     }
 
-    public function _file_exists($key) {
+    public function _file_exists($key)
+    {
         return file_exists("s3://{$this->bucket}/$key");
     }
 
-    public function _filesize($key) {
+    public function _filesize($key)
+    {
         return filesize("s3://{$this->bucket}/$key");
     }
 
-    public function _readfile($key) {
+    public function _readfile($key)
+    {
         return readfile("s3://{$this->bucket}/$key");
     }
 
-    public function getSaveFile($source, $dest) {
+    public function getSaveFile($source, $dest)
+    {
         return $manager = $this->s3Client->getObject([
             'Bucket' => $this->bucket,
             'Key' => $source,
@@ -97,16 +103,19 @@ class Storage {
         ]);
     }
 
-    public function getSaveFolder($source, $dest) {
-        $manager = new \Aws\S3\Transfer($this->s3Client, $source, "s3://{$this->bucket}/".$dest);
+    public function getSaveFolder($source, $dest)
+    {
+        $manager = new \Aws\S3\Transfer($this->s3Client, $source, "s3://{$this->bucket}/" . $dest);
         return $manager->transfer();
     }
 
-    public function setBucket($bucket) {
+    public function setBucket($bucket)
+    {
         $this->bucket = $bucket;
     }
 
-    function getZiseConvert($bytes) {
+    function getZiseConvert($bytes)
+    {
         $bytes = floatval($bytes);
         $arBytes = array(
             0 => array(
@@ -141,7 +150,8 @@ class Storage {
         return $result;
     }
 
-    public function getExtencionArchivo($file_name) {
+    public function getExtencionArchivo($file_name)
+    {
 
         $tmp = explode(".", $file_name);
         $extencion = end($tmp);
@@ -206,5 +216,4 @@ class Storage {
 
         return $data;
     }
-
 }

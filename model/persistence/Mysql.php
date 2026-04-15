@@ -1,4 +1,5 @@
 <?php
+
 /*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
@@ -148,33 +149,33 @@ class Mysql
 
 
 /**
- *  
- * 
+ *
+ *
  * @param string $sql - Consulta SQL
  * @param array $params - Parámetros para binding
  * @return bool - True si la ejecución fue exitosa
  */
-public static function execute($sql, $params = [])
-{
-    try {
-        $pdo = self::Connection();
-        $stmt = $pdo->prepare($sql);
-        $result = $stmt->execute($params);
-        
-        if (!$result) {
-            error_log("Error en execute(): Query falló");
+    public static function execute($sql, $params = [])
+    {
+        try {
+            $pdo = self::Connection();
+            $stmt = $pdo->prepare($sql);
+            $result = $stmt->execute($params);
+
+            if (!$result) {
+                error_log("Error en execute(): Query falló");
+                error_log("SQL: " . $sql);
+                error_log("Params: " . print_r($params, true));
+            }
+
+            return $result;
+        } catch (PDOException $e) {
+            error_log("PDOException en execute(): " . $e->getMessage());
             error_log("SQL: " . $sql);
             error_log("Params: " . print_r($params, true));
+            throw $e;
         }
-        
-        return $result;
-    } catch (PDOException $e) {
-        error_log("PDOException en execute(): " . $e->getMessage());
-        error_log("SQL: " . $sql);
-        error_log("Params: " . print_r($params, true));
-        throw $e;
     }
-}
 
 
     // ==========================================
@@ -183,7 +184,7 @@ public static function execute($sql, $params = [])
 
     /**
      * Iniciar una transacción
-     * 
+     *
      * @return bool
      */
     public static function beginTransaction()
@@ -203,7 +204,7 @@ public static function execute($sql, $params = [])
 
     /**
      * Confirmar (commit) una transacción
-     * 
+     *
      * @return bool
      */
     public static function commit()
@@ -223,7 +224,7 @@ public static function execute($sql, $params = [])
 
     /**
      * Revertir (rollback) una transacción
-     * 
+     *
      * @return bool
      */
     public static function rollback()
@@ -243,7 +244,7 @@ public static function execute($sql, $params = [])
 
     /**
      * Verificar si hay una transacción activa
-     * 
+     *
      * @return bool
      */
     public static function inTransaction()
@@ -255,58 +256,57 @@ public static function execute($sql, $params = [])
     /**
      * Obtener el número de filas afectadas por la última operación
      * Solo funciona con INSERT, UPDATE, DELETE
-     * 
+     *
      * @return int
      */
     public static function rowCount()
     {
         $pdo = self::Connection();
-        return 0; 
+        return 0;
     }
 
     /**
      * Ejecutar múltiples queries en una transacción
-     * 
+     *
      * @param array $queries - Array de arrays ['sql' => '...', 'params' => [...]]
      * @return array - ['success' => bool, 'message' => string, 'affected' => int]
      */
     public static function executeTransaction(array $queries)
     {
         $response = ['success' => false, 'message' => '', 'affected' => 0];
-        
+
         try {
             self::beginTransaction();
-            
+
             $totalAffected = 0;
             foreach ($queries as $query) {
                 $sql = $query['sql'] ?? '';
                 $params = $query['params'] ?? [];
-                
+
                 if (empty($sql)) {
                     throw new Exception("Query SQL vacía en transacción");
                 }
-                
+
                 $result = self::ex($sql, $params);
-                
+
                 if (!$result) {
                     throw new Exception("Error ejecutando query: {$sql}");
                 }
-                
+
                 $totalAffected++;
             }
-            
+
             self::commit();
-            
+
             $response['success'] = true;
             $response['message'] = "Transacción completada exitosamente";
             $response['affected'] = $totalAffected;
-            
         } catch (Exception $e) {
             self::rollback();
             $response['message'] = "Error en transacción: " . $e->getMessage();
             error_log("executeTransaction failed: " . $e->getMessage());
         }
-        
+
         return $response;
     }
 }

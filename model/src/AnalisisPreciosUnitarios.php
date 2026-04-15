@@ -66,7 +66,7 @@ class AnalisisPreciosUnitarios extends Mysql
         return $this->_values;
     }
 
-    public function __construct($request = NULL)
+    public function __construct($request = null)
     {
         if ($request) {
             $column = [
@@ -79,7 +79,7 @@ class AnalisisPreciosUnitarios extends Mysql
                 'rendimiento_unid',
             ];
 
-            foreach ($column as  $value) {
+            foreach ($column as $value) {
                 if (isset($request->{$value}) && !empty($request->{$value})) {
                     $this->_values[$value] = $request->{$value};
                     $this->{"_$value"} = $request->{$value};
@@ -98,7 +98,6 @@ class AnalisisPreciosUnitarios extends Mysql
     public function getSave()
     {
         try {
-
             if ($this->_id) {
                 $sql = 'SELECT COUNT(id) FROM analisis_precios_unitarios WHERE id = :id';
                 $analisisPreciosUnitarios = self::fetchObj($sql, ['id' => $this->_id]);

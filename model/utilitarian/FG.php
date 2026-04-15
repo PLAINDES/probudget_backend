@@ -1,4 +1,5 @@
 <?php
+
 //namespace model\utilitarian;
 use Carbon\Carbon;
 
@@ -7,36 +8,42 @@ use Carbon\Carbon;
  *
  * @author PLATAFORMA
  */
-class FG {
-
-    public static function VD($objeto) {
+class FG
+{
+    public static function VD($objeto)
+    {
         echo '<pre>';
         var_dump($objeto);
         echo '<pre>';
         exit();
     }
 
-    public static function _VD($objeto) {
+    public static function _VD($objeto)
+    {
         echo '<pre>';
         var_dump($objeto);
         echo '<pre>';
     }
 
-    public static function W($string) {
+    public static function W($string)
+    {
         echo $string;
     }
 
-    public static function WE($string) {
+    public static function WE($string)
+    {
         exit($string);
     }
 
-    public static function getFecha() {
+    public static function getFecha()
+    {
         date_default_timezone_set('America/Lima');
         $fecha = date("d/m/Y");
         return $fecha;
     }
 
-    public static function getCarbonDate($format="Y-m-d H:i:s", $days = false, $date = false) {
+    public static function getCarbonDate($format = "Y-m-d H:i:s", $days = false, $date = false)
+    {
         $date = $date ? new Carbon($date)  : Carbon::now();
         $date->setTimezone('America/Lima');
         if (is_numeric($days)) {
@@ -47,38 +54,44 @@ class FG {
         return $fecha;
     }
 
-    public static function getCarbonUnixNow() {
+    public static function getCarbonUnixNow()
+    {
         $date = Carbon::now();
         //$date->setTimezone('America/Lima');
         return $date->timestamp;
     }
 
-    public static function getFechaHoraFormat() {
+    public static function getFechaHoraFormat()
+    {
         $date = Carbon::now();
         $date->setTimezone('America/Lima');
         $fecha = $date->format('d-m-Y h:i A');
         return $fecha;
     }
 
-    public static function getFechaMysql() {
+    public static function getFechaMysql()
+    {
         date_default_timezone_set('America/Lima');
         $fecha = date("Y-m-d");
         return $fecha;
     }
 
-    public static function getHora() {
+    public static function getHora()
+    {
         date_default_timezone_set('America/Lima');
         $hora = $fecha = date("H:i:s");
         return $hora;
     }
 
-    public static function getFechaHora($format = "Y-m-d H:i:s") {
+    public static function getFechaHora($format = "Y-m-d H:i:s")
+    {
         date_default_timezone_set('America/Lima');
         $fecha = date($format);
         return $fecha;
     }
 
-    public static function getFormatFecha($fecha) {
+    public static function getFormatFecha($fecha)
+    {
         if (preg_match("/([0-9]{4})-([0-9]{1,2})-([0-9]{1,2})/", $fecha, $partes)) {
             $mes = 'de ' . FG::getFechaMes($partes[2]) . ' del ';
             return $partes[3] . " " . $mes . $partes[1];
@@ -88,52 +101,62 @@ class FG {
         }
     }
 
-    public static function getFormat($fecha) {
+    public static function getFormat($fecha)
+    {
         $date = Carbon::createFromFormat('Y-m-d', '2018-08-17');
         $date = $date->format("d/m/Y");
         return $date;
     }
 
-    public static function getFormatDate($fecha) {
+    public static function getFormatDate($fecha)
+    {
         $date = Carbon::createFromFormat('d/m/Y', $fecha);
         $date = $date->format('Y-m-d');
         return $date;
     }
 
-    public static function getFechaMes($num) {
+    public static function getFechaMes($num)
+    {
         $meses = array('Error', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
             'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre');
         $num_limpio = $num >= 1 && $num <= 12 ? intval($num) : 0;
         return $meses[$num_limpio];
     }
 
-    public static function dominio() {
+    public static function dominio()
+    {
         return $_SERVER['HTTP_HOST'];
     }
 
-    public function base_url() {
+    public function base_url()
+    {
         return sprintf(
-            "%s://%s", isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off' ? 'https' : 'http', $_SERVER['HTTP_HOST']
+            "%s://%s",
+            isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off' ? 'https' : 'http',
+            $_SERVER['HTTP_HOST']
         );
-
     }
 
-    public function getYear() {
+    public function getYear()
+    {
         $dt = Carbon::now();
         return $dt->year;
     }
 
-    public function getMonth() {
+    public function getMonth()
+    {
         $dt = Carbon::now();
         return $dt->month;
     }
 
-    public static function getStringTime($param) {
+    public static function getStringTime($param)
+    {
         $dt = Carbon::parse($param);
         return $dt->timestamp;
     }
 
-    public function FechaHoraText($fecha, $titulo = "") {
+    public function FechaHoraText($fecha, $titulo = "")
+    {
         $segmentosFechaHora = explode(" ", $fecha);
         $segmenFecha = explode("-", $segmentosFechaHora[0]);
         $year = $segmenFecha[0];
@@ -195,23 +218,27 @@ class FG {
         return $valor;
     }
 
-    public function Mes($num) {
+    public function Mes($num)
+    {
         $meses = array('Error', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
             'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre');
         $num_limpio = $num >= 1 && $num <= 12 ? intval($num) : 0;
         return $meses[$num_limpio];
     }
 
-    public static function isNoNumericString($str) {
+    public static function isNoNumericString($str)
+    {
         return preg_match("/^[a-zA-Z áéíóúÁÉÍÓÚñÑ]+$/", $str);
     }
 
-    public static  function debug($data = "", $debug = false) {
+    public static function debug($data = "", $debug = false)
+    {
         $data = is_object($data) || is_array($data) ? json_encode($data) : $data;
-        self::recordErrorLog($data, (($debug) ? $debug : debug_backtrace()) );
+        self::recordErrorLog($data, (($debug) ? $debug : debug_backtrace()));
     }
 
-    public static  function recordErrorLog($msg = "", $debug = false) {
+    public static function recordErrorLog($msg = "", $debug = false)
+    {
         try {
             $mydebug = debug_backtrace();
             array_shift($mydebug);
@@ -231,23 +258,24 @@ class FG {
             $fullmessage .= "LINE: " . $debug["line"] . "\r\n";
             $fullmessage .= "CLASS: " . $debug["class"] . "\r\n";
             $fullmessage .= "FUNCTION: " . $debug["function"] . "\r\n";
-            $fullmessage .= "MESSAGE: ".$msg . "\r\n";
+            $fullmessage .= "MESSAGE: " . $msg . "\r\n";
             // $fullmessage .= "BACKTRACE: ".json_encode(debug_backtrace()) . "\r\n";
             $fullmessage .= "--- END " . $date . " ---\r\n\r\n";
             $text = file_get_contents($fullpath);
             $text = $fullmessage . $text;
             file_put_contents($fullpath, $text);
         } catch (Exception $e) {
-            
         }
     }
 
-    public static function validateDateFromFormat($date, $format = 'Y-m-d H:i:s') {
+    public static function validateDateFromFormat($date, $format = 'Y-m-d H:i:s')
+    {
         $d = DateTime::createFromFormat($format, $date);
         return $d && $d->format($format) == $date;
     }
 
-    public static function hoursToMinutes($hours) {
+    public static function hoursToMinutes($hours)
+    {
         $minutes = 0;
         if (strpos($hours, ':') !== false) {
             list($hours, $minutes) = explode(':', $hours);
@@ -255,11 +283,13 @@ class FG {
         return $hours * 60 + $minutes;
     }
 
-    public static function isEmail($str = "") {
+    public static function isEmail($str = "")
+    {
         return filter_var($str, FILTER_VALIDATE_EMAIL);
     }
 
-    public static function rand_string($characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", $lenght = 10) {
+    public static function rand_string($characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", $lenght = 10)
+    {
         $string = '';
         $max = strlen($characters) - 1;
         for ($i = 0; $i < $lenght; $i++) {
@@ -268,7 +298,8 @@ class FG {
         return $string;
     }
 
-    public static function cleanString($texto) {
+    public static function cleanString($texto)
+    {
 
         $temp = strtolower($texto);
         $b1 = array();
@@ -302,12 +333,15 @@ class FG {
         return $nueva_cadena;
     }
 
-    public static function getRealIP() {
-        if (!empty($_SERVER['HTTP_CLIENT_IP']))
+    public static function getRealIP()
+    {
+        if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
             return $_SERVER['HTTP_CLIENT_IP'];
+        }
 
-        if (!empty($_SERVER['HTTP_X_FORWARDED_FOR']))
+        if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
             return $_SERVER['HTTP_X_FORWARDED_FOR'];
+        }
 
         return $_SERVER['REMOTE_ADDR'];
     }
@@ -325,13 +359,14 @@ class FG {
         return substr(str_shuffle(str_repeat($pool, 5)), 0, $length);
     }
 
-    public static function fixSpecialCharecters($str,$except="",$replace=""){
+    public static function fixSpecialCharecters($str, $except = "", $replace = "")
+    {
         $replaced = str_replace(
-                            ["á", "é", "í", "ó", "ú", "Á", "É", "Í", "Ó", "Ú", "ñ"],
-                            ["a", "e", "i", "o", "u", "A", "E", "I", "O", "U", "n"],
-                            $str);
-        return preg_replace('/[^A-Za-z0-9\\'.$except.']/', $replace, $replaced);
-
+            ["á", "é", "í", "ó", "ú", "Á", "É", "Í", "Ó", "Ú", "ñ"],
+            ["a", "e", "i", "o", "u", "A", "E", "I", "O", "U", "n"],
+            $str
+        );
+        return preg_replace('/[^A-Za-z0-9\\' . $except . ']/', $replace, $replaced);
     }
 
     public static function isDate($date, $format = 'Y-m-d H:i:s')
@@ -340,50 +375,54 @@ class FG {
         return $d && $d->format($format) == $date;
     }
 
-    public static function slugify($str, $delimiter = '-') {
+    public static function slugify($str, $delimiter = '-')
+    {
         $slug = strtolower(trim(preg_replace('/[\s-]+/', $delimiter, preg_replace('/[^A-Za-z0-9-]+/', $delimiter, preg_replace('/[&]/', 'and', preg_replace('/[\']/', '', iconv('UTF-8', 'ASCII//TRANSLIT', $str))))), $delimiter));
         return $slug;
     }
 
-    public static function encodeURI($url) {
-        if(!$url)return $url; 
+    public static function encodeURI($url)
+    {
+        if (!$url) {
+            return $url;
+        }
 
-        $res = preg_match('/.*:\/\/(.*?)\//',$url,$matches);
-        if($res){
-
+        $res = preg_match('/.*:\/\/(.*?)\//', $url, $matches);
+        if ($res) {
             // except host name
-            $url_tmp = str_replace($matches[0],"",$url);
+            $url_tmp = str_replace($matches[0], "", $url);
 
             // except query parameter
-            $url_tmp_arr = explode("?",$url_tmp);
+            $url_tmp_arr = explode("?", $url_tmp);
 
             // encode each tier
             $url_tear = explode("/", $url_tmp_arr[0]);
-            foreach ($url_tear as $key => $tear){
+            foreach ($url_tear as $key => $tear) {
                 $url_tear[$key] = rawurlencode($tear);
             }
 
-            $ret_url = $matches[0].implode('/',$url_tear);
+            $ret_url = $matches[0] . implode('/', $url_tear);
 
             // encode query parameter
-            if(count($url_tmp_arr) >= 2){
-                $ret_url .= "?".$this->encodeURISub($url_tmp_arr[1]);
+            if (count($url_tmp_arr) >= 2) {
+                $ret_url .= "?" . $this->encodeURISub($url_tmp_arr[1]);
             }
             return $ret_url;
-        }else{
+        } else {
             return $this->encodeURISub($url);
         }
     }
 
-    public function ExcelABC($i) {
+    public function ExcelABC($i)
+    {
         $str = "";
         $abc = array('A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z');
-        $labc= count($abc)-1;
-        if ($i>$labc) {
+        $labc = count($abc) - 1;
+        if ($i > $labc) {
             $ll  = intval($i / count($abc));
             $l   = $ll - 1;
-            $i  -= (count($abc)*$ll);
-            return $abc[$l]. FG::ExcelABC($i);
+            $i  -= (count($abc) * $ll);
+            return $abc[$l] . FG::ExcelABC($i);
         } else {
             $str .= $abc[$i];
         }
@@ -391,7 +430,8 @@ class FG {
         return $str;
     }
 
-    public static function randPassword() {
+    public static function randPassword()
+    {
         $alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
         $pass = array();
         $alphaLength = strlen($alphabet) - 1;
@@ -413,15 +453,19 @@ class FG {
         return $random;
     }
 
-    public static function validateMatrizKey($cadena,$array, $default = "")
+    public static function validateMatrizKey($cadena, $array, $default = "")
     {
-         return (array_key_exists($cadena,$array))?$array[$cadena]:$default;
+         return (array_key_exists($cadena, $array)) ? $array[$cadena] : $default;
     }
 
-    public static function siNumeric($nro) { return ($nro)?$nro:1; }
+    public static function siNumeric($nro)
+    {
+        return ($nro) ? $nro : 1;
+    }
 
-    public static function _crypt($string) {
-       
+    public static function _crypt($string)
+    {
+
         return crypt($string, '$2a$09$tARm1a9A9N7q1W9T9n5LqR$');
     }
 
@@ -475,8 +519,8 @@ class FG {
         return $random_string;
     }
 
-    public static function numberFormat($num, $decimal = 2) {
+    public static function numberFormat($num, $decimal = 2)
+    {
         return number_format($num, $decimal, '.', ',');
     }
-    
 }

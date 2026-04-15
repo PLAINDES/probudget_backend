@@ -5,7 +5,6 @@ require_once(__DIR__ . '/../utilitarian/FG.php');
 
 class PartidaDetail extends Mysql
 {
-
     public function getSave($param)
     {
         if ($param['master_partidas_id']) {
@@ -21,8 +20,12 @@ class PartidaDetail extends Mysql
                         'presupuestos_id' => $param['id'],
                         'subpresupuestos_id' => $param['subpresupuestos_id']
                     );
-                    if ($apu->cuadrilla) $var['cuadrilla'] = number_format($apu->cuadrilla, 2, '.', '');
-                    if ($apu->cantidad) $var['cantidad'] = number_format($apu->cantidad, 4, '.', '');
+                    if ($apu->cuadrilla) {
+                        $var['cuadrilla'] = number_format($apu->cuadrilla, 2, '.', '');
+                    }
+                    if ($apu->cantidad) {
+                        $var['cantidad'] = number_format($apu->cantidad, 4, '.', '');
+                    }
                     $lastInsert = self::insert("apus_partida_presupuestos", $var);
                 }
             }
@@ -47,7 +50,9 @@ class PartidaDetail extends Mysql
                 'master_insumo_id' => $insumo->id,
                 'proyectos_generales_id' => $proyectos_generales_id
             );
-            if ($insumo->precio) $var['precio'] = number_format($insumo->precio, 2, '.', '');
+            if ($insumo->precio) {
+                $var['precio'] = number_format($insumo->precio, 2, '.', '');
+            }
             $lastInsert = self::insert("insumos_proyecto", $var);
             return $lastInsert['lastInsertId'];
         } else {
