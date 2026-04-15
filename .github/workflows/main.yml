@@ -1,18 +1,42 @@
-name: Deploy Backend
+name: Deploy Frontend
 
 on:
   push:
     branches: [devsb]
+  pull_request:
+    branches: [devsb]
+
+concurrency:
+  group: ci-${{github.ref}}
+  cancel-in-progress: true
 
 jobs:
-  deploy:
+  lint:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      - name: Copiar archivos vía SFTP
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "7.4"
+          tools: phpcs
+
+      - name: Lint PHP
+        run: phpcs --standard=PSR12 --extensions=php controller/ model/ public/
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: lint
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Copiar archivos via SFTP
         uses: wlixcc/SFTP-Deploy-Action@v1.2.4
         with:
           server: ${{ secrets.FTP_HOST }}
@@ -22,7 +46,7 @@ jobs:
           remote_path: /home/ftpceon/ftp/probudget/backend/
           exclude: ".git .github"
 
-      - name: Reconstruir contenedor vía SSH
+      - name: Reconstruir contenedor via SSH
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.FTP_HOST }}
