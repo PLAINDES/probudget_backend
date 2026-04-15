@@ -25,7 +25,7 @@ jobs:
           tools: phpcs
 
       - name: Lint PHP
-        run: phpcs --standard=PSR12 --extensions=php controller/ model/ public/
+        run: phpcs --standard=PSR12 --extensions=php public/ src/
 
   deploy:
     runs-on: ubuntu-latest
