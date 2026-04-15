@@ -22,10 +22,12 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "7.4"
-          tools: phpcs
+
+      - name: Instalar dependencias
+        run: composer install --no-progress --prefer-dist
 
       - name: Lint PHP
-        run: phpcs --standard=PSR12 --extensions=php public/ src/
+        run: ./vendor/bin/phpcs --standard=PSR12 --extensions=php public/ src/ -n
 
   deploy:
     runs-on: ubuntu-latest
