@@ -50,6 +50,19 @@ class Archivo extends Mysql
             $result     =   $diskS3->storeAs($tmp_name, $key, $size);
 
             //$path = $folder . time() . strtoupper(FG::alfanumerico()) . '-' . FG::slugify($name);
+            $region = $_ENV['REGION_AWS'];
+            $bucket = $_ENV['BUCKET_NAME'];
+            $data = [
+                'nombre'    => $name,
+                'formato'   => pathinfo($name, PATHINFO_EXTENSION),
+                'tipo'      => $type,
+                'peso'      => $size,
+                'bucket'    => 'platform-owlfiles',
+                'url' => "https://{$bucket}.s3.{$region}.amazonaws.com/{$key}",
+                'size'      => FG::getZiseConvert($size),
+                'user_id'   => $user_id
+            ];
+/*
             $data = [
                 'nombre'    => $name,
                 'formato'   => pathinfo($name, PATHINFO_EXTENSION),
@@ -60,6 +73,7 @@ class Archivo extends Mysql
                 'size'      => FG::getZiseConvert($size),
                 'user_id'   => $user_id
             ];
+            */
             $finalpath = $basepath . $path;
             // move_uploaded_file($file['tmp_name'], "$finalpath");
 

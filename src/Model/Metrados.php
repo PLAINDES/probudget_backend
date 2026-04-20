@@ -189,10 +189,13 @@ class Metrados extends Mysql
 
             $this->updateMetradoPartida($metered);
 
+            $region = $_ENV['REGION_AWS'];
+            $bucket = $_ENV['BUCKET_NAME'];
+
             $resp['success'] = true;
             $resp['message'] = 'Lista de metrados';
             $resp['data'] = $metrados;
-            $resp['url_imagen'] = $_ENV['URL_IMAGES'];
+            $resp['url_imagen'] = "https://{$bucket}.s3.{$region}.amazonaws.com/";
         } catch (\Throwable $th) {
             $resp['success'] = false;
             $resp['message'] = $th->getMessage();
@@ -202,6 +205,9 @@ class Metrados extends Mysql
 
     private function uploadImage($user_id = 0)
     {
+        $region = $_ENV['REGION_AWS'];
+        $bucket = $_ENV['BUCKET_NAME'];
+
         $name       =   $_FILES["img"]["name"];
         $type       =   $_FILES["img"]["type"];
         $tmp_name   =   $_FILES["img"]["tmp_name"];
@@ -215,7 +221,7 @@ class Metrados extends Mysql
             'tipo'      => $type,
             'peso'      => $size,
             'bucket'    => 'platform-owlfiles',
-            'url'       => $_ENV['URL_IMAGES'] . $key,
+            'url'       => "https://{$bucket}.s3.{$region}.amazonaws.com/{$key}" . $key,
             'size'      => FG::getZiseConvert($size),
             'user_id'   => $user_id
         ];
@@ -304,10 +310,13 @@ class Metrados extends Mysql
             }
         }
 
+        $region = $_ENV['REGION_AWS'];
+        $bucket = $_ENV['BUCKET_NAME'];
+
         $resp['success'] = true;
         $resp['message'] = 'Lista de metrados';
         $resp['data'] = $data;
-        $resp['url_imagen'] = $_ENV['URL_IMAGES'];
+        $resp['url_imagen'] = "https://{$bucket}.s3.{$region}.amazonaws.com/";
 
         return $resp;
     }
