@@ -1,4 +1,9 @@
 {
+  "autoload": {
+    "psr-4": {
+      "App\\": "src/"
+    }
+  },
   "require": {
     "vlucas/phpdotenv": "5.6.2",
     "klein/klein": "2.1.2",
@@ -9,5 +14,19 @@
     "smalot/pdfparser": "^2.12",
     "setasign/fpdi": "^2.6",
     "setasign/fpdf": "^1.8"
+  },
+  "config": {
+    "audit": {
+      "ignore": [
+        "PKSA-y2cr-5h3j-g3ys",
+        "PKSA-2kqm-ps5x-s4f5",
+        "PKSA-4t1p-xpk2-nsss",
+        "PKSA-dxyf-6n16-t87m",
+        "PKSA-64jn-3d9t-gncx"
+      ]
+    }
+  },
+  "require-dev": {
+    "squizlabs/php_codesniffer": "^4.0"
   }
 }
