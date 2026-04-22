@@ -27,6 +27,7 @@ use stdClass;
 
 class User extends Mysql
 {
+    /*
     public function signUp($email, $accept_policies, $domain, $oauth_provider, $roleId, $password = null)
     {
         $resp = array();
@@ -61,6 +62,58 @@ class User extends Mysql
             $resp['success'] = false;
             $resp['message'] = $th->getMessage();
         }
+        return $resp;
+    }*/
+
+    public function signUp($email, $accept_policies, $domain, $roleId, $password = null)
+    {
+        $resp = [];
+
+        try {
+            if ($this->findByEmail($email)->success) {
+                return [
+                    'success' => false,
+                    'message' => 'El usuario ya se encuentra registrado'
+                ];
+            }
+
+            $password = FG::crypt($password);
+
+            $insert = self::insert("users", [
+                'email' => $email,
+                'accept_policies' => $accept_policies,
+                'password' => $password,
+                'roleId' => $roleId,
+                'oauth_provider' => null,
+                'created_at' => FG::getFechaHora(),
+                'updated_at' => FG::getFechaHora()
+            ]);
+
+            if ($insert && $insert["lastInsertId"]) {
+                $id = $insert["lastInsertId"];
+
+                $resp['success'] = true;
+                $resp['message'] = 'Usuario registrado';
+                $resp['data'] = self::fetchObj(
+                    'SELECT id,email FROM users WHERE id = :id',
+                    compact('id')
+                );
+
+               // $token    = HelperJWT::encode(['exp' =>  time() + 3700, 'id' =>  $id]);
+               // $url      = "{$domain}/user/confirm-email/{$token}";
+               // $asunto   = 'Confirmación de correo electrónico';
+               // $template = 'emails/confirmar-email.twig';
+                //$this->sendEmail($resp['data'], $domain, $url, $asunto, $template);
+            } else {
+                $resp['success'] = false;
+                $resp['message'] = 'Error al registrar usuario';
+            }
+        } catch (\Throwable $th) {
+            $resp['success'] = false;
+            $resp['message'] = $th->getMessage();
+        }
+
+        error_log("Respuesta: " . print_r($resp, true));
         return $resp;
     }
 
@@ -101,7 +154,14 @@ class User extends Mysql
                 $res = self::update("users", compact('code_password'), compact('email'));
                 if ($res) {
                     $data = ['email' => $email, 'code' => $code_password];
-                    $this->sendEmail($data, '', '', 'Restablecer contraseña', 'emails/remember-password.twig');
+                    $this->sendEmail(
+                        $data,
+                        '',
+                        '',
+                        'Restablecer contraseña',
+                        'emails/remember-password.twig'
+                    );
+
                     $resp['success'] = true;
                     $resp['message'] = 'Envio exitoso';
                     $resp['data'] = $data;
@@ -161,44 +221,73 @@ class User extends Mysql
 
     public function signUpGmail($request)
     {
-        $resp = array();
+        $resp = new stdClass();
+
         try {
-            $filter = array(
-            'oauth_uid' => $request->id,
-            'oauth_provider' => $request->oauth_provider
-            );
-            $data = $this->find($filter);
+            // Login directo por OAuth
+            $data = $this->find([
+                'oauth_uid' => $request->oauth_uid,
+                'oauth_provider' => $request->oauth_provider
+            ]);
+
             if ($data->success) {
                 return $data;
             }
-            $data = array(
-            'oauth_uid' => $request->oauth_uid,
-            'email' => $request->email,
-            'first_name' => $request->first_name,
-            'last_name' => $request->last_name,
-            'gender' => $request->gender,
-            'locale' => $request->locale,
-            'picture' => $request->picture,
-            'oauth_provider' => $request->oauth_provider,
-            'confirm_email' => '1',
-            'accept_policies' => $request->accept_policies,
-            'created_at' => FG::getFechaHora(),
-            'updated_at' => FG::getFechaHora()
-            );
-            $insert = self::insert("users", $data);
-            if ($insert && $insert["lastInsertId"]) {
-                $data['id'] = $insert["lastInsertId"];
-                $resp['success'] = true;
-                $resp['message'] = 'Usuario registrado';
-                $resp['data'] = $data;
-            } else {
-                $resp['success'] = false;
-                $resp['message'] = 'Ocurrió un erro al registrar usuario';
+
+            // Buscar por email (vincular)
+            $userByEmail = $this->findByEmail($request->email);
+
+            if ($userByEmail->success) {
+                self::execute(
+                    "UPDATE users 
+                    SET oauth_uid = :oauth_uid,
+                        oauth_provider = :oauth_provider,
+                        updated_at = :updated_at
+                    WHERE id = :id",
+                    [
+                        'oauth_uid' => $request->oauth_uid,
+                        'oauth_provider' => $request->oauth_provider,
+                        'updated_at' => FG::getFechaHora(),
+                        'id' => $userByEmail->data->id
+                    ]
+                );
+
+                return $this->find([
+                    'oauth_uid' => $request->oauth_uid,
+                    'oauth_provider' => $request->oauth_provider
+                ]);
             }
+
+            // Registrar nuevo usuario OAuth
+            $insert = self::insert("users", [
+                'oauth_uid' => $request->oauth_uid,
+                'email' => $request->email,
+                'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
+                'gender' => $request->gender,
+                'locale' => $request->locale,
+                'picture' => $request->picture,
+                'oauth_provider' => $request->oauth_provider,
+                'confirm_email' => '1',
+                'accept_policies' => $request->accept_policies,
+                'created_at' => FG::getFechaHora(),
+                'updated_at' => FG::getFechaHora()
+            ]);
+
+            if ($insert && $insert["lastInsertId"]) {
+                return $this->find([
+                    'oauth_uid' => $request->oauth_uid,
+                    'oauth_provider' => $request->oauth_provider
+                ]);
+            }
+
+            $resp->success = false;
+            $resp->message = 'Error al registrar usuario';
         } catch (\Throwable $th) {
-            $resp['success'] = false;
-            $resp['message'] = $th->getMessage();
+            $resp->success = false;
+            $resp->message = $th->getMessage();
         }
+
         return $resp;
     }
 
@@ -264,13 +353,18 @@ class User extends Mysql
     private function findByEmail($email)
     {
         $resp = new stdClass();
+
         try {
-            $sql = 'SELECT COUNT(1) AS checked, id FROM users WHERE email = :email';
+            $sql = 'SELECT id, email, first_name, last_name, picture 
+                    FROM users 
+                    WHERE email = :email 
+                    LIMIT 1';
+
             $rs = self::fetchObj($sql, compact('email'));
-            if ($rs->checked) {
+
+            if ($rs && $rs->id) {
                 $resp->success = true;
-                $resp->id = $rs->id;
-                $resp->message = 'User found';
+                $resp->data = $rs; // ✔ consistente
             } else {
                 $resp->success = false;
                 $resp->message = 'User does not exist';
@@ -279,6 +373,7 @@ class User extends Mysql
             $resp->success = false;
             $resp->message = $th->getMessage();
         }
+
         return $resp;
     }
 
@@ -327,12 +422,17 @@ class User extends Mysql
     private function find($args)
     {
         $resp = new stdClass();
+
         try {
-            $sql = 'SELECT id,email,first_name,last_name,picture FROM users WHERE oauth_uid = :oauth_uid AND oauth_provider = :oauth_provider';
+            $sql = 'SELECT id,email,first_name,last_name,picture 
+                    FROM users 
+                    WHERE oauth_uid = :oauth_uid 
+                    AND oauth_provider = :oauth_provider';
+
             $rs = self::fetchObj($sql, $args);
+
             if ($rs && $rs->id) {
                 $resp->success = true;
-                $resp->message = 'Usuario registrado';
                 $resp->data = $rs;
             } else {
                 $resp->success = false;
@@ -342,6 +442,7 @@ class User extends Mysql
             $resp->success = false;
             $resp->message = $th->getMessage();
         }
+
         return $resp;
     }
 
@@ -361,6 +462,7 @@ class User extends Mysql
         );
         $SES            =   new EmailSES();
         $email_info     =   $SES->enviarEmail('', '', '', '', $url, $parametros_ses, $template);
+        error_log("Email info: " . print_r($email_info, true));
         $email_info["message"] = 'Correo enviado correctamente.';
         return $email_info;
     }
