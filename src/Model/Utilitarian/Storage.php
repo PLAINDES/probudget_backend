@@ -23,12 +23,12 @@ class Storage
 
         switch ($bucket) {
             case 'platform-owlfiles':
-                $access = $_ENV['AWS_ACCES_KEY_S3'];
+                $access = $_ENV['AWS_ACCESS_KEY_S3'];
                 $secret = $_ENV['AWS_SECRET_KEY_S3'];
                 break;
 
             default:
-                $access = $_ENV['AWS_ACCES_KEY_S3'];
+                $access = $_ENV['AWS_ACCESS_KEY_S3'];
                 $secret = $_ENV['AWS_SECRET_KEY_S3'];
                 break;
         }
