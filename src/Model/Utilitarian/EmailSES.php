@@ -35,16 +35,17 @@ class EmailSES
             $mensaje_cuerpo = $parametros_ses["mensaje_cuerpo"];
 
             $ses = \Aws\Ses\SesClient::factory(array(
-                        'credentials' => new Credentials($_ENV['AWS_ACCES_KEY_SES'], $_ENV['AWS_SECRET_KEY_SES']),
+                        'credentials' => new Credentials($_ENV['AWS_ACCESS_KEY_S3'], $_ENV['AWS_SECRET_KEY_S3']),
                         'version' => 'latest',
-                        'region' => 'us-west-2'
+                        'region' => $_ENV['REGION_AWS']
             ));
 
             $request = [];
             $request['Source'] = $emisor_email;
-            $request['Destination']['ToAddresses'] = [urlencode($destinatario_nombre) . ' <' . $destinatario_email . '>'];
+            $request['Destination']['ToAddresses'] =
+                        [urlencode($destinatario_nombre) . ' <' . $destinatario_email . '>'];
             $request['Message']['Subject']['Data'] = $mensaje_asunto;
-            $request['Message']['Body']['Text']['Data'] = $mensaje_asunto;
+            $request['Message']['Body']['Text']['Data'] = $mensaje_cuerpo;
             $request['Message']['Body']['Html']['Data'] = $mensaje_cuerpo;
             $result = $ses->sendEmail($request);
             $msg_id = $result->get('MessageId');
@@ -101,7 +102,7 @@ class EmailSES
         $parametros_ses["mensaje_cuerpo"] = $mensaje_cuerpo;
 
         if (!$parametros_ses["emisor_email"]) {
-            $parametros_ses["emisor_email"] = "soporte@proeducative.org";
+            $parametros_ses["emisor_email"] = $_ENV['AWS_SES_SOURCE_EMAIL'] ?? "soporte@proeducative.org";
         }
 
         if (!$parametros_ses["emisor_nombre"]) {
