@@ -65,6 +65,7 @@ class Auth extends Mysql // Cambiado de Mariadb a Mysql
             if ($rs) {
                 $passwordcrypt = FG::crypt($password);
                 if ($rs->password == $passwordcrypt) {
+                    unset($rs->password);
                     $resp->success = true;
                     $resp->message = 'Bineveninido a probudjet';
                     $resp->data = $rs;
