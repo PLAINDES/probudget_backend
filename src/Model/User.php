@@ -65,6 +65,27 @@ class User extends Mysql
         return $resp;
     }*/
 
+    private function generateAuthResponse($user)
+    {
+        $payload = [
+            'id' => $user->id,
+            'email' => $user->email,
+            'roleId' => $user->roleId ?? null,
+            'iat' => time(),
+            'exp' => time() + (60 * 60 * 24) // 24h
+        ];
+
+        $token = HelperJWT::encode($payload);
+
+        return (object)[
+            'success' => true,
+            'data' => (object)[
+                'usuario' => $user,
+                'token' => $token
+            ]
+        ];
+    }
+
     public function signUp($email, $accept_policies, $domain, $roleId, $password = null)
     {
         $resp = [];
@@ -94,10 +115,12 @@ class User extends Mysql
 
                 $resp['success'] = true;
                 $resp['message'] = 'Usuario registrado';
-                $resp['data'] = self::fetchObj(
-                    'SELECT id,email FROM users WHERE id = :id',
+                $user = self::fetchObj(
+                    'SELECT id,email,first_name,last_name,picture FROM users WHERE id = :id',
                     compact('id')
                 );
+
+                return $this->generateAuthResponse($user);
 
                // $token    = HelperJWT::encode(['exp' =>  time() + 3700, 'id' =>  $id]);
                // $url      = "{$domain}/user/confirm-email/{$token}";
@@ -113,7 +136,6 @@ class User extends Mysql
             $resp['message'] = $th->getMessage();
         }
 
-        error_log("Respuesta: " . print_r($resp, true));
         return $resp;
     }
 
@@ -221,44 +243,46 @@ class User extends Mysql
 
     public function signUpGmail($request)
     {
-        $resp = new stdClass();
+        $resp = new \stdClass();
 
         try {
-            // Login directo por OAuth
+            // Buscar por OAuth
             $data = $this->find([
                 'oauth_uid' => $request->oauth_uid,
                 'oauth_provider' => $request->oauth_provider
             ]);
 
             if ($data->success) {
-                return $data;
+                return $this->generateAuthResponse($data->data);
             }
 
-            // Buscar por email (vincular)
+            // Buscar por email (para vincular cuenta)
             $userByEmail = $this->findByEmail($request->email);
 
             if ($userByEmail->success) {
                 self::execute(
                     "UPDATE users 
-                    SET oauth_uid = :oauth_uid,
-                        oauth_provider = :oauth_provider,
-                        updated_at = :updated_at
-                    WHERE id = :id",
+                     SET oauth_uid = :oauth_uid,
+                         oauth_provider = :oauth_provider,
+                         updated_at = :updated_at
+                     WHERE id = :id",
                     [
                         'oauth_uid' => $request->oauth_uid,
                         'oauth_provider' => $request->oauth_provider,
-                        'updated_at' => FG::getFechaHora(),
+                        'updated_at' => \App\Model\Utilitarian\FG::getFechaHora(),
                         'id' => $userByEmail->data->id
                     ]
                 );
 
-                return $this->find([
+                $user = $this->find([
                     'oauth_uid' => $request->oauth_uid,
                     'oauth_provider' => $request->oauth_provider
                 ]);
+
+                return $this->generateAuthResponse($user->data);
             }
 
-            // Registrar nuevo usuario OAuth
+            // Registrar nuevo usuario
             $insert = self::insert("users", [
                 'oauth_uid' => $request->oauth_uid,
                 'email' => $request->email,
@@ -270,15 +294,17 @@ class User extends Mysql
                 'oauth_provider' => $request->oauth_provider,
                 'confirm_email' => '1',
                 'accept_policies' => $request->accept_policies,
-                'created_at' => FG::getFechaHora(),
-                'updated_at' => FG::getFechaHora()
+                'created_at' => \App\Model\Utilitarian\FG::getFechaHora(),
+                'updated_at' => \App\Model\Utilitarian\FG::getFechaHora()
             ]);
 
             if ($insert && $insert["lastInsertId"]) {
-                return $this->find([
+                $user = $this->find([
                     'oauth_uid' => $request->oauth_uid,
                     'oauth_provider' => $request->oauth_provider
                 ]);
+
+                return $this->generateAuthResponse($user->data);
             }
 
             $resp->success = false;
