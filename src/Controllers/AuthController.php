@@ -20,6 +20,7 @@
 namespace App\Controllers;
 
 use App\Model\Auth;
+use App\Model\Utilitarian\HelperJWT;
 
 class AuthController
 {
@@ -39,6 +40,27 @@ class AuthController
 
         $auth = new Auth();
         $resp = $auth->login($username, $password);
-        return $resp;
+
+        if ($resp->success) {
+            $user = $resp->data;
+
+            $payload = [
+                'id' => $user->id,
+                'email' => $user->email,
+                'roleId' => $user->roleId,
+                'iat' => time(),
+                'exp' => time() + (60 * 60 * 24) // 24h
+            ];
+
+            $token = HelperJWT::encode($payload);
+
+            return [
+                'success' => true,
+                'data' => [
+                    'usuario' => $user,
+                    'token' => $token
+                ]
+            ];
+        }
     }
 }
