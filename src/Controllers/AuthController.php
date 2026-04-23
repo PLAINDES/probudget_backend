@@ -54,9 +54,9 @@ class AuthController
 
             $token = HelperJWT::encode($payload);
 
-            return [
+            return (object)[
                 'success' => true,
-                'data' => [
+                'data' => (object)[
                     'usuario' => $user,
                     'token' => $token
                 ]
