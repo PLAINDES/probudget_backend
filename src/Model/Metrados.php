@@ -81,7 +81,8 @@ class Metrados extends Mysql
 
             if (isset($_FILES["img"]["name"]) && $_FILES["img"]["name"]) {
                 $plan = new Plan();
-                $proyecto = self::fetchObj("SELECT*FROM proyecto_generales WHERE id = :id", ['id' => $this->_values['proyecto_generales_id']]);
+                $proyecto = self::fetchObj("SELECT * FROM proyecto_generales WHERE id = :id", ['id' => $this->_values['proyecto_generales_id']]);
+
                 if ($proyecto) {
                     $result = $plan->getValidate(['modulo' => 3, 'user_id' => $proyecto->users_id, 'peso' => $_FILES["img"]['size']]);
                     if (!$result['success']) {
@@ -97,6 +98,8 @@ class Metrados extends Mysql
             }
 
             if ($this->_id) {
+                error_log("Actualizando metrado");
+                error_log("Values: " . print_r($this->_values, true));
                 $sql = 'SELECT COUNT(id) AS checked FROM metrado_partida_presupuestos WHERE id = :id';
                 $metrado = self::fetchObj($sql, ['id' => $this->_id]);
                 if ($metrado && $metrado->checked) {
@@ -240,18 +243,34 @@ class Metrados extends Mysql
         if ($metrado->is_information == 1) {
             return 0;
         }
-        $matriz_parcial = [
-            ($this->siNumeric($metrado->metrado_largo)),
-            ($this->siNumeric($metrado->metrado_alto)),
-            ($this->siNumeric($metrado->metrado_ancho)),
-            ($this->siNumeric($metrado->metrado_area)),
-            ($this->siNumeric($metrado->metrado_volumen)),
-            ($this->siNumeric($metrado->metrado_cantidad)),
-            ($this->siNumeric($metrado->metrado_nro_elemto)),
-            ($this->siNumeric($metrado->metrado_factor))
-        ];
-        $parcial = array_product($matriz_parcial);
-        return $parcial; // number_format($parcial, 2, '.', '');
+
+        $l = (float) $metrado->metrado_largo;
+        $a = (float) $metrado->metrado_ancho;
+        $h = (float) $metrado->metrado_alto;
+
+        $area = (float) $metrado->metrado_area;
+        $volumen = (float) $metrado->metrado_volumen;
+
+        // detectar dimensiones reales
+        $dimensiones = array_filter([$l, $a, $h], fn($v) => $v > 0);
+
+        $matriz_parcial = [];
+
+        // prioridad
+        if ($volumen > 0) {
+            $matriz_parcial[] = $volumen;
+        } elseif ($area > 0) {
+            $matriz_parcial[] = $area;
+        } elseif (count($dimensiones) === 1) {
+            $matriz_parcial[] = array_values($dimensiones)[0];
+        }
+
+        // aquí sí usas siNumeric
+        $matriz_parcial[] = $this->siNumeric($metrado->metrado_cantidad);
+        $matriz_parcial[] = $this->siNumeric($metrado->metrado_nro_elemto);
+        $matriz_parcial[] = $this->siNumeric($metrado->metrado_factor);
+
+        return array_product($matriz_parcial);
     }
 
     private function updateMetradoPartida($metrado)
@@ -302,6 +321,7 @@ class Metrados extends Mysql
                 FROM metrado_partida_presupuestos
                 WHERE proyecto_generales_id = :id ORDER BY position ASC";
         $metrados = self::fetchAllObj($sql, ['id' => $this->_id]);
+
         $data = array();
         foreach ($presupuestos_general as $key => $value) {
             if ($value->presupuestos_proyecto_generales_id == null || $value->presupuestos_proyecto_generales_id == 0) {
@@ -365,19 +385,41 @@ class Metrados extends Mysql
         $metered = 0;
 
         foreach ($metrados as $key => $metrado) {
+            $l = (float) $metrado->metrado_largo;
+            $a = (float) $metrado->metrado_ancho;
+            $h = (float) $metrado->metrado_alto;
+
+            $values = array_filter([$l, $a, $h], fn($v) => $v > 0);
+
+            $area = 0;
+            $volumen = 0;
+
+            if (count($values) === 3) {
+                $volumen = $l * $a * $h;
+                $area = 0;
+            } elseif (count($values) === 2) {
+                $area = array_product($values);
+                $volumen = 0;
+            } else {
+                $area = $metrado->metrado_area ?: 0;
+                $volumen = $metrado->metrado_volumen ?: 0;
+            }
+
+            $metrados[$key]->metrado_area = $area;
+            $metrados[$key]->metrado_volumen = $volumen;
+
             $metrados[$key]->partial = $this->getMetradoParcial($metrado);
             $metered += $metrados[$key]->partial;
             $metrados[$key]->uni = '';
             $metrados[$key]->metered = '';
+
             array_push($list, $metrados[$key]);
         }
 
-        $data = array(
+        return [
             'metrados' => $list,
-            'metered' => $metered // number_format($metered, 2, '.', '')
-        );
-
-        return $data;
+            'metered' => $metered
+        ];
     }
 
     public function getDelete()
