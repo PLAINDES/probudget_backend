@@ -33,11 +33,25 @@ class AuthController
     public function login($request)
     {
         $body = json_decode(file_get_contents('php://input'), true);
-        $resp = array();
-        $username = $body['username'];
-        $password = $body['password'];
+
+        error_log("CONTROLLER LOGIN - Body: " . json_encode($body));
+
+        $username = $body['username'] ?? null;
+        $password = $body['password'] ?? null;
+
+        if (!$username || !$password) {
+            error_log("CONTROLLER LOGIN - Missing credentials");
+            return (object)[
+                'success' => false,
+                'message' => 'Username and password required'
+            ];
+        }
+
         $auth = new Auth();
         $resp = $auth->login($username, $password);
+
+        error_log("CONTROLLER LOGIN - Model response: " . json_encode($resp));
+
         if ($resp->success) {
             $user = $resp->data;
             $payload = [
@@ -45,9 +59,11 @@ class AuthController
                 'email' => $user->email,
                 'roleId' => $user->roleId,
                 'iat' => time(),
-                'exp' => time() + (60 * 60 * 24) // 24h
+                'exp' => time() + (60 * 60 * 24)
             ];
             $token = HelperJWT::encode($payload);
+            error_log("CONTROLLER LOGIN - Token generated for: " . $user->email);
+
             return (object)[
                 'success' => true,
                 'data' => (object)[
@@ -56,7 +72,7 @@ class AuthController
                 ]
             ];
         }
-        error_log("Respuesta controller: " . print_r($resp, true));
+        error_log("CONTROLLER LOGIN - Failed: " . $resp->message);
         return $resp;
     }
 }
