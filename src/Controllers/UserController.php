@@ -26,11 +26,10 @@ class UserController
         $email  = $request->email;
         $accept = $request->accept_policies;
         $domain = $request->domain;
-        $oauth_provider = $request->oauth_provider;
         $password = $request->password ? $request->password : null;
         $roleId = $request->roleId;
         $user   = new User();
-        return $user->signUp($email, $accept, $domain, $oauth_provider, $roleId, $password);
+        return $user->signUp($email, $accept, $domain, $roleId, $password);
     }
 
     public function roles()
