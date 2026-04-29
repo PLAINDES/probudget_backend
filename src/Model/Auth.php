@@ -81,6 +81,8 @@ class Auth extends Mysql // Cambiado de Mariadb a Mysql
             $resp->success = false;
             $resp->message = $th->getMessage();
         }
+
+        error_log("Respuesta model: " . print_r($resp, true));
         return $resp;
     }
 }
