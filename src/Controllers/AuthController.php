@@ -33,34 +33,32 @@ class AuthController
     public function login($request)
     {
         $body = json_decode(file_get_contents('php://input'), true);
-        $resp = array();
-
-        $username = $body['username'];
-        $password = $body['password'];
+        $username = $body['username'] ?? null;
+        $password = $body['password'] ?? null;
 
         $auth = new Auth();
         $resp = $auth->login($username, $password);
 
         if ($resp->success) {
             $user = $resp->data;
-
             $payload = [
                 'id' => $user->id,
                 'email' => $user->email,
                 'roleId' => $user->roleId,
                 'iat' => time(),
-                'exp' => time() + (60 * 60 * 24) // 24h
+                'exp' => time() + (60 * 60 * 24)
             ];
-
             $token = HelperJWT::encode($payload);
 
             return (object)[
                 'success' => true,
                 'data' => (object)[
-                    'usuario' => $user,
+                    'user' => $user,
                     'token' => $token
                 ]
             ];
         }
+
+        return $resp;
     }
 }
