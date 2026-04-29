@@ -43,7 +43,7 @@ class AuthController
             error_log("CONTROLLER LOGIN - Missing credentials");
             return (object)[
                 'success' => false,
-                'message' => 'Username and password required'
+                'message' => 'Usuario o contraseña incorrectos'
             ];
         }
 

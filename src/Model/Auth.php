@@ -78,7 +78,7 @@ class Auth extends Mysql // Cambiado de Mariadb a Mysql
                     return $resp;
                 }
                 $resp->success = false;
-                $resp->message = 'Password incorrecto';
+                $resp->message = 'Contraseña incorrecto';
                 error_log("LOGIN FAILED - Wrong password for: " . $username);
                 return $resp;  // ← AGREGAR RETURN
             } else {
