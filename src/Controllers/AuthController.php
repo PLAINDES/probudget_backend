@@ -56,7 +56,7 @@ class AuthController
                 ]
             ];
         }
-        error_log("Respuesta: " . print_r($resp, true));
+        error_log("Respuesta controller: " . print_r($resp, true));
         return $resp;
     }
 }
