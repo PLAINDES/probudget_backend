@@ -46,9 +46,8 @@ jobs:
           ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
           local_path: ./
           remote_path: /home/ftpceon/ftp/probudget/backend/
-          exclude: ".git .github"
 
-      - name: Reconstruir contenedor via SSH
+      - name: Regenerar autoloader y reconstruir
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.FTP_HOST }}
@@ -56,5 +55,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /home/ftpceon/ftp/probudget/backend
+            composer dump-autoload
             docker compose down
             docker compose up -d --build
