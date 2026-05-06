@@ -6,7 +6,7 @@
 namespace App\Model\FileLector;
 
 use App\Model\Utilitarian\Gemini;
-use App\FileLector\PDFExtractor;
+use App\Model\FileLector\PDFExtractor;
 
 // Asegurar que Composer autoload esté disponible
 if (file_exists(__DIR__ . '/../../../vendor/autoload.php')) {

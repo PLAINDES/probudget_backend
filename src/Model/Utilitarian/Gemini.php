@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Utilitarian;
+namespace App\Model\Utilitarian;
 
 class Gemini
 {
