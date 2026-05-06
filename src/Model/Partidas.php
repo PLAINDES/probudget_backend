@@ -71,7 +71,9 @@ class Partidas extends Mysql
         }
 
         $map = [];
-        $sql = 'SELECT pp.id, pp.partida, pp.rendimiento, pp.rendimiento_unid, pp.unidad_medidas_id, pp.master_partida_id
+        $sql = 'SELECT 
+                    pp.id, pp.partida, pp.rendimiento, pp.rendimiento_unid, 
+                    pp.unidad_medidas_id, pp.master_partida_id
               FROM partidas_proyecto pp
               WHERE pp.proyectos_generales_id = :id';
         $patidasProyecto = self::fetchAllObj($sql, ['id' => $request->proyectos_generales_id]);
@@ -87,67 +89,103 @@ class Partidas extends Mysql
         return $resp;
     }
 
+
     public function getSave($request)
     {
-        $data = [];
-        if ($request['id'] == '0' && $request['masterid'] == '0') {
-            $rend = number_format(0, 2, '.', '');
-            $var = [
-            'partida' => $request['partida'],
-            'rendimiento_unid' => $request['rendimiento_unid'],
-            'unidad_medidas_id' => $request['unidad_medidas_id'],
-            'proyectos_generales_id' => $request['proyecto_generales_id'],
-            ];
-            if ($request['rendimiento']) {
-                $rend = $var['rendimiento'] = number_format($request['rendimiento'], 2, '.', '');
-            }
-            $lastInsert = self::insert("partidas_proyecto", $var);
-            $data = array(
-            'id' => $lastInsert["lastInsertId"],
-            'rendimiento' => $rend,
-            'rendimiento_unid' => $request['rendimiento_unid'],
-            'unidad_medidas_id' => $request['unidad_medidas_id'],
-            );
-        } else {
-            if ($request['id'] == '0' && $request['masterid'] != '0') {
+        $resp = ['success' => true, 'message' => 'Partida guardada'];
+        try {
+            $data = [];
+
+            if ($request->id == '0' && $request->masterid == '0') {
+                $rend = number_format(0, 2, '.', '');
+                $var = [
+                    'partida' => $request->partida,
+                    'rendimiento_unid' => $request->rendimiento_unid,
+                    'unidad_medidas_id' => $request->unidad_medidas_id,
+                    'proyectos_generales_id' => $request->proyectos_generales_id,
+                ];
+
+                if ($request->rendimiento) {
+                    $rend = $var['rendimiento'] = number_format($request->rendimiento, 2, '.', '');
+                }
+
+                // comprobar que existe la unidad
+                $sql = 'SELECT id FROM unidad_medidas WHERE id = :unidad_medidas_id';
+                $unidad = self::fetchObj($sql, ['unidad_medidas_id' => $request->unidad_medidas_id]);
+                if (empty($unidad)) {
+                    $resp['success'] = false;
+                    $resp['message'] = 'Unidad de medida no encontrada';
+                    return $resp;
+                }
+
+                $lastInsert = self::insert("partidas_proyecto", $var);
+                $data = [
+                    'id' => $lastInsert["lastInsertId"],
+                    'rendimiento' => $rend,
+                    'rendimiento_unid' => mb_strtoupper($request->rendimiento_unid ?? ($unidad->descripcion . "/DIA")),
+                    'unidad_medidas_id' => $request->unidad_medidas_id,
+                ];
+            } elseif ($request->id == '0' && $request->masterid != '0') {
                 $sql = 'SELECT id, partida, rendimiento, rendimiento_unid, unidad_medidas_id 
-                  FROM partidas_proyecto WHERE master_partida_id = :id AND proyectos_generales_id = :proyectos_generales_id';
-                $partida = self::fetchObj($sql, ['id' => $request['masterid'], 'proyectos_generales_id' => $request['proyecto_generales_id']]);
-                $rend =  number_format(0, 2, '.', '');
+                        FROM partidas_proyecto 
+                        WHERE master_partida_id = :id AND proyectos_generales_id = :proyectos_generales_id';
+
+                $partida = self::fetchObj($sql, [
+                    'id' => $request->masterid,
+                    'proyectos_generales_id' => $request->proyectos_generales_id
+                ]);
+
                 if (empty($partida)) {
-                    $sql = 'SELECT id, partida, rendimiento, rendimiento_unid, unidad_medidas_id FROM partidas WHERE id = :id';
-                    $partida = self::fetchObj($sql, ['id' => $request['masterid']]);
+                    $sql = 'SELECT id, partida, rendimiento, rendimiento_unid, unidad_medidas_id 
+                    FROM partidas 
+                    WHERE id = :id';
+
+                    $partida = self::fetchObj($sql, ['id' => $request->masterid]);
+
                     if ($partida) {
                         $rend = number_format($partida->rendimiento, 2, '.', '');
-                        $lastInsert = self::insert("partidas_proyecto", array(
-                        'partida' => $partida->partida,
-                        'rendimiento' => $rend,
-                        'rendimiento_unid' => $partida->rendimiento_unid,
-                        'unidad_medidas_id' => $partida->unidad_medidas_id,
-                        'proyectos_generales_id' => $request['proyecto_generales_id'],
-                        'master_partida_id' => $partida->id
-                        ));
+                        $lastInsert = self::insert("partidas_proyecto", [
+                            'partida' => $partida->partida,
+                            'rendimiento' => $rend,
+                            'rendimiento_unid' => $partida->rendimiento_unid,
+                            'unidad_medidas_id' => $partida->unidad_medidas_id,
+                            'proyectos_generales_id' => $request->proyectos_generales_id,
+                            'master_partida_id' => $partida->id
+                        ]);
                         $data['id'] = $lastInsert["lastInsertId"];
                     }
                 } else {
                     $data['id'] = $partida->id;
                 }
+
                 $data['rendimiento'] = number_format($partida->rendimiento, 2, '.', '');
                 $data['rendimiento_unid'] = $partida->rendimiento_unid;
                 $data['unidad_medidas_id'] = $partida->unidad_medidas_id;
             } else {
-                $sql = 'SELECT id, rendimiento, rendimiento_unid, unidad_medidas_id FROM partidas_proyecto WHERE id = :id';
-                $partida = self::fetchObj($sql, ['id' => $request['id']]);
+                $sql = 'SELECT id, rendimiento, rendimiento_unid, unidad_medidas_id 
+                FROM partidas_proyecto 
+                WHERE id = :id';
+
+                $partida = self::fetchObj($sql, ['id' => $request->id]);
+
                 if ($partida) {
-                    $data = array(
-                    'id' => $partida->id,
-                    'rendimiento' => number_format($partida->rendimiento, 2, '.', ''),
-                    'rendimiento_unid' => $partida->rendimiento_unid,
-                    'unidad_medidas_id' => $partida->unidad_medidas_id,
-                    );
+                    $data = [
+                        'id' => $partida->id,
+                        'rendimiento' => number_format($partida->rendimiento, 2, '.', ''),
+                        'rendimiento_unid' => $partida->rendimiento_unid,
+                        'unidad_medidas_id' => $partida->unidad_medidas_id,
+                    ];
                 }
             }
+
+            $resp['data'] = $data;
+
+            return $resp;
+        } catch (\Throwable $th) {
+            $resp['success'] = false;
+            $resp['message'] = $th->getMessage();
+            error_log("ERROR: " . print_r($resp, true));
+            return $resp;
         }
-        return $data;
     }
 }
