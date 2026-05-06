@@ -133,8 +133,8 @@ class Presupuesto extends Mysql
                         $this->_master_partidas_id = $datapartida->masterid;
                         $partidas = new Partidas();
                         $result = $partidas->getSave([
-                            'id' => $datapartida->id,
-                            'masterid' => $datapartida->masterid,
+                            'id' => $datapartida->id ?? 0,
+                            'masterid' => $datapartida->masterid ?? 0,
                             'partida' => $this->_descripcion,
                             'rendimiento_unid' => $this->_rendimiento_unid,
                             'unidad_medidas_id' => $this->_unidad_medidas_id,
@@ -142,13 +142,13 @@ class Presupuesto extends Mysql
                             'proyecto_generales_id' => $this->_proyecto_generales_id,
                             'subpresupuesto_id' => $this->_subpresupuestos_id
                         ]);
-                        if (!empty($result)) {
-                            $this->_values["partidas_id"] = $result['id'];
-                            $this->_partidas_id = $result['id'];
-                            $partida_id = $result['id'];
-                            $this->_rendimiento_unid = $result['rendimiento_unid'];
-                            $this->_rendimiento = $result['rendimiento'];
-                            $this->_values['unidad_medidas_id'] = $this->_unidad_medidas_id = $result['unidad_medidas_id'];
+                        if (!empty($result['data'])) {
+                            $this->_values["partidas_id"] = $result['data']['id'];
+                            $this->_partidas_id = $result['data']['id'];
+                            $partida_id = $result['data']['id'];
+                            $this->_rendimiento_unid = $result['data']['rendimiento_unid'];
+                            $this->_rendimiento = $result['data']['rendimiento'];
+                            $this->_values['unidad_medidas_id'] = $this->_unidad_medidas_id = $result['data']['unidad_medidas_id'];
                         }
                     }
                 }
@@ -200,8 +200,11 @@ class Presupuesto extends Mysql
                     }
                 } else {
                     $plan = new Plan();
-                    $proyecto_general = self::fetchObj("SELECT * FROM proyecto_generales WHERE id = :id;", ['id' => $this->_proyecto_generales_id]);
+                    $proyecto_general = self::fetchObj("SELECT * FROM proyecto_generales 
+                                                    WHERE id = :id;", ['id' => $this->_proyecto_generales_id]);
+
                     $result = $plan->getValidate(['modulo' => 2, 'user_id' => @$proyecto_general->users_id,'proyecto_id' => $this->_proyecto_generales_id]);
+
                     if (!$result['success']) {
                         $resp['success'] = false;
                         $resp['message'] = $result['message'];

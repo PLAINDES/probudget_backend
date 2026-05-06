@@ -13,4 +13,10 @@ class PartidasController
         $partidas   = new Partidas();
         return $partidas->getListPartida($request);
     }
+
+    public function save($request)
+    {
+        $partidas   = new Partidas();
+        return $partidas->getSave($request);
+    }
 }

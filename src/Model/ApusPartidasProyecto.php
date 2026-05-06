@@ -34,6 +34,21 @@ class ApusPartidasProyecto extends Mysql
                 $nullable['cantidad'] = 'NULL';
             }
 
+            // Procesar rendimiento
+            if (isset($param->rendimiento) && is_numeric($param->rendimiento)) {
+                $rendimientoVar['rendimiento'] = number_format($param->rendimiento, 2, '.', '');
+            }
+            if (!empty($param->rendimiento_unid)) {
+                $rendimientoVar['rendimiento_unid'] = $param->rendimiento_unid;
+            }
+
+            // Si hay datos de rendimiento y hay id, actualizar presupuestos_partida
+            if (!empty($rendimientoVar) && $param->id) {
+                self::update("presupuestos_partida", $rendimientoVar, ['id' => $param->id]);
+                $resp['data'] = array_merge(['id' => $param->id], $rendimientoVar);
+                return $resp;
+            }
+
 
             // *** FIN NUEVO ***
 
@@ -214,6 +229,9 @@ class ApusPartidasProyecto extends Mysql
         $resp = new stdClass();
         $subpartida_id = $request->subpartida_id;
         $presupuestos_id = $request->presupuestos_id;
+        error_log('presupuestos_id: ' . $presupuestos_id);
+        error_log('subpartida_id: ' . $subpartida_id);
+
         $result = $this->getApusPartida($presupuestos_id, $subpartida_id);
         if ($result->success) {
             $resp = $this->performCalculations($result->cabecera, $result->apus);

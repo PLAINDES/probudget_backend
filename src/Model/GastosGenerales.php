@@ -173,7 +173,10 @@ class GastosGenerales extends Mysql
     {
         try {
             $matrix = [];
-            $sql = "SELECT id, percentage, active FROM proyecto_pie_presupuesto WHERE proyectos_generales_id=:id AND type_percentage='TGG'";
+            $sql = "SELECT id, percentage, active 
+                    FROM proyecto_pie_presupuesto 
+                    WHERE proyectos_generales_id=:id 
+                    AND type_percentage='TGG'";
             $totalgastogeneral = self::fetchObj($sql, ['id' => $this->_id]);
             if ($this->_disaggregated) {
                 $result = $this->getDetailGeneralExpense();
@@ -208,7 +211,7 @@ class GastosGenerales extends Mysql
                 }
             }
         } catch (\Throwable $th) {
-            return ["success" => false, "message" => "Paso un error"];
+            return ["success" => false, "message" => $th->getMessage()];
         }
     }
 

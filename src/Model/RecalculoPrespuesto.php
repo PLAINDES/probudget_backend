@@ -23,7 +23,7 @@ use App\Model\Utilitarian\FG;
 use App\Model\Persistence\Mysql;
 use App\Model\Subcategoria;
 
-class RecalculoPrespuesto extends Mariadb
+class RecalculoPrespuesto extends Mysql
 {
     public function getRecalculoPrespuesto($presupuestos_proyecto_generales_id)
     {
