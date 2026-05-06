@@ -34,13 +34,10 @@ class AuthController
     {
         $body = json_decode(file_get_contents('php://input'), true);
 
-        error_log("CONTROLLER LOGIN - Body: " . json_encode($body));
-
         $username = $body['username'] ?? null;
         $password = $body['password'] ?? null;
 
         if (!$username || !$password) {
-            error_log("CONTROLLER LOGIN - Missing credentials");
             return (object)[
                 'success' => false,
                 'message' => 'Usuario o contraseña incorrectos'
@@ -49,8 +46,6 @@ class AuthController
 
         $auth = new Auth();
         $resp = $auth->login($username, $password);
-
-        error_log("CONTROLLER LOGIN - Model response: " . json_encode($resp));
 
         if ($resp->success) {
             $user = $resp->data;
@@ -62,7 +57,6 @@ class AuthController
                 'exp' => time() + (60 * 60 * 24)
             ];
             $token = HelperJWT::encode($payload);
-            error_log("CONTROLLER LOGIN - Token generated for: " . $user->email);
 
             return (object)[
                 'success' => true,
@@ -72,7 +66,6 @@ class AuthController
                 ]
             ];
         }
-        error_log("CONTROLLER LOGIN - Failed: " . $resp->message);
         return $resp;
     }
 }
