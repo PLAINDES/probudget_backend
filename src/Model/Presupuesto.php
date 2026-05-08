@@ -148,7 +148,8 @@ class Presupuesto extends Mysql
                             $partida_id = $result['data']['id'];
                             $this->_rendimiento_unid = $result['data']['rendimiento_unid'];
                             $this->_rendimiento = $result['data']['rendimiento'];
-                            $this->_values['unidad_medidas_id'] = $this->_unidad_medidas_id = $result['data']['unidad_medidas_id'];
+                            $this->_values['unidad_medidas_id'] =
+                                $this->_unidad_medidas_id = $result['data']['unidad_medidas_id'];
                         }
                     }
                 }
@@ -157,7 +158,10 @@ class Presupuesto extends Mysql
                     $sql = 'SELECT id, partidas_id, type_item FROM presupuestos WHERE id = :id  AND deleted_at is NULL';
                     $presupuestos = self::fetchObj($sql, ['id' => $this->_id]);
                     if ($presupuestos && $presupuestos->id) {
-                        $sql = 'SELECT COUNT(1) AS checked FROM apus_partida_presupuestos WHERE presupuestos_id = :id  AND deleted_at is NULL';
+                        $sql = 'SELECT COUNT(1) AS checked 
+                                FROM apus_partida_presupuestos 
+                                WHERE presupuestos_id = :id  
+                                AND deleted_at is NULL';
                         $verify = self::fetchObj($sql, ['id' => $this->_id]);
 
                         if ($verify && $verify->checked) {
@@ -203,7 +207,10 @@ class Presupuesto extends Mysql
                     $proyecto_general = self::fetchObj("SELECT * FROM proyecto_generales 
                                                     WHERE id = :id;", ['id' => $this->_proyecto_generales_id]);
 
-                    $result = $plan->getValidate(['modulo' => 2, 'user_id' => @$proyecto_general->users_id,'proyecto_id' => $this->_proyecto_generales_id]);
+                    $result = $plan->getValidate([
+                        'modulo' => 2, 'user_id' => @$proyecto_general->users_id,
+                        'proyecto_id' => $this->_proyecto_generales_id
+                    ]);
 
                     if (!$result['success']) {
                         $resp['success'] = false;
@@ -263,7 +270,8 @@ class Presupuesto extends Mysql
                 $nro_orden = ($this->_nro_orden * 1);
                 $sql = "SET @norder = {$nro_orden}; 
                     UPDATE presupuestos SET nro_orden = (@norder:=@norder+1) 
-                    WHERE presupuestos_proyecto_generales_id = {$this->_presupuestos_proyecto_generales_id} AND nro_orden >= {$nro_orden} ORDER BY nro_orden ASC";
+                    WHERE presupuestos_proyecto_generales_id = {$this->_presupuestos_proyecto_generales_id} 
+                    AND nro_orden >= {$nro_orden} ORDER BY nro_orden ASC";
                 self::ex($sql);
             }
         }
@@ -378,11 +386,16 @@ class Presupuesto extends Mysql
                     $total_parcial = ($metrado * $cu); // number_format(($metrado*$cu), 2, '.', '');
                     $childrens[$key]->total_parcial = $total_parcial;
                     $met = $value->metered ? $value->metered : 0;
-                    $childrens[$key]->mo  = $value->mo  ? $value->mo  * $met : 0; // $value->mo ? number_format(($value->mo*$met), 2, '.', '') : 0;
-                    $childrens[$key]->mat = $value->mat ? $value->mat * $met : 0; // $value->mat ? number_format(($value->mat*$met), 2, '.', '') : 0;
-                    $childrens[$key]->eq  = $value->eq  ? $value->eq  * $met : 0; // $value->eq ? number_format(($value->eq*$met), 2, '.', '') : 0;
-                    $childrens[$key]->sc  = $value->sc  ? $value->sc  * $met : 0; // $value->sc ? number_format(($value->sc*$met), 2, '.', '') : 0;
-                    $childrens[$key]->sp  = $value->sp  ? $value->sp  * $met : 0; // $value->sp ? number_format(($value->sp*$met), 2, '.', '') : 0;
+                    $childrens[$key]->mo  = $value->mo  ? $value->mo  * $met : 0;
+                    // $value->mo ? number_format(($value->mo*$met), 2, '.', '') : 0;
+                    $childrens[$key]->mat = $value->mat ? $value->mat * $met : 0;
+                    // $value->mat ? number_format(($value->mat*$met), 2, '.', '') : 0;
+                    $childrens[$key]->eq  = $value->eq  ? $value->eq  * $met : 0;
+                    // $value->eq ? number_format(($value->eq*$met), 2, '.', '') : 0;
+                    $childrens[$key]->sc  = $value->sc  ? $value->sc  * $met : 0;
+                    // $value->sc ? number_format(($value->sc*$met), 2, '.', '') : 0;
+                    $childrens[$key]->sp  = $value->sp  ? $value->sp  * $met : 0;
+                    // $value->sp ? number_format(($value->sp*$met), 2, '.', '') : 0;
                     $childrens[$key]->unmetered = $met == 0;
                     continue;
                 }
@@ -404,8 +417,15 @@ class Presupuesto extends Mysql
         if ($this->_type_item == '3') {
             $var = [];
             $sql_a = 'SELECT id FROM presupuestos_partida 
-                  WHERE presupuestos_id = :presupuestos_id AND proyectos_generales_id = :proyectos_generales_id AND subpartida_id IS NULL';
-            $val_a = self::fetchObj($sql_a, ['presupuestos_id' => $this->_id, 'proyectos_generales_id' => $this->_proyecto_generales_id]);
+                      WHERE presupuestos_id = :presupuestos_id 
+                      AND proyectos_generales_id = :proyectos_generales_id 
+                      AND subpartida_id IS NULL';
+
+            $val_a = self::fetchObj($sql_a, [
+                'presupuestos_id' => $this->_id,
+                'proyectos_generales_id' => $this->_proyecto_generales_id
+            ]);
+
             if ($this->_rendimiento) {
                 $var['rendimiento'] = $this->_rendimiento;
             }
@@ -434,9 +454,16 @@ class Presupuesto extends Mysql
     public function updateBudgetFooter($request)
     {
         $response = [];
-        $sql = 'SELECT id FROM proyecto_pie_presupuesto WHERE proyectos_generales_id = :pgid AND pie_presupuesto_id = :pie_pid';
-        $pie = self::fetchObj($sql, ['pgid' => $request->proyectos_generales_id, 'pie_pid' => $request->pie_presupuesto_id]);
+        $sql = 'SELECT id 
+                FROM proyecto_pie_presupuesto 
+                WHERE proyectos_generales_id = :pgid 
+                AND pie_presupuesto_id = :pie_pid';
+        $pie = self::fetchObj($sql, [
+            'pgid' => $request->proyectos_generales_id,
+            'pie_pid' => $request->pie_presupuesto_id
+        ]);
         $percentage = number_format(($request->percentage / 100), 2, '.', '');
+
         if ($pie) {
             self::update('proyecto_pie_presupuesto', [
                 'percentage' => $percentage
@@ -462,9 +489,14 @@ class Presupuesto extends Mysql
     private function removerRecursive($id, $type_item)
     {
         $deleted_at = FG::getFechaHora();
-        self::ex("UPDATE presupuestos SET deleted_at = '{$deleted_at}' WHERE id = {$id} OR presupuestos_proyecto_generales_id = {$id}");
+        self::ex("UPDATE presupuestos 
+                  SET deleted_at = '{$deleted_at}' 
+                  WHERE id = {$id} 
+                  OR presupuestos_proyecto_generales_id = {$id}");
         if ($type_item && $type_item != 3) {
-            $sql = 'SELECT id, type_item FROM presupuestos WHERE presupuestos_proyecto_generales_id = :id';
+            $sql = 'SELECT id, type_item 
+                    FROM presupuestos 
+                    WHERE presupuestos_proyecto_generales_id = :id';
             $presupuestos = self::fetchAllObj($sql, ['id' => $id]);
             foreach ($presupuestos as $key => $value) {
                 $this->removerRecursive($value->id, $value->type_item);

@@ -81,10 +81,14 @@ class Metrados extends Mysql
 
             if (isset($_FILES["img"]["name"]) && $_FILES["img"]["name"]) {
                 $plan = new Plan();
-                $proyecto = self::fetchObj("SELECT * FROM proyecto_generales WHERE id = :id", ['id' => $this->_values['proyecto_generales_id']]);
+                $proyecto = self::fetchObj("SELECT * 
+                                            FROM proyecto_generales 
+                                            WHERE id = :id", ['id' => $this->_values['proyecto_generales_id']]);
 
                 if ($proyecto) {
-                    $result = $plan->getValidate(['modulo' => 3, 'user_id' => $proyecto->users_id, 'peso' => $_FILES["img"]['size']]);
+                    $result = $plan->getValidate([
+                        'modulo' => 3, 'user_id' => $proyecto->users_id, 'peso' => $_FILES["img"]['size']
+                    ]);
                     if (!$result['success']) {
                         $resp['success'] = false;
                         $resp['message'] = $result['message'];
@@ -118,7 +122,9 @@ class Metrados extends Mysql
                     if ($this->_position) {
                         $this->_position = $this->_position * 1;
                         $sql = "SET @norder = {$this->_position};
-                                UPDATE metrado_partida_presupuestos SET position = (@norder:=@norder+1) WHERE presupuestos_id = {$this->_presupuestos_id}
+                                UPDATE metrado_partida_presupuestos 
+                                SET position = (@norder:=@norder+1) 
+                                WHERE presupuestos_id = {$this->_presupuestos_id}
                                 AND position >= {$this->_position} AND id <> {$this->_id} ORDER BY position ASC";
                         self::ex($sql);
                     }
@@ -134,8 +140,11 @@ class Metrados extends Mysql
                     if ($this->_position) {
                         $this->_position = $this->_position * 1;
                         $sql = "SET @norder = {$this->_position};
-                                UPDATE metrado_partida_presupuestos SET position = (@norder:=@norder+1) WHERE presupuestos_id = {$this->_presupuestos_id}
-                                AND position >= {$this->_position} AND id <> {$this->_values['id']} ORDER BY position ASC";
+                                UPDATE metrado_partida_presupuestos 
+                                SET position = (@norder:=@norder+1) 
+                                WHERE presupuestos_id = {$this->_presupuestos_id}
+                                AND position >= {$this->_position} 
+                                AND id <> {$this->_values['id']} ORDER BY position ASC";
                         self::ex($sql);
                     }
                     $resp['success'] = true;
@@ -216,7 +225,8 @@ class Metrados extends Mysql
         $tmp_name   =   $_FILES["img"]["tmp_name"];
         $size       =   $_FILES["img"]["size"];
         $diskS3     =   new Storage();
-        $key        =   'probudjet/metrado/images/' . time() . '_' . uniqid() . '.' . pathinfo($name, PATHINFO_EXTENSION);
+        $key        =   'probudjet/metrado/images/' . time() . '_' . uniqid() .
+                        '.' . pathinfo($name, PATHINFO_EXTENSION);
         $result     =   $diskS3->storeAs($tmp_name, $key, $size);
         $data = [
             'nombre'    => $name,

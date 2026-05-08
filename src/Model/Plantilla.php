@@ -196,7 +196,8 @@ class Plantilla extends Mysql
 
         if ($presupuestos) {
                 $object = array_filter($presupuestos, function ($e) {
-                        return $e->presupuestos_proyecto_generales_id == null || $e->presupuestos_proyecto_generales_id == 0;
+                        return $e->presupuestos_proyecto_generales_id == null
+                        || $e->presupuestos_proyecto_generales_id == 0;
                 });
 
             foreach ($object as $value) {

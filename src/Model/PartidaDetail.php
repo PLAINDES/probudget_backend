@@ -13,7 +13,10 @@ class PartidaDetail extends Mysql
     public function getSave($param)
     {
         if ($param['master_partidas_id']) {
-            $sql = 'SELECT id, cuadrilla, cantidad, insumo_id, unidad_medidas_id FROM apus_partidas WHERE partida_id = :partida_id';
+            $sql = 'SELECT id, cuadrilla, cantidad, insumo_id, unidad_medidas_id 
+                    FROM apus_partidas 
+                    WHERE partida_id = :partida_id';
+
             $apus = self::fetchAllObj($sql, ['partida_id' => $param['master_partidas_id']]);
             if (!empty($apus)) {
                 foreach ($apus as $apu) {
@@ -39,10 +42,20 @@ class PartidaDetail extends Mysql
 
     private function findOrCreateInsumo($masterInsumoId, $proyectos_generales_id)
     {
-        $sql = 'SELECT id FROM insumos_proyecto WHERE master_insumo_id = :insumoId AND proyectos_generales_id = :proyectos_generales_id';
-        $insumo = self::fetchObj($sql, ['insumoId' => $masterInsumoId, 'proyectos_generales_id' => $proyectos_generales_id]);
+        $sql = 'SELECT id 
+                FROM insumos_proyecto 
+                WHERE master_insumo_id = :insumoId 
+                AND proyectos_generales_id = :proyectos_generales_id';
+
+        $insumo = self::fetchObj($sql, [
+            'insumoId' => $masterInsumoId, 'proyectos_generales_id' => $proyectos_generales_id
+        ]);
+
         if (empty($insumo)) {
-            $sql = 'SELECT id, codigo, iu, indice_unificado, tipo, insumos, precio, unidad_medidas_id FROM insumos WHERE id = :insumoId';
+            $sql = 'SELECT id, codigo, iu, indice_unificado, tipo, insumos, 
+                            precio, unidad_medidas_id 
+                    FROM insumos WHERE id = :insumoId';
+
             $insumo = self::fetchObj($sql, ['insumoId' => $masterInsumoId]);
 
             $var = array(

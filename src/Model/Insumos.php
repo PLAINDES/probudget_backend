@@ -51,22 +51,29 @@ class Insumos extends Mysql
     public function __construct($array = [])
     {
         $this->_id = FG::validateMatrizKey('id', $array, 0);
-        $this->_insumos = FG::validateMatrizKey('insumos', $array); //(array_key_exists('insumos',$array))?$array['insumos']:"";
-        $this->_precio = FG::validateMatrizKey('precio', $array); //(array_key_exists('precio',$array))?$array['precio']:"";
+        $this->_insumos = FG::validateMatrizKey('insumos', $array);
+        //(array_key_exists('insumos',$array))?$array['insumos']:"";
+        $this->_precio = FG::validateMatrizKey('precio', $array);
+        //(array_key_exists('precio',$array))?$array['precio']:"";
         $this->_tipo = FG::validateMatrizKey('tipo', $array); //  (array_key_exists('tipo',$array))?$array['tipo']:"";
-        $this->_indice_unificado = FG::validateMatrizKey('indice_unificado', $array); // (array_key_exists('indice_unificado',$array))?$array['indice_unificado']:"";
-        $this->_unidad_medidas_id = FG::validateMatrizKey('unidad_medidas_id', $array); // (array_key_exists('unidad_medidas_id',$array))?$array['unidad_medidas_id']:"" ;
-        $this->_archivo_id = FG::validateMatrizKey('archivo_id', $array); // (array_key_exists('archivo_id',$array))?$array['archivo_id']:"" ;
+        $this->_indice_unificado = FG::validateMatrizKey('indice_unificado', $array);
+        // (array_key_exists('indice_unificado',$array))?$array['indice_unificado']:"";
+        $this->_unidad_medidas_id = FG::validateMatrizKey('unidad_medidas_id', $array);
+        // (array_key_exists('unidad_medidas_id',$array))?$array['unidad_medidas_id']:"" ;
+        $this->_archivo_id = FG::validateMatrizKey('archivo_id', $array);
+        // (array_key_exists('archivo_id',$array))?$array['archivo_id']:"" ;
     }
 
     public function getListAll()
     {
-        $sql = 'SELECT insumos.id, insumos, tipo, precio , codigo, indice_unificado, unidad_medidas.alias AS unidad_medida, unidad_medidas.id AS unidad_medidas_id
+        $sql = 'SELECT insumos.id, insumos, tipo, precio , codigo, 
+                        indice_unificado, unidad_medidas.alias 
+                        AS unidad_medida, unidad_medidas.id 
+                        AS unidad_medidas_id
               FROM insumos
-              INNER JOIN unidad_medidas ON unidad_medidas.id = insumos.unidad_medidas_id ';
+              INNER JOIN unidad_medidas 
+              ON unidad_medidas.id = insumos.unidad_medidas_id ';
         $minsumos = self::fetchAllObj($sql);
-
-
 
         $resp['success'] = true;
         $resp['message'] = '';
@@ -78,14 +85,22 @@ class Insumos extends Mysql
 
     public function getListInsumo($proyectos_generales_id)
     {
-        $sql = 'SELECT insumos.id, insumos,tipo, unidad_medidas.alias AS unidad_medida, unidad_medidas.id AS unidad_medidas_id
+        $sql = 'SELECT insumos.id, insumos,tipo, 
+                    unidad_medidas.alias 
+                    AS unidad_medida, unidad_medidas.id 
+                    AS unidad_medidas_id
               FROM insumos
               INNER JOIN unidad_medidas ON unidad_medidas.id = insumos.unidad_medidas_id ';
         $minsumos = self::fetchAllObj($sql);
 
-        $sql = 'SELECT ipr.id, ipr.insumos,ipr.tipo,ipr.master_insumo_id, um.alias AS unidad_medida, um.id AS unidad_medidas_id
+        $sql = 'SELECT ipr.id, ipr.insumos,ipr.tipo,ipr.master_insumo_id, um.alias 
+                        AS unidad_medida, um.id 
+                        AS unidad_medidas_id
               FROM insumos_proyecto ipr
-              INNER JOIN unidad_medidas um ON um.id = ipr.unidad_medidas_id WHERE ipr.proyectos_generales_id = :id AND ipr.master_insumo_id IS NULL';
+              INNER JOIN unidad_medidas um 
+              ON um.id = ipr.unidad_medidas_id 
+              WHERE ipr.proyectos_generales_id = :id 
+              AND ipr.master_insumo_id IS NULL';
         $pinsumos = self::fetchAllObj($sql, ['id' => $proyectos_generales_id]);
 
         $resp['success'] = true;
@@ -99,8 +114,14 @@ class Insumos extends Mysql
 
     public function getListInsumoByArchivo($archivo_id)
     {
-        $sql = 'SELECT i.id, i.codigo, i.insumos, i.tipo, i.precio, um.alias AS unidad_medida, um.id AS unidad_medidas_id FROM insumos i
-          INNER JOIN unidad_medidas um ON um.id = i.unidad_medidas_id WHERE i.archivo_id = :archivo_id';
+        $sql = 'SELECT i.id, i.codigo, i.insumos, i.tipo, i.precio, 
+                    um.alias 
+                    AS unidad_medida, um.id 
+                    AS unidad_medidas_id 
+                FROM insumos i
+                INNER JOIN unidad_medidas um 
+                ON um.id = i.unidad_medidas_id 
+                WHERE i.archivo_id = :archivo_id';
 
         $insumos = self::fetchAllObj($sql, ['archivo_id' => $archivo_id]);
 
@@ -862,8 +883,10 @@ class Insumos extends Mysql
             }
 
             $mensaje = $archivo_id
-            ? "Proceso completado del archivo ID {$archivo_id}: {$creados} creados, {$omitidos} omitidos, {$actualizados} actualizados"
-            : "Proceso completado de insumos sin archivo: {$creados} creados, {$omitidos} omitidos, {$actualizados} actualizados";
+            ? "Proceso completado del archivo ID {$archivo_id}: {$creados} creados, {$omitidos}
+            omitidos, {$actualizados} actualizados"
+            : "Proceso completado de insumos sin archivo: {$creados} creados, {$omitidos} omitidos,
+            {$actualizados} actualizados";
 
             return [
             'success' => true,

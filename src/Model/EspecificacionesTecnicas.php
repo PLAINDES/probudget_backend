@@ -85,12 +85,20 @@ class EspecificacionesTecnicas extends Mysql
                         $this->_position = $this->_position * 1;
                         if ($eept->position < $this->_position) {
                             $sql = "SET @norder = {$this->_position};
-                                UPDATE especificaciones_tecnicas SET position = (@norder:=@norder-1) WHERE presupuestos_id = {$eept->presupuestos_id}
-                                AND position <= {$this->_position} AND id <> {$this->_id} AND deleted_at IS NULL ORDER BY position ASC;";
+                                    UPDATE especificaciones_tecnicas 
+                                    SET position = (@norder:=@norder-1) 
+                                    WHERE presupuestos_id = {$eept->presupuestos_id}
+                                    AND position <= {$this->_position} 
+                                    AND id <> {$this->_id} 
+                                    AND deleted_at IS NULL ORDER BY position ASC;";
                         } else {
                             $sql = "SET @norder = {$this->_position};
-                                UPDATE especificaciones_tecnicas SET position = (@norder:=@norder+1) WHERE presupuestos_id = {$eept->presupuestos_id}
-                                AND position >= {$this->_position} AND id <> {$this->_id} AND deleted_at IS NULL ORDER BY position ASC;";
+                                    UPDATE especificaciones_tecnicas 
+                                    SET position = (@norder:=@norder+1) 
+                                    WHERE presupuestos_id = {$eept->presupuestos_id}
+                                    AND position >= {$this->_position} 
+                                    AND id <> {$this->_id} 
+                                    AND deleted_at IS NULL ORDER BY position ASC;";
                         }
                         self::ex($sql);
                     }
@@ -169,10 +177,15 @@ class EspecificacionesTecnicas extends Mysql
             $detail = [];
             $k = $this->getOrderSubBudget($this->_subpresupuesto_id);
             foreach ($data as $i => $value) {
-                if ($value->presupuestos_proyecto_generales_id == null || $value->presupuestos_proyecto_generales_id == '') {
+                if (
+                    $value->presupuestos_proyecto_generales_id == null
+                    || $value->presupuestos_proyecto_generales_id == ''
+                ) {
                     $index = $k + 1;
                     $index = $this->baseindex('', $index);
+
                     $this->assembled($data, $value->id, $index, $detail);
+
                     $k++;
                 }
             }
@@ -215,8 +228,10 @@ class EspecificacionesTecnicas extends Mysql
                             especificaciones_tecnicas.descripcion,
                             presupuestos.descripcion AS 'presupuestos_descripcion'
                     FROM especificaciones_tecnicas 
-                    INNER JOIN presupuestos  ON especificaciones_tecnicas.presupuestos_id = presupuestos.id                    
-                    WHERE especificaciones_tecnicas.presupuestos_id = :id AND especificaciones_tecnicas.deleted_at is NULL ORDER BY especificaciones_tecnicas.position ASC";
+                    INNER JOIN presupuestos 
+                    ON especificaciones_tecnicas.presupuestos_id = presupuestos.id                    
+                    WHERE especificaciones_tecnicas.presupuestos_id = :id 
+                    AND especificaciones_tecnicas.deleted_at is NULL ORDER BY especificaciones_tecnicas.position ASC";
             return self::fetchAllObj($sql, ['id' => $this->_id]);
         } catch (\Throwable $th) {
             $resp['success'] = false;
@@ -278,7 +293,10 @@ class EspecificacionesTecnicas extends Mysql
             $k = 0;
             $groups = [];
             foreach ($items as $i => $value) {
-                if ($value->presupuestos_proyecto_generales_id == null || $value->presupuestos_proyecto_generales_id == '') {
+                if (
+                    $value->presupuestos_proyecto_generales_id == null ||
+                    $value->presupuestos_proyecto_generales_id == ''
+                ) {
                     $index = $k + 1;
                     $index = $this->baseindex('', $index);
                     $this->assembled($items, $value->id, $index, $detail);
@@ -352,7 +370,10 @@ class EspecificacionesTecnicas extends Mysql
             $k = $this->getOrderSubBudget($this->_subpresupuesto_id);
 
             foreach ($data as $i => $value) {
-                if ($value->presupuestos_proyecto_generales_id == null || $value->presupuestos_proyecto_generales_id == '') {
+                if (
+                    $value->presupuestos_proyecto_generales_id == null ||
+                    $value->presupuestos_proyecto_generales_id == ''
+                ) {
                     $index = $k + 1;
                     $index = $this->baseindex('', $index);
                     $this->assembled($data, $value->id, $index, $detail);

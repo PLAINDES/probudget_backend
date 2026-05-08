@@ -40,14 +40,19 @@ class User extends Mysql
             }
 
             $password = FG::crypt($password);
-            $insert = self::insert("users", compact('email', 'accept_policies', 'oauth_provider', 'password', 'roleId'));
+            $insert = self::insert(
+            "users", compact('email', 'accept_policies', 'oauth_provider', 'password', 'roleId'
+            ));
             if ($insert && $insert["lastInsertId"]) {
                 $id = $insert["lastInsertId"];
                 $confirm_email = '0';
                 $resp['success'] = true;
                 $resp['message'] = 'Usuario registrado';
               // $resp['data'] = compact('id', 'email', 'confirm_email', 'password_rand');
-                $sql = 'SELECT id,email,first_name,last_name,picture, confirm_email, password AS password_rand  FROM users WHERE deleted_at IS NULL AND id = :id Limit 1';
+                $sql = 'SELECT id,email,first_name,last_name,picture,
+                            confirm_email, password AS password_rand
+                        FROM users
+                        WHERE deleted_at IS NULL AND id = :id Limit 1';
                 $resp['data'] = self::fetchArr($sql, compact('id'));
                 $token    = HelperJWT::encode(['exp' =>  time() + 3700, 'id' =>  $id]);
                 $url      = "{$domain}/user/confirm-email/{$token}";
@@ -542,7 +547,9 @@ class User extends Mysql
         $resp = new stdClass();
         try {
             $email = $request->email;
-            $sql = 'SELECT id,email,first_name,last_name,picture FROM users WHERE deleted_at IS NULL AND email = :email Limit 1';
+            $sql = 'SELECT id,email,first_name,last_name,picture 
+                    FROM users 
+                    WHERE deleted_at IS NULL AND email = :email Limit 1';
             $rs = self::fetchObj($sql, compact('email'));
             if ($rs && $rs->id) {
                 $resp->success = true;
@@ -585,8 +592,11 @@ class User extends Mysql
     {
         $resp = new stdClass();
         try {
-            $sql = 'SELECT id, email, first_name, last_name, picture, password FROM users WHERE deleted_at IS NULL AND id = :userId LIMIT 1';
+            $sql = 'SELECT id, email, first_name, last_name, picture, 
+                        password FROM users 
+                    WHERE deleted_at IS NULL AND id = :userId LIMIT 1';
             $rs = self::fetchObj($sql, ['userId' => $userId]);
+
             if ($rs && $rs->id) {
                 $resp->success = true;
                 $resp->message = 'Usuario encontrado';
@@ -731,7 +741,9 @@ class User extends Mysql
                             $asignados++;
                         } else {
                             // Notas: la variable $tipo NO EXISTE, así que no actualiza
-                            error_log("Asignación ya existente (ID {$rs->id}), no se actualiza tipo por estar comentado");
+                            error_log(
+                                "Asignación ya existente (ID {$rs->id}), no se actualiza tipo por estar comentado"
+                            );
                         }
                     } catch (\Throwable $th) {
                         $errores++;

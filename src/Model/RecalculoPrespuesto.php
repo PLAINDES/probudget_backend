@@ -30,8 +30,12 @@ class RecalculoPrespuesto extends Mysql
         try {
             do {
                 $sql_presupuestos = "SELECT id,presupuestos_proyecto_generales_id
-                                    FROM presupuestos WHERE id = :presupuestos_proyecto_generales_id";
-                $presupuestos_h = self::fetchObj($sql_presupuestos, ['presupuestos_proyecto_generales_id' => $presupuestos_proyecto_generales_id]);
+                                    FROM presupuestos 
+                                    WHERE id = :presupuestos_proyecto_generales_id";
+
+                $presupuestos_h = self::fetchObj($sql_presupuestos, [
+                    'presupuestos_proyecto_generales_id' => $presupuestos_proyecto_generales_id
+                ]);
 
                 if ($presupuestos_h) {
                     $presupuestos_proyecto_generales_id = $presupuestos_h->presupuestos_proyecto_generales_id;
@@ -46,7 +50,9 @@ class RecalculoPrespuesto extends Mysql
                     if ($presupuestos->sum_parcial) {
                         $parcial = $presupuestos->sum_parcial;
                     } else {
-                        $parcial = (($presupuestos->sum_metrado_parcial) ? $presupuestos->sum_metrado_parcial : 0) * (($presupuestos->sum_apu_cu) ? $presupuestos->sum_apu_cu : 0);
+                        $parcial = (($presupuestos->sum_metrado_parcial)
+                                    ? $presupuestos->sum_metrado_parcial
+                                    : 0) * (($presupuestos->sum_apu_cu) ? $presupuestos->sum_apu_cu : 0);
                     }
 
                     if ($presupuestos->sum_apu_eq) {
@@ -235,19 +241,23 @@ class RecalculoPrespuesto extends Mysql
 
                     switch ($porciones[1]) {
                         case '+':
-                            // $array["monto"]  = (float) number_format(($calculo_monto + floatval($porcion_dos)),2,'.','');
+                            // $array["monto"]  =
+                            //          (float) number_format(($calculo_monto + floatval($porcion_dos)),2,'.','');
                             $array["monto"]  = (float) ($calculo_monto + floatval($porcion_dos));
                             break;
                         case '-':
-                            // $array["monto"]  = (float) number_format(($calculo_monto - floatval($porcion_dos) ),2,'.','');
+                            // $array["monto"]  =
+                            //          (float) number_format(($calculo_monto - floatval($porcion_dos) ),2,'.','');
                             $array["monto"]  = (float) ($calculo_monto - floatval($porcion_dos));
                             break;
                         case '*':
-                            // $array["monto"]  = (float) number_format(($calculo_monto * floatval($porcion_dos)),2,'.','');
+                            // $array["monto"]  =
+                            //      (float) number_format(($calculo_monto * floatval($porcion_dos)),2,'.','');
                             $array["monto"]  = (float) ($calculo_monto * floatval($porcion_dos));
                             break;
                         default:
-                            // $array["monto"]  = (float) number_format(( $calculo_monto / floatval($porcion_dos)),2,'.','');
+                            // $array["monto"]  =
+                            //      (float) number_format(( $calculo_monto / floatval($porcion_dos)),2,'.','');
                             $array["monto"]  = (float) ($calculo_monto / floatval($porcion_dos));
                             break;
                     }
@@ -276,16 +286,25 @@ class RecalculoPrespuesto extends Mysql
 
                     switch ($porciones[1]) {
                         case '+':
-                            // $array["monto"]  = (float) number_format(($calculo_monto + floatval($porcion_dos) + floatval($porcion_tres)),2);
-                            $array["monto"]  = (float) ($calculo_monto + floatval($porcion_dos) + floatval($porcion_tres));
+                            // $array["monto"]  =
+                            //      (float) number_format(($calculo_monto + floatval($porcion_dos)
+                            //       + floatval($porcion_tres)),2);
+                            $array["monto"]  =
+                                (float) ($calculo_monto + floatval($porcion_dos) + floatval($porcion_tres));
                             break;
                         case '-':
-                            // $array["monto"]  = (float) number_format(($calculo_monto - floatval($porcion_dos) + floatval($porcion_tres)),2);
-                            $array["monto"]  = (float) ($calculo_monto - floatval($porcion_dos) + floatval($porcion_tres));
+                            // $array["monto"]  =
+                            //      (float) number_format(($calculo_monto - floatval($porcion_dos)
+                            //      + floatval($porcion_tres)),2);
+                            $array["monto"]  =
+                                (float) ($calculo_monto - floatval($porcion_dos) + floatval($porcion_tres));
                             break;
                         case '*':
-                            // $array["monto"]  = (float) number_format(($calculo_monto * floatval($porcion_dos) + floatval($porcion_tres)),2);
-                            $array["monto"]  = (float) ($calculo_monto * floatval($porcion_dos) + floatval($porcion_tres));
+                            // $array["monto"]  =
+                            //  (float) number_format(($calculo_monto * floatval($porcion_dos)
+                            // + floatval($porcion_tres)),2);
+                            $array["monto"]  =
+                                (float) ($calculo_monto * floatval($porcion_dos) + floatval($porcion_tres));
                             break;
                     }
                 }

@@ -114,7 +114,8 @@ class AnalisisPreciosUnitariosDetalles extends Mysql
     public function getInsumosId()
     {
         if ($this->_insumos_id) {
-            // $this->_unidad_medidas_id = FG::validateMatrizKey('unidad_medidas_id',$array); // (array_key_exists('unidad_medidas_id',$array))?$array['unidad_medidas_id']:"" ;
+            // $this->_unidad_medidas_id = FG::validateMatrizKey('unidad_medidas_id',$array);
+            // // (array_key_exists('unidad_medidas_id',$array))?$array['unidad_medidas_id']:"" ;
             $sql = 'SELECT id,precio FROM insumos WHERE id=:insumos_id  ';
             $insumos = self::fetchObj($sql, ["insumos_id" => $this->_insumos_id]);
             if ($insumos) {
@@ -195,7 +196,10 @@ class AnalisisPreciosUnitariosDetalles extends Mysql
                 $this->_values["monto_parcial_ppto"] = number_format(0.00);
             } else {
                 $this->_values["precio"] = number_format($this->getprecio(), 2, '.', '');
-                $this->_values["cantidad"] = ($this->_cantidad) ? number_format($this->_cantidad, 2, '.', '') : number_format($this->getcantidad(), 2, '.', '');
+                $this->_values["cantidad"] =
+                    ($this->_cantidad)
+                        ? number_format($this->_cantidad, 2, '.', '')
+                        : number_format($this->getcantidad(), 2, '.', '');
                 $this->_values["parcial"] = number_format($this->getparcial(), 2, '.', '');
                 $this->_values["monto_parcial_ppto"] = number_format($this->getMontoParcialPpto(), 2, '.', '');
             }
@@ -203,7 +207,10 @@ class AnalisisPreciosUnitariosDetalles extends Mysql
             //   var_dump($this->_values);exit;
 
             if ($this->_id) {
-                $sql = 'SELECT id,analisis_precios_unitarios_id FROM analisis_precios_unitarios_detalles WHERE id = :id';
+                $sql = 'SELECT id,analisis_precios_unitarios_id 
+                        FROM analisis_precios_unitarios_detalles 
+                        WHERE id = :id';
+
                 $apud = self::fetchObj($sql, ['id' => $this->_id]);
                 if ($apud) {
                     self::update("analisis_precios_unitarios_detalles", $this->_values, ['id' => $this->_id]);
@@ -249,11 +256,17 @@ class AnalisisPreciosUnitariosDetalles extends Mysql
             $sql_presupuesto = 'SELECT proyecto_generales_id FROM presupuestos WHERE id = :id';
             $presupuestos = self::fetchObj($sql_presupuesto, ['id' => $apu->presupuestos_id]);
 
-            $sql = 'SELECT id,cantidad FROM detalle_insumos 
-                    WHERE insumos_id = :insumos_id AND proyecto_generales_id =:proyecto_generales_id ';
-            $detalle_insumos = self::fetchObj($sql, ['insumos_id' => $this->_insumos_id, 'proyecto_generales_id' => $presupuestos->proyecto_generales_id]);
+            $sql = 'SELECT id,cantidad 
+                    FROM detalle_insumos 
+                    WHERE insumos_id = :insumos_id 
+                    AND proyecto_generales_id =:proyecto_generales_id ';
+            $detalle_insumos = self::fetchObj($sql, [
+                'insumos_id' => $this->_insumos_id, 'proyecto_generales_id' => $presupuestos->proyecto_generales_id
+                ]);
 
-            $sql_apud = 'SELECT SUM(cantidad) AS sum_insumos FROM analisis_precios_unitarios_detalles WHERE insumos_id = :insumos_id';
+            $sql_apud = 'SELECT SUM(cantidad) AS sum_insumos 
+                         FROM analisis_precios_unitarios_detalles 
+                         WHERE insumos_id = :insumos_id';
             $apud = self::fetchObj($sql_apud, ['insumos_id' => $this->_insumos_id]);
 
             $var = [

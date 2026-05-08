@@ -173,7 +173,9 @@ class Archivo extends Mysql
             $extensionesPermitidas = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
 
             if (!in_array($extension, $extensionesPermitidas)) {
-                throw new \Exception("Formato de archivo no permitido. Solo se permiten: " . implode(', ', $extensionesPermitidas));
+                throw new \Exception(
+                    "Formato de archivo no permitido. Solo se permiten: " . implode(', ', $extensionesPermitidas)
+                );
             }
 
             $folder = "/uploads/archivos-insumos/";
@@ -259,7 +261,8 @@ class Archivo extends Mysql
 
                         error_log("💾 Materiales guardados en BD: " . $materialesInsertados);
                     } else {
-                        error_log("⚠️ No se encontraron materiales en el PDF: " . ($extractResult['message'] ?? 'Sin mensaje'));
+                        error_log("⚠️ No se encontraron materiales en el PDF: " .
+                        ($extractResult['message'] ?? 'Sin mensaje'));
                     }
                 } catch (\Exception $e) {
                     // No fallar todo el proceso si falla la extracción
@@ -308,7 +311,10 @@ class Archivo extends Mysql
                 throw new \Exception("ID de archivo no especificado");
             }
 
-            $archivoActual = self::fetchObj("SELECT * FROM archivos WHERE id = :id AND deleted_at IS NULL", compact('id'));
+            $archivoActual = self::fetchObj("SELECT * 
+                                            FROM archivos 
+                                            WHERE id = :id 
+                                            AND deleted_at IS NULL", compact('id'));
             error_log("Archivo actual: " . print_r($archivoActual, true));
 
             if (!$archivoActual) {
@@ -330,7 +336,9 @@ class Archivo extends Mysql
                 }
 
                 $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-                $extensionesPermitidas = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
+                $extensionesPermitidas = [
+                    'pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'
+                ];
 
                 if (!in_array($extension, $extensionesPermitidas)) {
                     throw new \Exception("Formato de archivo no permitido");
@@ -531,9 +539,13 @@ class Archivo extends Mysql
             foreach ($tabla['rows'] as $row) {
                 try {
                     // Extraer datos del material
-                    $nombre = $this->findColumnValue($row, ['INSUMO', 'DESCRIPCION', 'MATERIAL', 'ITEM', 'DESCRIPCIÓN']);
+                    $nombre = $this->findColumnValue($row, [
+                        'INSUMO', 'DESCRIPCION', 'MATERIAL', 'ITEM', 'DESCRIPCIÓN'
+                    ]);
                     $unidadStr = $this->findColumnValue($row, ['UND.', 'UND', 'UNIDAD', 'UM', 'U.M.']);
-                    $precio = $this->parsePrice($this->findColumnValue($row, ['PREC.', 'PRECIO', 'P.U.', 'PRECIO_UNITARIO', 'PRECIO UNITARIO']));
+                    $precio = $this->parsePrice($this->findColumnValue($row, [
+                        'PREC.', 'PRECIO', 'P.U.', 'PRECIO_UNITARIO', 'PRECIO UNITARIO'
+                    ]));
 
                     // Validar que tenga datos mínimos
                     if (empty($nombre) || $precio <= 0) {

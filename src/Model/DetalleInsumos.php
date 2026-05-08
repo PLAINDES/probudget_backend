@@ -129,7 +129,9 @@ class DetalleInsumos extends Mysql
             $detalleInsumos = self::fetchObj($sql, ['id' => $request->id]);
             if ($detalleInsumos) {
                 self::update("insumos_proyecto", ['deleted_at' => FG::getFechaHora()], ['id' => $request->id]);
-                self::update("apus_partida_presupuestos", ['deleted_at' => FG::getFechaHora()], ['insumo_id' => $request->id]);
+                self::update("apus_partida_presupuestos", [
+                    'deleted_at' => FG::getFechaHora()], ['insumo_id' => $request->id
+                    ]);
                 $this->_id = $request->id;
                 $this->actualizarPartidas($detalleInsumos->proyectos_generales_id, true);
                 $resp['success'] = true;
@@ -168,10 +170,13 @@ class DetalleInsumos extends Mysql
                     FROM apus_partida_presupuestos app
                     INNER JOIN insumos_proyecto ip ON app.insumo_id = ip.id
                     INNER JOIN unidad_medidas um  ON ip.unidad_medidas_id = um.id
-                    INNER JOIN presupuestos_partida pp ON pp.presupuestos_id = app.presupuestos_id AND pp.subpartida_id IS NULL
+                    INNER JOIN presupuestos_partida pp 
+                        ON pp.presupuestos_id = app.presupuestos_id 
+                        AND pp.subpartida_id IS NULL
                     INNER JOIN presupuestos pt ON pp.presupuestos_id = pt.id
                     INNER JOIN proyecto_generales pg ON app.proyectos_generales_id = pg.id
-                    WHERE app.proyectos_generales_id = :proyecto_generales_id AND app.subpresupuestos_id IN ({$this->_subpresupuestos_id}) 
+                    WHERE app.proyectos_generales_id = :proyecto_generales_id 
+                    AND app.subpresupuestos_id IN ({$this->_subpresupuestos_id}) 
                     AND app.partida_id IS NULL AND app.subpartida_id IS NULL AND app.deleted_at IS NULL";
             $list = self::fetchAllObj($sql, ['proyecto_generales_id' => $this->_proyecto_generales_id]);
 
@@ -198,10 +203,13 @@ class DetalleInsumos extends Mysql
                     FROM apus_partida_presupuestos app
                     LEFT JOIN insumos_proyecto ip ON app.insumo_id = ip.id
                     LEFT JOIN unidad_medidas um  ON ip.unidad_medidas_id = um.id
-                    LEFT JOIN presupuestos_partida pp ON pp.subpartida_id = app.id OR pp.subpartida_id = app.subpartida_id
+                    LEFT JOIN presupuestos_partida pp 
+                        ON pp.subpartida_id = app.id 
+                        OR pp.subpartida_id = app.subpartida_id
                     INNER JOIN presupuestos pt ON app.presupuestos_id = pt.id
                     INNER JOIN proyecto_generales pg ON app.proyectos_generales_id = pg.id
-                    WHERE app.proyectos_generales_id = :proyecto_generales_id AND app.subpresupuestos_id IN ({$this->_subpresupuestos_id}) 
+                    WHERE app.proyectos_generales_id = :proyecto_generales_id 
+                    AND app.subpresupuestos_id IN ({$this->_subpresupuestos_id}) 
                     AND (app.partida_id IS NOT NULL OR app.subpartida_id IS NOT NULL) AND app.deleted_at IS NULL";
             $sublist = self::fetchAllObj($sql, ['proyecto_generales_id' => $this->_proyecto_generales_id]);
 
@@ -302,14 +310,19 @@ class DetalleInsumos extends Mysql
                     if (strtolower($val->alias) == '%mo') {
                         if ($val->presupuestos_id > 0 && isset($moKeys[$val->presupuestos_id])) {
                             if ($val->sp) {
-                                $keys[$k][$k2]->precio = $keys[$k][$k2]->partida_cantidad * $keys[$k][$k2]->metrado * $keys[$k][$k2]->parcial; // precio sera su parcial para este tipo %mo
+                                $keys[$k][$k2]->precio =
+                                    $keys[$k][$k2]->partida_cantidad *
+                                    $keys[$k][$k2]->metrado * $keys[$k][$k2]->parcial;
+                                // precio sera su parcial para este tipo %mo
                             } else {
                                 $moParcials = $moKeys[$val->presupuestos_id];
                                 $moTotal = 0;
                                 foreach ($moParcials as $mok => $moParcial) {
                                     $moTotal = $moTotal + $moParcial;
                                 }
-                                $keys[$k][$k2]->precio = ($keys[$k][$k2]->cantidad * $keys[$k][$k2]->metrado) * $moTotal; // precio sera su parcial para este tipo %mo
+                                $keys[$k][$k2]->precio =
+                                    ($keys[$k][$k2]->cantidad * $keys[$k][$k2]->metrado) * $moTotal;
+                                    // precio sera su parcial para este tipo %mo
                             }
                         }
                     }
@@ -555,7 +568,10 @@ class DetalleInsumos extends Mysql
         $sql = "SELECT app.presupuestos_id, app.subpartida_id FROM apus_partida_presupuestos app
         WHERE app.proyectos_generales_id = :proyecto_generales_id AND app.insumo_id = :insumo_id {$del}";
 
-        $list = self::fetchAllObj($sql, ['proyecto_generales_id' => $proyectos_generales_id, 'insumo_id' => $this->_id]);
+        $list = self::fetchAllObj($sql, [
+            'proyecto_generales_id' => $proyectos_generales_id,
+            'insumo_id' => $this->_id
+        ]);
 
         $apusPartidasProyecto = new ApusPartidasProyecto();
         $request = new stdClass();

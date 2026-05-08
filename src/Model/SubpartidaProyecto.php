@@ -33,13 +33,24 @@ class SubpartidaProyecto extends Mysql
                 $partida_id = $lastInsert["lastInsertId"];
             } else {
                 if ($request->id == '0' && $request->masterid != '0') {
-                    $sql = 'SELECT id, partida, rendimiento, rendimiento_unid, unidad_medidas_id 
-                            FROM partidas_proyecto WHERE master_partida_id = :id AND proyectos_generales_id = :proyectos_generales_id';
-                    $partida = self::fetchObj($sql, ['id' => $request->masterid, 'proyectos_generales_id' => $request->proyectos_generales_id]);
+                    $sql = 'SELECT id, partida, rendimiento, rendimiento_unid, 
+                                    unidad_medidas_id 
+                            FROM partidas_proyecto 
+                            WHERE master_partida_id = :id 
+                            AND proyectos_generales_id = :proyectos_generales_id';
+                    $partida = self::fetchObj($sql, [
+                        'id' => $request->masterid,
+                        'proyectos_generales_id' => $request->proyectos_generales_id
+                    ]);
                     $rend =  number_format(0, 2, '.', '');
+
                     if (empty($partida)) {
-                        $sql = 'SELECT id, partida, rendimiento, rendimiento_unid, unidad_medidas_id FROM partidas WHERE id = :id';
+                        $sql = 'SELECT id, partida, rendimiento, rendimiento_unid, 
+                                        unidad_medidas_id 
+                                FROM partidas 
+                                WHERE id = :id';
                         $partida = self::fetchObj($sql, ['id' => $request->masterid]);
+
                         if ($partida) {
                             $rend = number_format($partida->rendimiento, 2, '.', '');
                             $lastInsert = self::insert("partidas_proyecto", array(
@@ -61,7 +72,9 @@ class SubpartidaProyecto extends Mysql
                     $request->unidad_medidas_id = $partida->unidad_medidas_id;
                     $request->rendimiento = $partida->rendimiento;
                 } else {
-                    $sql = 'SELECT id, rendimiento, rendimiento_unid, unidad_medidas_id FROM partidas_proyecto WHERE id = :id';
+                    $sql = 'SELECT id, rendimiento, rendimiento_unid, unidad_medidas_id 
+                            FROM partidas_proyecto 
+                            WHERE id = :id';
                     $partida = self::fetchObj($sql, ['id' => $request->id]);
                     if ($partida) {
                         $partida_id = $partida->id;
@@ -74,10 +87,17 @@ class SubpartidaProyecto extends Mysql
             if ($partida_id) {
                 $exist = null;
                 if ($request->subpartida_id) {
-                    $sql = "SELECT id FROM apus_partida_presupuestos WHERE partida_id = :partida_id AND subpartida_id = :uuid AND deleted_at IS NULL";
+                    $sql = "SELECT id 
+                            FROM apus_partida_presupuestos 
+                            WHERE partida_id = :partida_id 
+                            AND subpartida_id = :uuid 
+                            AND deleted_at IS NULL";
                     $exist = self::fetchObj($sql, ['partida_id' => $partida_id, 'uuid' => $request->subpartida_id]);
                     if (!$exist) {
-                        $sql = "SELECT id,partida_id FROM apus_partida_presupuestos WHERE id = :uuid AND deleted_at IS NULL";
+                        $sql = "SELECT id,partida_id 
+                                FROM apus_partida_presupuestos 
+                                WHERE id = :uuid 
+                                AND deleted_at IS NULL";
                         $exist = self::fetchObj($sql, ['uuid' => $request->subpartida_id]);
                         if ($exist && $exist->partida_id == $partida_id) {
                             $response['success'] = false;
@@ -87,11 +107,22 @@ class SubpartidaProyecto extends Mysql
                         $exist = null;
                     }
                 } else {
-                    $sql = "SELECT id FROM apus_partida_presupuestos WHERE partida_id = :partida_id AND presupuestos_id = :uuid AND subpartida_id IS NULL AND deleted_at IS NULL";
+                    $sql = "SELECT id 
+                            FROM apus_partida_presupuestos 
+                            WHERE partida_id = :partida_id 
+                            AND presupuestos_id = :uuid 
+                            AND subpartida_id IS NULL AND deleted_at IS NULL";
                     $exist = self::fetchObj($sql, ['partida_id' => $partida_id, 'uuid' => $request->presupuestos_id]);
+
                     if (!$exist) {
-                        $sql = "SELECT id FROM presupuestos WHERE partidas_id = :partida_id AND id = :uuid AND deleted_at IS NULL";
-                        $exist = self::fetchObj($sql, ['partida_id' => $partida_id, 'uuid' => $request->presupuestos_id]);
+                        $sql = "SELECT id 
+                                FROM presupuestos 
+                                WHERE partidas_id = :partida_id 
+                                AND id = :uuid 
+                                AND deleted_at IS NULL";
+                        $exist = self::fetchObj($sql, [
+                            'partida_id' => $partida_id, 'uuid' => $request->presupuestos_id
+                        ]);
                     }
                 }
                 if ($exist) {
@@ -153,7 +184,10 @@ class SubpartidaProyecto extends Mysql
     private function saveApusPartida($param)
     {
         $insumos = [];
-        $sql = 'SELECT id, cuadrilla, cantidad, insumo_id, unidad_medidas_id FROM apus_partidas WHERE partida_id = :partida_id';
+        $sql = 'SELECT id, cuadrilla, cantidad, insumo_id, 
+                    unidad_medidas_id 
+                FROM apus_partidas 
+                WHERE partida_id = :partida_id';
         $apus = self::fetchAllObj($sql, ['partida_id' => $param->master_partidas_id]);
         if (!empty($apus)) {
             foreach ($apus as $apu) {
@@ -191,11 +225,19 @@ class SubpartidaProyecto extends Mysql
     private function findOrCreateInsumo($masterInsumoId, $proyectos_generales_id)
     {
         $args = new stdClass();
-        $sql = 'SELECT id, tipo, insumos, precio, unidad_medidas_id FROM insumos_proyecto 
-        WHERE master_insumo_id = :insumoId AND proyectos_generales_id = :proyectos_generales_id';
-        $insumo = self::fetchObj($sql, ['insumoId' => $masterInsumoId, 'proyectos_generales_id' => $proyectos_generales_id]);
+        $sql = 'SELECT id, tipo, insumos, precio, unidad_medidas_id 
+                FROM insumos_proyecto 
+                WHERE master_insumo_id = :insumoId 
+                AND proyectos_generales_id = :proyectos_generales_id';
+        $insumo = self::fetchObj($sql, [
+            'insumoId' => $masterInsumoId, 'proyectos_generales_id' => $proyectos_generales_id
+        ]);
+
         if (empty($insumo)) {
-            $sql = 'SELECT id, codigo, iu, indice_unificado, tipo, insumos, precio, unidad_medidas_id FROM insumos WHERE id = :insumoId';
+            $sql = 'SELECT id, codigo, iu, indice_unificado, tipo, 
+                        insumos, precio, unidad_medidas_id 
+                    FROM insumos 
+                    WHERE id = :insumoId';
             $insumo = self::fetchObj($sql, ['insumoId' => $masterInsumoId]);
             $var = array(
                 'codigo' => $insumo->codigo,
@@ -224,9 +266,14 @@ class SubpartidaProyecto extends Mysql
     private function savePresupuestoPartida($request)
     {
         $var = [];
-        $sql_a = 'SELECT id FROM presupuestos_partida 
-                WHERE subpartida_id = :subpartida_id AND proyectos_generales_id = :proyectos_generales_id';
-        $val_a = self::fetchObj($sql_a, ['subpartida_id' => $request->subpartida_id, 'proyectos_generales_id' => $request->proyectos_generales_id]);
+        $sql_a = 'SELECT id 
+                  FROM presupuestos_partida 
+                  WHERE subpartida_id = :subpartida_id 
+                  AND proyectos_generales_id = :proyectos_generales_id';
+        $val_a = self::fetchObj($sql_a, [
+            'subpartida_id' => $request->subpartida_id,
+            'proyectos_generales_id' => $request->proyectos_generales_id
+        ]);
         if ($request->rendimiento) {
             $var['rendimiento'] = $request->rendimiento;
         }
@@ -241,7 +288,10 @@ class SubpartidaProyecto extends Mysql
                 self::update(
                     "presupuestos_partida",
                     $var,
-                    ['subpartida_id' => $request->subpartida_id, 'proyectos_generales_id' => $request->proyectos_generales_id]
+                    [
+                        'subpartida_id' => $request->subpartida_id,
+                        'proyectos_generales_id' => $request->proyectos_generales_id
+                    ]
                 );
             }
         } else {

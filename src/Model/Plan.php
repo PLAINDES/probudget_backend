@@ -56,7 +56,10 @@ class Plan extends Mysql
                 case 1: // PROYECTOS
                     $permiso = getPermiso($permisos, 1);
                     if ($permiso) {
-                        $sql = "SELECT PG.* FROM proyecto_generales AS PG WHERE PG.deleted_at IS NULL AND PG.users_id = :user_id";
+                        $sql = "SELECT PG.* 
+                                FROM proyecto_generales AS PG 
+                                WHERE PG.deleted_at IS NULL AND PG.users_id = :user_id";
+
                         $proyectos = self::fetchAllObj($sql, compact('user_id'));
                         $sql = 'SELECT proyectogeneralId FROM usuarios_invitados WHERE userId = :user_id';
                         $compartidos = self::fetchAllObj($sql, compact('user_id'));
@@ -90,7 +93,9 @@ class Plan extends Mysql
                         $cantidad = $permiso->cantidad; // por ejemplo, 100
 
                         if ($cantidad >= 0 && $total >= $cantidad) {
-                            throw new \Exception("Ya superó la cantidad de " . $cantidad . " partidas permitidas para este proyecto");
+                            throw new \Exception(
+                                "Ya superó la cantidad de " . $cantidad . " partidas permitidas para este proyecto"
+                            );
                         }
                     }
                     break;
@@ -109,7 +114,9 @@ class Plan extends Mysql
                         $cantidad = $permiso->cantidad;
                         if ($cantidad >= 0 && $postpeso > $cantidad) {
                             $convert = FG::getZiseConvert($cantidad);
-                            throw new \Exception("Ya superó la cantidad de " . $convert . " de almacenamiento disponible");
+                            throw new \Exception(
+                                "Ya superó la cantidad de " . $convert . " de almacenamiento disponible"
+                            );
                         }
                         $rsp['message'] = 'Almacenamiento disponible';
                     }

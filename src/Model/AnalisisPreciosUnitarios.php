@@ -37,7 +37,9 @@ class AnalisisPreciosUnitarios extends Mysql
             if ($value->cuadrilla) {
                 $cantidad = $value->cuadrilla *  $proyecto_general->jornada_laboral / $this->_rendimiento;
                 $parcial = $cantidad * $value->precio;
-                self::update("analisis_precios_unitarios_detalles", ["cantidad" => $cantidad, "parcial" => $parcial], ['id' => $value->id]);
+                self::update("analisis_precios_unitarios_detalles", [
+                    "cantidad" => $cantidad, "parcial" => $parcial
+                ], ['id' => $value->id]);
             }
         }
     }
@@ -99,7 +101,8 @@ class AnalisisPreciosUnitarios extends Mysql
         // $this->_presupuestos_id = (array_key_exists('presupuestos_id',$array))?$array['presupuestos_id']:"";
         // $this->_mano_obra = (array_key_exists('mano_obra',$array))?$array['mano_obra']:"";
         // $this->_materiales = (array_key_exists('materiales',$array))?$array['materiales']:"";
-        // $this->_herramienta_equipos = (array_key_exists('herramienta_equipos',$array))?$array['herramienta_equipos']:"";
+        // $this->_herramienta_equipos =
+        //      (array_key_exists('herramienta_equipos',$array))?$array['herramienta_equipos']:"";
     }
 
     public function getSave()
@@ -272,7 +275,8 @@ class AnalisisPreciosUnitarios extends Mysql
                                     unidad_medidas.apu_cantidad                         
                                 FROM analisis_precios_unitarios_detalles 
                                 INNER JOIN insumos ON insumos.id = insumos_id
-                                INNER JOIN unidad_medidas ON unidad_medidas.id = insumos.unidad_medidas_id                        
+                                INNER JOIN unidad_medidas 
+                                ON unidad_medidas.id = insumos.unidad_medidas_id                        
                                 WHERE analisis_precios_unitarios_id = :id";
 
                 // foreach ($cabecera as $key => $value) {

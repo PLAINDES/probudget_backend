@@ -246,7 +246,10 @@ class Import extends Mysql
                 'message' => ($array_update) ? 'Se encontraron los registros, reenviar para actualizar' : ''
             ];
         } catch (\Throwable $th) {
-            return ["success" => false, "message" => 'Ocurrió un error al importar insumos, verifique que su codigo de insumo sea único'];
+            return [
+                "success" => false,
+                "message" => 'Ocurrió un error al importar insumos, verifique que su codigo de insumo sea único'
+            ];
         }
     }
 
@@ -479,7 +482,8 @@ class Import extends Mysql
             switch ($this->_type) {
                 case 1:
                     if (!empty($data)) {
-                        $messge = 'Se han encontrado nuevas actualizaciónes de insumos. ¿Desea actualizar sus insumos?.';
+                        $messge =
+                            'Se han encontrado nuevas actualizaciónes de insumos. ¿Desea actualizar sus insumos?.';
                         $mtype = 'Insumos';
                         $idnotify = $this->createNotificationProjects($messge, $mtype);
                     }
@@ -605,8 +609,12 @@ class Import extends Mysql
             $masterid = ltrim($masterid, ',');
 
             if ($masterid) {
-                $sql = "SELECT id, iu, indice_unificado, tipo, insumos, precio, unidad_medidas_id, notify_id FROM insumos WHERE id IN ($masterid)";
+                $sql = "SELECT id, iu, indice_unificado, tipo, insumos, 
+                                precio, unidad_medidas_id, notify_id 
+                        FROM insumos 
+                        WHERE id IN ($masterid)";
                 $insumos = self::fetchAllObj($sql);
+
                 if (!empty($insumos)) {
                     $notify_id = 0;
                     foreach ($insumos as $insumo) {
@@ -622,13 +630,17 @@ class Import extends Mysql
                         }
                         self::update("insumos_proyecto", $var, ['master_insumo_id' => $insumo->id]);
                         if ($insumo->precio == null) {
-                            self::ex("UPDATE insumos_proyecto SET precio = NULL WHERE master_insumo_id = " . $insumo->id);
+                            self::ex("UPDATE insumos_proyecto 
+                                      SET precio = NULL 
+                                      WHERE master_insumo_id = " . $insumo->id);
                         }
                         $notify_id = $insumo->notify_id;
                     }
 
                     if ($notify_id) {
-                        self::update("notificacion_proyecto", ['estado' => '0', 'omitir' => 'Si'], ['id' => $notify_id]);
+                        self::update("notificacion_proyecto", [
+                            'estado' => '0', 'omitir' => 'Si'], ['id' => $notify_id
+                            ]);
                     }
 
                     $detalleInsumos = new DetalleInsumos(false);

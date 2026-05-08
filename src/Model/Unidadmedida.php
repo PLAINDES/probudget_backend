@@ -30,7 +30,8 @@ class Unidadmedida extends Mysql
     public function __construct($array = [])
     {
         $this->_id = FG::validateMatrizKey('id', $array, 0);
-        $this->_descripcion = FG::validateMatrizKey('descripcion', $array); //(array_key_exists('descripcion',$array))?$array['descripcion']:"";
+        $this->_descripcion = FG::validateMatrizKey('descripcion', $array);
+        //(array_key_exists('descripcion',$array))?$array['descripcion']:"";
         $this->_alias = FG::validateMatrizKey('alias', $array); //(array_key_exists('alias',$array))?$array['alias']:"";
     }
 

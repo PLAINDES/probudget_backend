@@ -34,7 +34,10 @@ class Gemini
         $maxSize = 20 * 1024 * 1024; // 20MB límite recomendado
 
         if ($fileSize > $maxSize) {
-            throw new \Exception("El archivo PDF es demasiado grande (" . round($fileSize / 1024 / 1024, 2) . "MB). Máximo permitido: 20MB");
+            throw new \Exception(
+                "El archivo PDF es demasiado grande (" .
+                round($fileSize / 1024 / 1024, 2) . "MB). Máximo permitido: 20MB"
+            );
         }
 
         $pdfBase64 = base64_encode(file_get_contents($filePath));
@@ -83,8 +86,11 @@ class Gemini
      */
     private function makeRequest(array $payload)
     {
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$this->model}:generateContent?key={$this->apiKey}";
-
+        $url = sprintf(
+            'https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s',
+            $this->model,
+            $this->apiKey
+        );
         $ch = curl_init();
 
         curl_setopt_array($ch, [

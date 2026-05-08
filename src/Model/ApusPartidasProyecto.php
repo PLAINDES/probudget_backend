@@ -101,16 +101,32 @@ class ApusPartidasProyecto extends Mysql
                 if (!empty($insumo)) {
                     $insu = null;
                     if ($param->subpartida_id) {
-                        $sql = 'SELECT id, unidad_medidas_id FROM apus_partida_presupuestos WHERE insumo_id = :insumo_id AND subpartida_id = :subpartida_id AND deleted_at IS NULL';
-                        $insu = self::fetchObj($sql, ['insumo_id' => $insumo->id, 'subpartida_id' => $param->subpartida_id]);
+                        $sql = 'SELECT id, unidad_medidas_id 
+                                FROM apus_partida_presupuestos 
+                                WHERE insumo_id = :insumo_id 
+                                AND subpartida_id = :subpartida_id 
+                                AND deleted_at IS NULL';
+
+                        $insu = self::fetchObj($sql, [
+                            'insumo_id' => $insumo->id, 'subpartida_id' => $param->subpartida_id
+                            ]);
                     } else {
-                        $sql = 'SELECT id, unidad_medidas_id FROM apus_partida_presupuestos WHERE insumo_id = :insumo_id AND presupuestos_id = :presupuestos_id AND subpartida_id IS NULL AND deleted_at IS NULL';
-                        $insu = self::fetchObj($sql, ['insumo_id' => $insumo->id, 'presupuestos_id' => $param->presupuestos_id]);
+                        $sql = 'SELECT id, unidad_medidas_id 
+                                FROM apus_partida_presupuestos 
+                                WHERE insumo_id = :insumo_id 
+                                AND presupuestos_id = :presupuestos_id 
+                                AND subpartida_id IS NULL AND deleted_at IS NULL';
+
+                        $insu = self::fetchObj($sql, [
+                            'insumo_id' => $insumo->id, 'presupuestos_id' => $param->presupuestos_id
+                            ]);
                     }
 
                     if ($insu) {
                         // Ya existe, actualizar
-                        self::update("apus_partida_presupuestos", array('unidad_medidas_id' => $insu->unidad_medidas_id), array('id' => $insu->id));
+                        self::update("apus_partida_presupuestos", array(
+                            'unidad_medidas_id' => $insu->unidad_medidas_id
+                            ), array('id' => $insu->id));
                         $var['id'] = $insu->id;
                     } else {
                         // No existe, insertar nuevo
@@ -193,11 +209,20 @@ class ApusPartidasProyecto extends Mysql
 
     private function findOrCreateInsumo($masterInsumoId, $proyectos_generales_id)
     {
-        $sql = 'SELECT id, unidad_medidas_id FROM insumos_proyecto WHERE master_insumo_id = :insumoId AND proyectos_generales_id = :proyectos_generales_id';
-        $insumo = self::fetchObj($sql, ['insumoId' => $masterInsumoId, 'proyectos_generales_id' => $proyectos_generales_id]);
+        $sql = 'SELECT id, unidad_medidas_id 
+                FROM insumos_proyecto 
+                WHERE master_insumo_id = :insumoId 
+                AND proyectos_generales_id = :proyectos_generales_id';
+        $insumo = self::fetchObj($sql, [
+            'insumoId' => $masterInsumoId, 'proyectos_generales_id' => $proyectos_generales_id
+        ]);
         if (empty($insumo)) {
             $resp = new stdClass();
-            $sql = 'SELECT id, codigo, iu, indice_unificado, tipo, insumos, precio, unidad_medidas_id FROM insumos WHERE id = :insumoId';
+            $sql = 'SELECT id, codigo, iu, indice_unificado, tipo, insumos, 
+                            precio, unidad_medidas_id 
+                    FROM insumos 
+                    WHERE id = :insumoId';
+
             $insumo = self::fetchObj($sql, ['insumoId' => $masterInsumoId]);
             $lastInsert = self::insert("insumos_proyecto", array(
                 'codigo' => $insumo->codigo,
@@ -219,7 +244,10 @@ class ApusPartidasProyecto extends Mysql
 
     private function findInsumo($id)
     {
-        $sql = 'SELECT id, codigo, iu, indice_unificado, tipo, insumos, precio, unidad_medidas_id FROM insumos_proyecto WHERE id = :insumoId';
+        $sql = 'SELECT id, codigo, iu, indice_unificado, tipo, insumos, 
+                    precio, unidad_medidas_id 
+                FROM insumos_proyecto 
+                WHERE id = :insumoId';
         $insumo = self::fetchObj($sql, ['insumoId' => $id]);
         return $insumo;
     }
@@ -238,7 +266,8 @@ class ApusPartidasProyecto extends Mysql
             $this->updateHeaderApuPartida($resp, $presupuestos_id, $subpartida_id);
             $resp->mano_obra = FG::numberFormat($resp->mano_obra); // number_format($resp->mano_obra, 2, '.', '');
             $resp->materiales = FG::numberFormat($resp->materiales); // number_format($resp->materiales, 2, '.', '');
-            $resp->herramienta_equipos = FG::numberFormat($resp->herramienta_equipos); // number_format($resp->herramienta_equipos, 2, '.', '');
+            $resp->herramienta_equipos = FG::numberFormat($resp->herramienta_equipos);
+            // number_format($resp->herramienta_equipos, 2, '.', '');
             $resp->subcontrato = FG::numberFormat($resp->subcontrato); // number_format($resp->subcontrato, 2, '.', '');
             $resp->subpartida = FG::numberFormat($resp->subpartida); // number_format($resp->subpartida, 2, '.', '');
             foreach ($resp->detalle as $k => $o) {
@@ -262,7 +291,8 @@ class ApusPartidasProyecto extends Mysql
         $presupuestos = array();
         if ($result->success) {
             $especificacionesTecnicas = new EspecificacionesTecnicas($request);
-            $presupuestos = $especificacionesTecnicas->getItemsPresupuestos($proyectos_generales_id, $subpresupuestos_id);
+            $presupuestos =
+                    $especificacionesTecnicas->getItemsPresupuestos($proyectos_generales_id, $subpresupuestos_id);
             $resp->success = true;
             $keys_apus = array();
             foreach (@$result->apus as $key => $value) {
@@ -276,8 +306,10 @@ class ApusPartidasProyecto extends Mysql
                     $keys_items[$cabecera->presupuestos_id] = $rs;
                     $rs->mano_obra = FG::numberFormat($rs->mano_obra); // number_format($rs->mano_obra, 2, '.', '');
                     $rs->materiales = FG::numberFormat($rs->materiales); // number_format($rs->materiales, 2, '.', '');
-                    $rs->herramienta_equipos = FG::numberFormat($rs->herramienta_equipos); // number_format($rs->herramienta_equipos, 2, '.', '');
-                    $rs->subcontrato = FG::numberFormat($rs->subcontrato); // number_format($rs->subcontrato, 2, '.', '');
+                    $rs->herramienta_equipos = FG::numberFormat($rs->herramienta_equipos);
+                    // number_format($rs->herramienta_equipos, 2, '.', '');
+                    $rs->subcontrato = FG::numberFormat($rs->subcontrato);
+                    // number_format($rs->subcontrato, 2, '.', '');
                     $rs->subpartida = FG::numberFormat($rs->subpartida); // number_format($rs->subpartida, 2, '.', '');
                 }
             }
@@ -305,7 +337,8 @@ class ApusPartidasProyecto extends Mysql
         $presupuestos = array();
         if ($result->success) {
             $especificacionesTecnicas = new EspecificacionesTecnicas($request);
-            $presupuestos = $especificacionesTecnicas->getItemsPresupuestos($proyectos_generales_id, $subpresupuestos_id);
+            $presupuestos =
+                        $especificacionesTecnicas->getItemsPresupuestos($proyectos_generales_id, $subpresupuestos_id);
             $resp->success = true;
             $keys_apus = array();
             foreach (@$result->apus as $key => $value) {
@@ -318,8 +351,10 @@ class ApusPartidasProyecto extends Mysql
                     $rs = $this->performCalculations($cabecera, $apus);
                     $rs->mano_obra = FG::numberFormat($rs->mano_obra); // number_format($rs->mano_obra, 2, '.', '');
                     $rs->materiales = FG::numberFormat($rs->materiales); // number_format($rs->materiales, 2, '.', '');
-                    $rs->herramienta_equipos = FG::numberFormat($rs->herramienta_equipos); // number_format($rs->herramienta_equipos, 2, '.', '');
-                    $rs->subcontrato = FG::numberFormat($rs->subcontrato); // number_format($rs->subcontrato, 2, '.', '');
+                    $rs->herramienta_equipos = FG::numberFormat($rs->herramienta_equipos);
+                    // number_format($rs->herramienta_equipos, 2, '.', '');
+                    $rs->subcontrato = FG::numberFormat($rs->subcontrato);
+                    // number_format($rs->subcontrato, 2, '.', '');
                     $rs->subpartida = FG::numberFormat($rs->subpartida); // number_format($rs->subpartida, 2, '.', '');
                     $keys_items[$cabecera->presupuestos_id] = $rs;
                 }
@@ -586,10 +621,14 @@ class ApusPartidasProyecto extends Mysql
                     if ($result->success) {
                         $rs = $this->performCalculations($result->cabecera, $result->apus);
                         $rs->mano_obra = FG::numberFormat($rs->mano_obra); // number_format($rs->mano_obra, 2, '.', '');
-                        $rs->materiales = FG::numberFormat($rs->materiales); // number_format($rs->materiales, 2, '.', '');
-                        $rs->herramienta_equipos = FG::numberFormat($rs->herramienta_equipos); // number_format($rs->herramienta_equipos, 2, '.', '');
-                        $rs->subcontrato = FG::numberFormat($rs->subcontrato); // number_format($rs->subcontrato, 2, '.', '');
-                        $rs->subpartida = FG::numberFormat($rs->subpartida); // number_format($rs->subpartida, 2, '.', '');
+                        $rs->materiales = FG::numberFormat($rs->materiales);
+                        // number_format($rs->materiales, 2, '.', '');
+                        $rs->herramienta_equipos = FG::numberFormat($rs->herramienta_equipos);
+                        // number_format($rs->herramienta_equipos, 2, '.', '');
+                        $rs->subcontrato = FG::numberFormat($rs->subcontrato);
+                        // number_format($rs->subcontrato, 2, '.', '');
+                        $rs->subpartida = FG::numberFormat($rs->subpartida);
+                        // number_format($rs->subpartida, 2, '.', '');
                         $apus[$key]->children = $rs;
                     }
                 }
@@ -706,7 +745,9 @@ class ApusPartidasProyecto extends Mysql
 
     private function updateHeaderApuPartida($resp, $presupuestos_id, $subpartida_id)
     {
-        $cu = $resp->mano_obra + $resp->materiales + $resp->herramienta_equipos + $resp->subcontrato + $resp->subpartida;
+        $cu = $resp->mano_obra + $resp->materiales +
+                $resp->herramienta_equipos + $resp->subcontrato + $resp->subpartida;
+
         if ($subpartida_id) {
             self::update("apus_partida_presupuestos", array(
                 'precio' => $cu, // number_format($cu, 2, '.', ''),
@@ -739,7 +780,11 @@ class ApusPartidasProyecto extends Mysql
     {
         $resp = [];
         try {
-            $sql = 'SELECT presupuestos_id, subpartida_id, partida_id FROM apus_partida_presupuestos WHERE id = :id AND deleted_at IS NULL';
+            $sql = 'SELECT presupuestos_id, subpartida_id, partida_id 
+                    FROM apus_partida_presupuestos 
+                    WHERE id = :id 
+                    AND deleted_at IS NULL';
+
             $detalleInsumos = self::fetchObj($sql, ['id' => $request->id]);
             if ($detalleInsumos) {
                 $this->removerRecursive($request->id, $detalleInsumos->partida_id);
@@ -763,7 +808,11 @@ class ApusPartidasProyecto extends Mysql
 
     private function findOrCreateUnid($unid)
     {
-        $sql = 'SELECT id, descripcion, alias, apu_cantidad FROM unidad_medidas WHERE LOWER(alias) = LOWER(:unid) OR LOWER(descripcion) = LOWER(:unid)';
+        $sql = 'SELECT id, descripcion, alias, apu_cantidad 
+                FROM unidad_medidas 
+                WHERE LOWER(alias) = LOWER(:unid) 
+                OR LOWER(descripcion) = LOWER(:unid)';
+
         $resp = self::fetchObj($sql, ['unid' => $unid]);
         if (empty($resp)) {
             $var_un = [
@@ -797,9 +846,16 @@ class ApusPartidasProyecto extends Mysql
     private function removerRecursive($id, $partida_id)
     {
         $deleted_at = FG::getFechaHora();
-        self::ex("UPDATE apus_partida_presupuestos SET deleted_at = '{$deleted_at}' WHERE id = {$id} OR subpartida_id = {$id}");
+        self::ex("UPDATE apus_partida_presupuestos 
+                  SET deleted_at = '{$deleted_at}' 
+                  WHERE id = {$id} OR subpartida_id = {$id}");
+
         if ($partida_id) {
-            $sql = 'SELECT id, partida_id FROM apus_partida_presupuestos WHERE subpartida_id = :id AND partida_id IS NOT NULL';
+            $sql = 'SELECT id, partida_id 
+                    FROM apus_partida_presupuestos 
+                    WHERE subpartida_id = :id 
+                    AND partida_id IS NOT NULL';
+
             $detalleInsumos = self::fetchAllObj($sql, ['id' => $id]);
             foreach ($detalleInsumos as $key => $value) {
                 $this->removerRecursive($value->id, $value->partida_id);

@@ -304,7 +304,8 @@ class GastosGenerales extends Mysql
                                         unidad_medidas_id AS unit,
                                         proyecto_generales_id
                                 FROM gastos_generales 
-                                WHERE proyecto_generales_id = :id AND gastos_generales_id IS NOT NULL AND deleted_at is NULL";
+                                WHERE proyecto_generales_id = :id 
+                                AND gastos_generales_id IS NOT NULL AND deleted_at is NULL";
         $gastos_generales_detalle = self::fetchAllObj($sql_gastos_generales_detalle, ['id' => $this->_id]);
 
         $sql_grupos = "SELECT id, descripcion AS name, 'items' FROM grupos";

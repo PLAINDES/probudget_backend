@@ -61,7 +61,9 @@ class CopiarPegarPresupuesto extends Mysql
                                                 subpresupuestos_id,
                                                 type_item                                                
                                                 FROM presupuestos 
-                                                WHERE id IN({$ids}) AND proyecto_generales_id = :proyecto_generales_id AND deleted_at IS NULL";
+                                                WHERE id IN({$ids}) 
+                                                AND proyecto_generales_id = :proyecto_generales_id 
+                                                AND deleted_at IS NULL";
                     $presupuestos = self::fetchAllObj($sql_general, ['proyecto_generales_id' => $this->_id]);
 
                 if (!empty($presupuestos)) {
@@ -124,7 +126,13 @@ class CopiarPegarPresupuesto extends Mysql
                         $lastID = $insert['lastInsertId'];
                         $nro_orden = $nro_orden * 1;
 
-                        $sql = "SET @norder = {$nro_orden}; UPDATE presupuestos SET nro_orden = (@norder:=@norder+1) WHERE presupuestos_proyecto_generales_id = {$destPresupuesto} AND nro_orden >= {$nro_orden} AND id <> {$lastID} ORDER BY nro_orden ASC;";
+                        $sql = "SET @norder = {$nro_orden};
+                                UPDATE presupuestos 
+                                SET nro_orden = (@norder:=@norder+1) 
+                                WHERE presupuestos_proyecto_generales_id = {$destPresupuesto} 
+                                AND nro_orden >= {$nro_orden} 
+                                AND id <> {$lastID} 
+                                ORDER BY nro_orden ASC;";
                         self::ex($sql);
 
                         if ($object->type_item == 3) {

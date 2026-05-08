@@ -79,7 +79,8 @@ class FileLector
             $totalRows = 0;
 
             foreach ($chunks as $chunkIndex => $chunk) {
-                error_log("📤 Chunk " . ($chunkIndex + 1) . "/" . count($chunks) . " - Enviando " . strlen($chunk['text']) . " chars");
+                error_log("📤 Chunk " . ($chunkIndex + 1) .
+                "/" . count($chunks) . " - Enviando " . strlen($chunk['text']) . " chars");
 
                 $prompt = $this->buildOptimizedPrompt($chunk);
                 $rawResponse = $this->gemini->ask($prompt);
@@ -88,7 +89,8 @@ class FileLector
 
                 // Verificar si la respuesta fue truncada
                 if ($this->isResponseTruncated($rawResponse)) {
-                    error_log("⚠️ Chunk " . ($chunkIndex + 1) . " - Respuesta TRUNCADA, intentando procesar lo disponible");
+                    error_log("⚠️ Chunk " . ($chunkIndex + 1) .
+                    " - Respuesta TRUNCADA, intentando procesar lo disponible");
                 }
 
                 // Parsear con reparación automática
@@ -103,7 +105,8 @@ class FileLector
                     $allTables = array_merge($allTables, $parsed['tables']);
                     $totalRows += $rowsInChunk;
 
-                    error_log("✅ Chunk " . ($chunkIndex + 1) . " - " . $tablesCount . " tabla(s), " . $rowsInChunk . " fila(s)");
+                    error_log("✅ Chunk " . ($chunkIndex + 1) .
+                    " - " . $tablesCount . " tabla(s), " . $rowsInChunk . " fila(s)");
                 } else {
                     error_log("❌ Chunk " . ($chunkIndex + 1) . " - No se pudo parsear");
                     error_log("📄 Respuesta: " . substr($rawResponse, 0, 300));
@@ -117,8 +120,11 @@ class FileLector
                 'data' => $allTables,
                 'count' => count($allTables),
                 'message' => count($allTables) > 0
-                    ? "Se encontraron " . count($allTables) . " tabla(s) con " . $totalRows . " materiales en " . count($relevantPages) . " página(s)"
+                    ? "Se encontraron " . count($allTables) .
+                    " tabla(s) con " . $totalRows . " materiales en " .
+                    count($relevantPages) . " página(s)"
                     : "No se encontraron tablas en las páginas con el header especificado",
+
                 'raw' => null,
                 'debug' => [
                     'total_pages' => $this->pdfExtractor->getTotalPages($filePath),
@@ -300,7 +306,11 @@ TEXTO (Páginas {$pagesInfo}):
 {$chunk['text']}
 
 Formato (copia exacto):
-{"tables":[{"page":1,"columns":["INSUMO","UND.","PREC."],"rows":[{"INSUMO":"Material X","UND.":"UND","PREC.":"10.50"}]}]}
+{"tables":[{
+"page":1,
+"columns":["INSUMO","UND.","PREC."],
+"rows":[{"INSUMO":"Material X","UND.":"UND","PREC.":"10.50"}]
+}]}
 
 IMPORTANTE:
 - Solo JSON puro (sin ``` ni explicaciones)
@@ -410,9 +420,13 @@ PROMPT;
 
             foreach ($rows as $row) {
                 $material = [
-                    'nombre' => $this->findColumnValue($row, ['INSUMO', 'DESCRIPCION', 'MATERIAL', 'ITEM', 'DESCRIPCIÓN']),
+                    'nombre' => $this->findColumnValue($row, [
+                        'INSUMO', 'DESCRIPCION', 'MATERIAL', 'ITEM', 'DESCRIPCIÓN'
+                    ]),
                     'unidad' => $this->findColumnValue($row, ['UND.', 'UND', 'UNIDAD', 'UM', 'U.M.']),
-                    'precio' => $this->parsePrice($this->findColumnValue($row, ['PREC.', 'PRECIO', 'P.U.', 'PRECIO_UNITARIO', 'PRECIO UNITARIO'])),
+                    'precio' => $this->parsePrice($this->findColumnValue($row, [
+                        'PREC.', 'PRECIO', 'P.U.', 'PRECIO_UNITARIO', 'PRECIO UNITARIO'
+                    ])),
                     'observaciones' => ''
                 ];
 

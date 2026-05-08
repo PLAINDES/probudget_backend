@@ -219,10 +219,13 @@ class FormulaPolinomica extends Mysql
                 FROM apus_partida_presupuestos app
                 INNER JOIN insumos_proyecto ip ON app.insumo_id = ip.id
                 INNER JOIN unidad_medidas um  ON ip.unidad_medidas_id = um.id
-                INNER JOIN presupuestos_partida pp ON pp.presupuestos_id = app.presupuestos_id AND pp.subpartida_id IS NULL
+                INNER JOIN presupuestos_partida pp 
+                    ON pp.presupuestos_id = app.presupuestos_id 
+                    AND pp.subpartida_id IS NULL
                 INNER JOIN presupuestos pt ON pp.presupuestos_id = pt.id
                 INNER JOIN proyecto_generales pg ON app.proyectos_generales_id = pg.id
-                WHERE app.proyectos_generales_id = :proyecto_generales_id AND app.subpresupuestos_id IN ({$request->subpresupuesto_id}) 
+                WHERE app.proyectos_generales_id = :proyecto_generales_id 
+                AND app.subpresupuestos_id IN ({$request->subpresupuesto_id}) 
                 AND app.partida_id IS NULL AND app.subpartida_id IS NULL AND app.deleted_at IS NULL";
         $list = self::fetchAllObj($sql, ['proyecto_generales_id' => $request->proyecto_general_id]);
         $result->list = $list;
@@ -238,13 +241,16 @@ class FormulaPolinomica extends Mysql
                 LEFT JOIN presupuestos_partida pp ON pp.subpartida_id = app.id OR pp.subpartida_id = app.subpartida_id
                 INNER JOIN presupuestos pt ON app.presupuestos_id = pt.id
                 INNER JOIN proyecto_generales pg ON app.proyectos_generales_id = pg.id
-                WHERE app.proyectos_generales_id = :proyecto_generales_id AND app.subpresupuestos_id IN ({$request->subpresupuesto_id}) 
+                WHERE app.proyectos_generales_id = :proyecto_generales_id 
+                AND app.subpresupuestos_id IN ({$request->subpresupuesto_id}) 
                 AND (app.partida_id IS NOT NULL OR app.subpartida_id IS NOT NULL) AND app.deleted_at IS NULL";
         $sublist = self::fetchAllObj($sql, ['proyecto_generales_id' => $request->proyecto_general_id]);
         $result->sublist = $sublist;
 
         $sql = "SELECT pie_presupuesto_id, percentage FROM proyecto_pie_presupuesto 
-                WHERE pie_presupuesto_id IN(2, 3) AND type_percentage = 'PIE' AND proyectos_generales_id =:proyecto_general_id";
+                WHERE pie_presupuesto_id IN(2, 3) 
+                AND type_percentage = 'PIE' 
+                AND proyectos_generales_id =:proyecto_general_id";
         $ppresupuesto = self::fetchAllObj($sql, ['proyecto_general_id' => $request->proyecto_general_id]);
 
         $result->ppresupuesto = $ppresupuesto;
@@ -256,10 +262,18 @@ class FormulaPolinomica extends Mysql
     {
         $resp = [];
         try {
-            $sql = 'SELECT id FROM formula_polinomica WHERE subpresupuesto_id =:subpresupuesto_id AND proyecto_general_id =:proyecto_general_id AND monomio =:monomio';
+            $sql = 'SELECT id 
+                    FROM formula_polinomica 
+                    WHERE subpresupuesto_id =:subpresupuesto_id 
+                    AND proyecto_general_id =:proyecto_general_id 
+                    AND monomio =:monomio';
             $result = self::fetchObj(
                 $sql,
-                ['subpresupuesto_id' => $request->subpresupuesto_id, 'proyecto_general_id' => $request->proyecto_generales_id, 'monomio' => $request->monomio]
+                [
+                    'subpresupuesto_id' => $request->subpresupuesto_id,
+                    'proyecto_general_id' => $request->proyecto_generales_id,
+                    'monomio' => $request->monomio
+                ]
             );
 
             if ($result) {
@@ -291,9 +305,14 @@ class FormulaPolinomica extends Mysql
     {
         $resp = [];
         try {
-            $sql = 'SELECT COUNT(1) AS valid FROM (SELECT iu FROM apus_partida_presupuestos
-                WHERE subpresupuestos_id =:subpresupuestos_id AND proyectos_generales_id =:proyectos_generales_id AND monomio =:monomio
-                GROUP BY iu) AS total';
+            $sql = 'SELECT COUNT(1) AS valid                     
+                    FROM (SELECT iu 
+                    FROM apus_partida_presupuestos
+                    WHERE subpresupuestos_id =:subpresupuestos_id 
+                    AND proyectos_generales_id =:proyectos_generales_id 
+                    AND monomio =:monomio
+                    GROUP BY iu) AS total';
+
             $result = self::fetchObj($sql, [
                 'subpresupuestos_id' => $request->subpresupuesto_id,
                 'proyectos_generales_id' => $request->proyecto_generales_id,
@@ -307,7 +326,9 @@ class FormulaPolinomica extends Mysql
             }
 
             /*$sql = 'SELECT COUNT(1) AS valid FROM (SELECT monomio FROM apus_partida_presupuestos
-                WHERE subpresupuestos_id =:subpresupuestos_id AND proyectos_generales_id =:proyectos_generales_id AND monomio IS NOT NULL
+                WHERE subpresupuestos_id =:subpresupuestos_id
+                AND proyectos_generales_id =:proyectos_generales_id
+                AND monomio IS NOT NULL
                 GROUP BY monomio) AS total';
             $result = self::fetchObj($sql,['subpresupuestos_id' => $request->subpresupuesto_id,
             'proyectos_generales_id' => $request->proyecto_generales_id]);
@@ -342,13 +363,18 @@ class FormulaPolinomica extends Mysql
     {
         $resp = [];
         try {
-            $sql = "UPDATE apus_partida_presupuestos SET iu = {$request->iu} 
-            WHERE subpresupuestos_id = {$request->subpresupuesto_id} AND proyectos_generales_id = {$request->proyecto_generales_id}";
+            $sql = "UPDATE apus_partida_presupuestos 
+                    SET iu = {$request->iu} 
+                    WHERE subpresupuestos_id = {$request->subpresupuesto_id} 
+                    AND proyectos_generales_id = {$request->proyecto_generales_id}";
 
             if ($request->insumo_id == 'ggu') {
                 $sql .= " AND insumo_id = {$request->id}";
                 self::ex($sql);
-                $sql = 'SELECT id FROM pie_presupuesto_grupo WHERE subpresupuestos_id =:subpresupuestos_id AND proyectos_generales_id =:proyectos_generales_id';
+                $sql = 'SELECT id 
+                        FROM pie_presupuesto_grupo 
+                        WHERE subpresupuestos_id =:subpresupuestos_id 
+                        AND proyectos_generales_id =:proyectos_generales_id';
                 $pp_grupo = self::fetchObj($sql, [
                     'subpresupuestos_id' => $request->subpresupuesto_id,
                     'proyectos_generales_id' => $request->proyecto_generales_id
@@ -495,7 +521,10 @@ class FormulaPolinomica extends Mysql
     private function assembleInsumosOld($list, $sublist, $list_unif, $ppresupuesto)
     {
         $result = $this->performCalculationsInsumos($list, $sublist);
-        $sql = 'SELECT iu FROM pie_presupuesto_grupo WHERE subpresupuestos_id =:subpresupuestos_id AND proyectos_generales_id =:proyectos_generales_id';
+        $sql = 'SELECT iu 
+                FROM pie_presupuesto_grupo 
+                WHERE subpresupuestos_id =:subpresupuestos_id 
+                AND proyectos_generales_id =:proyectos_generales_id';
         $pie_p_grupo = self::fetchObj($sql, [
             'subpresupuestos_id' => $this->subpresupuesto_id,
             'proyectos_generales_id' => $this->proyecto_general_id
@@ -561,7 +590,8 @@ class FormulaPolinomica extends Mysql
             if (isset($detail[$e->iuinsumo])) {
                 $detail[$e->iuinsumo]->coef_initial = $detail[$e->iuinsumo]->coef_initial + $e->coef_initial;
                 $detail[$e->iuinsumo]->coef_final = $detail[$e->iuinsumo]->coef_initial;
-                $detail[$e->iuinsumo]->monto_parcial_ppto = $detail[$e->iuinsumo]->monto_parcial_ppto + $e->monto_parcial_ppto;
+                $detail[$e->iuinsumo]->monto_parcial_ppto =
+                    $detail[$e->iuinsumo]->monto_parcial_ppto + $e->monto_parcial_ppto;
             } else {
                 $detail[$e->iuinsumo] = $e;
                 if (isset($ius[$e->iuinsumo])) {
@@ -573,7 +603,8 @@ class FormulaPolinomica extends Mysql
             if (!$pie_p_grupo && $e->iuinsumo == 39 && $insumoggu->add) {
                 $detail[$e->iuinsumo]->coef_initial = $detail[$e->iuinsumo]->coef_initial + $insumoggu->coef_initial;
                 $detail[$e->iuinsumo]->coef_final = $detail[$e->iuinsumo]->coef_initial;
-                $detail[$e->iuinsumo]->monto_parcial_ppto = $detail[$e->iuinsumo]->monto_parcial_ppto + $insumoggu->monto_parcial_ppto;
+                $detail[$e->iuinsumo]->monto_parcial_ppto =
+                    $detail[$e->iuinsumo]->monto_parcial_ppto + $insumoggu->monto_parcial_ppto;
                 if ($e->iu) {
                     $groups[$e->iu] = $groups[$e->iu] + 1;
                     $cfinal[$e->iu] = $cfinal[$e->iu] + $insumoggu->coef_initial;

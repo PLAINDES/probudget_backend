@@ -32,8 +32,14 @@ class PresupuestosTitulos extends Mysql
             $titleData = json_decode($this->titulos);
             if ($titleData) {
                 if ($titleData->id != 0) {
-                    $sql = 'SELECT COUNT(id) AS id FROM titulos_proyecto WHERE id = :id  AND proyectos_generales_id = :proyectos_generales_id';
-                    $presupuestos_title = self::fetchObj($sql, ['id' => $titleData->id, 'proyectos_generales_id' => $this->_proyecto_generales_id]);
+                    $sql = 'SELECT COUNT(id) AS id 
+                            FROM titulos_proyecto 
+                            WHERE id = :id 
+                            AND proyectos_generales_id = :proyectos_generales_id';
+                    $presupuestos_title = self::fetchObj($sql, [
+                        'id' => $titleData->id,
+                        'proyectos_generales_id' => $this->_proyecto_generales_id
+                    ]);
                     $var = ["titulo" => $this->_titulo, 'proyectos_generales_id' => $this->_proyecto_generales_id];
                     if ($titleData->masterid) {
                         $var['master_title_id'] = $titleData->masterid;
@@ -49,8 +55,15 @@ class PresupuestosTitulos extends Mysql
                     }
                     return $titleData->id;
                 } elseif ($titleData->id == 0 && $titleData->masterid != 0) {
-                    $sql = 'SELECT COUNT(id) AS id FROM titulos_proyecto WHERE master_title_id = :master_title_id  AND proyectos_generales_id = :proyectos_generales_id';
-                    $presupuestos_title = self::fetchObj($sql, ['master_title_id' => $titleData->masterid, 'proyectos_generales_id' => $this->_proyecto_generales_id]);
+                    $sql = 'SELECT COUNT(id) AS id 
+                            FROM titulos_proyecto 
+                            WHERE master_title_id = :master_title_id 
+                            AND proyectos_generales_id = :proyectos_generales_id';
+                    $presupuestos_title = self::fetchObj($sql, [
+                        'master_title_id' => $titleData->masterid,
+                        'proyectos_generales_id' => $this->_proyecto_generales_id
+                    ]);
+
                     if ($presupuestos_title && $presupuestos_title->id == 0) {
                         $insert = self::insert("titulos_proyecto", [
                             'titulo' => $this->_titulo,

@@ -30,9 +30,15 @@ class PresupuestoTransactions extends Mysql
     public function __construct($array = [])
     {
         $this->_id = (array_key_exists('id', $array)) ? $array['id'] : "0";
-        $this->_presupuestos_proyecto_generales_id = (array_key_exists('presupuestos_proyecto_generales_id', $array)) ? $array['presupuestos_proyecto_generales_id'] : "";
+        $this->_presupuestos_proyecto_generales_id =
+            (array_key_exists('presupuestos_proyecto_generales_id', $array))
+            ? $array['presupuestos_proyecto_generales_id']
+            : "";
         $this->_nro_orden = (array_key_exists('nro_order', $array)) ? $array['nro_order'] : "";
-        $this->_proyecto_generales_id = (array_key_exists('proyecto_generales_id', $array)) ? $array['proyecto_generales_id'] : "";
+        $this->_proyecto_generales_id =
+            (array_key_exists('proyecto_generales_id', $array))
+            ? $array['proyecto_generales_id']
+            : "";
     }
 
     public function getMatrixUpdateItems($flag = false)
@@ -47,8 +53,13 @@ class PresupuestoTransactions extends Mysql
                     $iniorder = $nro_orden - 1;
                 }
                 $sql = "SET @norder = {$iniorder};
-                    UPDATE presupuestos SET nro_orden = (@norder:=@norder+1) WHERE presupuestos_proyecto_generales_id = {$ppgid} 
-                    AND nro_orden >= {$nro_orden} AND id <> {$id} AND deleted_at IS NULL ORDER BY nro_orden ASC;";
+                        UPDATE presupuestos 
+                        SET nro_orden = (@norder:=@norder+1) 
+                        WHERE presupuestos_proyecto_generales_id = {$ppgid} 
+                        AND nro_orden >= {$nro_orden} 
+                        AND id <> {$id} 
+                        AND deleted_at IS NULL 
+                        ORDER BY nro_orden ASC;";
                 self::ex($sql);
             }
             return true;

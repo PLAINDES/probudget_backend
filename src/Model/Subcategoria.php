@@ -42,7 +42,8 @@ class Subcategoria extends Mysql
         $this->_id = (array_key_exists('id', $array)) ? $array['id'] : "0";
         $this->_descripcion = (array_key_exists('descripcion', $array)) ? $array['descripcion'] : "";
         $this->_subcategorias_id = (array_key_exists('subcategorias_id', $array)) ? $array['subcategorias_id'] : "";
-        $this->_proyecto_generales_id = (array_key_exists('proyecto_generales_id', $array)) ? $array['proyecto_generales_id'] : "";
+        $this->_proyecto_generales_id =
+            (array_key_exists('proyecto_generales_id', $array)) ? $array['proyecto_generales_id'] : "";
         $this->_subcategorias = (array_key_exists('subcategorias', $array)) ? $array['subcategorias'] : "";
     }
 

@@ -231,7 +231,9 @@ class Proyectogeneral extends Mysql
             $proyectoGeneral = self::fetchObj($sql, ['id' => $this->_id]);
 
             $sql_departamento = 'SELECT id, descripcion FROM ub_departamentos WHERE id = :id';
-            $proyectoGeneral->departamento = self::fetchObj($sql_departamento, ['id' => $proyectoGeneral->departamento]);
+            $proyectoGeneral->departamento = self::fetchObj($sql_departamento, [
+                'id' => $proyectoGeneral->departamento
+            ]);
 
             $sql_provincias = 'SELECT id, descripcion FROM ub_provincias WHERE id = :id';
             $proyectoGeneral->provincia = self::fetchObj($sql_provincias, ['id' => $proyectoGeneral->provincia]);
@@ -244,7 +246,9 @@ class Proyectogeneral extends Mysql
                                  FROM subcategorias_proyecto_general
                                  WHERE proyecto_generales_id = :proyecto_generales_id ORDER BY orden ASC';
 
-            $proyectoGeneral->subcategorias = self::fetchAllObj($sql_subcategoria, ['proyecto_generales_id' => $this->_id]);
+            $proyectoGeneral->subcategorias = self::fetchAllObj($sql_subcategoria, [
+                'proyecto_generales_id' => $this->_id
+            ]);
             return $proyectoGeneral;
         } catch (\Throwable $th) {
             return ["success" => false, "message" => $th->getMessage()];
