@@ -192,6 +192,18 @@ class FileLectorController
 
             error_log("✓ Extracción exitosa. Tablas encontradas: $count");
 
+            $reduccionPorcentaje = 0;
+
+            if (
+                isset($debug['total_pages'], $debug['pages_sent_to_ai'])
+                && $debug['total_pages'] > 0
+            ) {
+                $reduccionPorcentaje = round(
+                    (1 - $debug['pages_sent_to_ai'] / $debug['total_pages']) * 100,
+                    1
+                );
+            }
+
             // 6. Retornar respuesta estructurada
             $response = [
                 "success" => true,
@@ -209,9 +221,7 @@ class FileLectorController
                     'paginas_totales' => $debug['total_pages'] ?? 0,
                     'paginas_procesadas' => $debug['pages_sent_to_ai'] ?? 0,
                     'paginas_relevantes' => $debug['relevant_pages'] ?? [],
-                    'reduccion_porcentaje' => isset($debug['total_pages'], $debug['pages_sent_to_ai']) && $debug['total_pages'] > 0
-                        ? round((1 - $debug['pages_sent_to_ai'] / $debug['total_pages']) * 100, 1)
-                        : 0
+                    'reduccion_porcentaje' => $reduccionPorcentaje
                 ]
             ];
         } catch (\Exception $e) {

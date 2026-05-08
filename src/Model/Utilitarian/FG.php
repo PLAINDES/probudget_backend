@@ -291,8 +291,10 @@ class FG
         return filter_var($str, FILTER_VALIDATE_EMAIL);
     }
 
-    public static function randString($characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", $lenght = 10)
-    {
+    public static function randString(
+        $characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+        $lenght = 10
+    ) {
         $string = '';
         $max = strlen($characters) - 1;
         for ($i = 0; $i < $lenght; $i++) {
@@ -378,12 +380,33 @@ class FG
         return $d && $d->format($format) == $date;
     }
 
+   /* public static function slugify($str, $delimiter = '-')
+    {
+        $slug = strtolower(trim(preg_replace('/[\s-]+/',
+        $delimiter, preg_replace('/[^A-Za-z0-9-]+/',
+        $delimiter, preg_replace('/[&]/', 'and',
+        preg_replace('/[\']/', '', iconv('UTF-8', 'ASCII//TRANSLIT', $str))))), $delimiter));
+        return $slug;
+    }*/
+
     public static function slugify($str, $delimiter = '-')
     {
-        $slug = strtolower(trim(preg_replace('/[\s-]+/', $delimiter, preg_replace('/[^A-Za-z0-9-]+/', $delimiter, preg_replace('/[&]/', 'and', preg_replace('/[\']/', '', iconv('UTF-8', 'ASCII//TRANSLIT', $str))))), $delimiter));
+        $slug = iconv('UTF-8', 'ASCII//TRANSLIT', $str);
+
+        $slug = preg_replace('/[\']/', '', $slug);
+
+        $slug = preg_replace('/[&]/', 'and', $slug);
+
+        $slug = preg_replace('/[^A-Za-z0-9-]+/', $delimiter, $slug);
+
+        $slug = preg_replace('/[\s-]+/', $delimiter, $slug);
+
+        $slug = trim($slug, $delimiter);
+
+        $slug = strtolower($slug);
+
         return $slug;
     }
-
     public static function encodeURI($url)
     {
         if (!$url) {
@@ -419,7 +442,9 @@ class FG
     public function excelABC($i)
     {
         $str = "";
-        $abc = array('A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z');
+        $abc = array(
+            'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'
+        );
         $labc = count($abc) - 1;
         if ($i > $labc) {
             $ll  = intval($i / count($abc));
