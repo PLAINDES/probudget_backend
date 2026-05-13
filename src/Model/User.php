@@ -86,7 +86,7 @@ class User extends Mysql
         ];
     }
 
-    public function signUp($email, $accept_policies, $domain, $roleId, $password = null)
+    public function signUp($email, $acceptPolicies, $domain, $roleId)
     {
         $resp = [];
 
@@ -98,12 +98,9 @@ class User extends Mysql
                 ];
             }
 
-            $password = FG::crypt($password);
-
             $insert = self::insert("users", [
                 'email' => $email,
-                'accept_policies' => $accept_policies,
-                'password' => $password,
+                'accept_policies' => $acceptPolicies,
                 'roleId' => $roleId,
                 'oauth_provider' => null,
                 'created_at' => FG::getFechaHora(),
@@ -111,22 +108,8 @@ class User extends Mysql
             ]);
 
             if ($insert && $insert["lastInsertId"]) {
-                $id = $insert["lastInsertId"];
-
                 $resp['success'] = true;
                 $resp['message'] = 'Usuario registrado';
-                $user = self::fetchObj(
-                    'SELECT id,email,first_name,last_name,picture FROM users WHERE id = :id',
-                    compact('id')
-                );
-
-                return $this->generateAuthResponse($user);
-
-               // $token    = HelperJWT::encode(['exp' =>  time() + 3700, 'id' =>  $id]);
-               // $url      = "{$domain}/user/confirm-email/{$token}";
-               // $asunto   = 'Confirmación de correo electrónico';
-               // $template = 'emails/confirmar-email.twig';
-                //$this->sendEmail($resp['data'], $domain, $url, $asunto, $template);
             } else {
                 $resp['success'] = false;
                 $resp['message'] = 'Error al registrar usuario';
@@ -472,6 +455,41 @@ class User extends Mysql
         return $resp;
     }
 
+    public function findOrCreateFromEmail($email)
+    {
+        try {
+            $user = $this->findUserEmail($email);
+
+            error_log("============FindOrCreateFromEmail=======");
+            error_log("findUserEmail: " . $user['success']);
+
+            error_log("email: " . $email);
+
+            if (!$user['success']) {
+                $result = self::insert('users', [
+                    'email' => $email,
+                    'created_at' => date('Y-m-d H:i:s'),
+                ]);
+
+                if ($result) {
+                    return [
+                        'success' => true,
+                        'data' => $result
+                    ];
+                }
+            }
+
+            return $user;
+        } catch (\Throwable $th) {
+            error_log("ERROR: " . $th->getMessage());
+
+            return [
+                'success' => false,
+                'message' => $th->getMessage()
+            ];
+        }
+    }
+
     private function sendEmail($user, $domain, $url, $mensaje_asunto, $template)
     {
         $destinatario_nombre    = isset($user["name"]) ? $user["name"] : '';
@@ -537,25 +555,31 @@ class User extends Mysql
         return $resp;
     }
 
-    public function findUserEmail($request)
+    public function findUserEmail($email)
     {
-        $resp = new stdClass();
+        $resp = [];
+
         try {
-            $email = $request->email;
-            $sql = 'SELECT id,email,first_name,last_name,picture FROM users WHERE deleted_at IS NULL AND email = :email Limit 1';
+            $sql = 'SELECT id,email,first_name,last_name,picture 
+                    FROM users 
+                    WHERE deleted_at IS NULL AND email = :email 
+                    LIMIT 1';
+
             $rs = self::fetchObj($sql, compact('email'));
+
             if ($rs && $rs->id) {
-                $resp->success = true;
-                $resp->message = 'Usuario registrado';
-                $resp->data = $rs;
+                $resp['success'] = true;
+                $resp['message'] = 'Usuario registrado';
+                $resp['data'] = $rs;
             } else {
-                $resp->success = false;
-                $resp->message = 'User does not exist';
+                $resp['success'] = false;
+                $resp['message'] = 'User does not exist';
             }
         } catch (\Throwable $th) {
-            $resp->success = false;
-            $resp->message = $th->getMessage();
+            $resp['success'] = false;
+            $resp['message'] = $th->getMessage();
         }
+
         return $resp;
     }
 
