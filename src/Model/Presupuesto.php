@@ -17,6 +17,7 @@ use App\Model\PresupuestosTitulos;
 use App\Model\PartidaDetail;
 use App\Model\Partidas;
 use App\Model\Plan;
+use App\Model\SubpartidaProyecto;
 
 class Presupuesto extends Mysql
 {
@@ -142,6 +143,7 @@ class Presupuesto extends Mysql
                             'proyecto_generales_id' => $this->_proyecto_generales_id,
                             'subpresupuesto_id' => $this->_subpresupuestos_id
                         ]);
+
                         if (!empty($result['data'])) {
                             $this->_values["partidas_id"] = $result['data']['id'];
                             $this->_partidas_id = $result['data']['id'];
@@ -250,6 +252,7 @@ class Presupuesto extends Mysql
             }
             return $resp;
         } catch (\Throwable $th) {
+            error_log("Error al registrar presupuesto: " . $th->getMessage());
             $resp['success'] = false;
             $resp['message'] = $th->getMessage();
             return $resp;
@@ -299,61 +302,63 @@ class Presupuesto extends Mysql
 
     public function getListPresupuesto()
     {
-     // ✅ CONSTRUIR LA CONDICIÓN DINÁMICAMENTE
-        $subpresupuestoCondition = "";
+        try {
+        // ✅ CONSTRUIR LA CONDICIÓN DINÁMICAMENTE
+            $subpresupuestoCondition = "";
 
-        if (!empty($this->_subpresupuestos_id)) {
-              // Si hay subpresupuesto, agregar la condición
-              $subpresupuestoCondition = "AND subpresupuestos_id IN ({$this->_subpresupuestos_id})";
-        }
-
-     // ❌ ELIMINAR ESTA LÍNEA - YA NO SE USA:
-     // $subpresupuestos_list = !empty($this->_subpresupuestos_id) ?
-     //                 $this->_subpresupuestos_id :
-     //                 '0';
-
-        $sql_general = "SELECT        
-                    id,
-                    descripcion AS 'name',
-                    unidad_medidas_id AS 'uni',
-                    proyecto_generales_id,
-                    partidas_id,
-                    subpresupuestos_id,
-                    presupuestos_title_id,
-                    cu,                        
-                    mo,
-                    mt AS mat,
-                    eq,
-                    sc,
-                    sp,
-                    metrado AS 'metered',                        
-                    presupuestos_proyecto_generales_id,
-                    nro_orden AS 'level',
-                    type_item
-            FROM presupuestos 
-            WHERE proyecto_generales_id = :id 
-                    AND deleted_at IS NULL
-                    {$subpresupuestoCondition}
-            ORDER BY nro_orden ASC";
-
-        $presupuestos_general = self::fetchAllObj($sql_general, ['id' => $this->_id]);
-        $data = array();
-
-        foreach ($presupuestos_general as $key => $value) {
-            if ($value->presupuestos_proyecto_generales_id == null || $value->presupuestos_proyecto_generales_id == 0) {
-                $detail = $this->setMatrizPresupuesto($value->id, $presupuestos_general);
-                $total = 0;
-                foreach ($detail as $item) {
-                     $total += ($item->total_parcial * 1);
-                }
-                $presupuestos_general[$key]->detail = $detail;
-                $presupuestos_general[$key]->total_parcial = $total;
-                array_push($data, $presupuestos_general[$key]);
+            if (!empty($this->_subpresupuestos_id)) {
+                // Si hay subpresupuesto, agregar la condición
+                $subpresupuestoCondition = "AND subpresupuestos_id IN ({$this->_subpresupuestos_id})";
             }
-        }
 
-        return $data;
+
+            $sql_general = "SELECT        
+                        id,
+                        descripcion AS 'name',
+                        unidad_medidas_id AS 'uni',
+                        proyecto_generales_id,
+                        partidas_id,
+                        subpresupuestos_id,
+                        presupuestos_title_id,
+                        cu,                        
+                        mo,
+                        mt AS mat,
+                        eq,
+                        sc,
+                        sp,
+                        metrado AS 'metered',                        
+                        presupuestos_proyecto_generales_id,
+                        nro_orden AS 'level',
+                        type_item
+                FROM presupuestos 
+                WHERE proyecto_generales_id = :id 
+                        AND deleted_at IS NULL
+                        {$subpresupuestoCondition}
+                ORDER BY nro_orden ASC";
+
+            $presupuestos_general = self::fetchAllObj($sql_general, ['id' => $this->_id]);
+            $data = array();
+
+            foreach ($presupuestos_general as $key => $value) {
+                if ($value->presupuestos_proyecto_generales_id == null || $value->presupuestos_proyecto_generales_id == 0) {
+                    $detail = $this->setMatrizPresupuesto($value->id, $presupuestos_general);
+                    $total = 0;
+                    foreach ($detail as $item) {
+                        $total += ($item->total_parcial * 1);
+                    }
+                    $presupuestos_general[$key]->detail = $detail;
+                    $presupuestos_general[$key]->total_parcial = $total;
+                    array_push($data, $presupuestos_general[$key]);
+                }
+            }
+
+            return $data;
+        } catch (\Throwable $th) {
+            error_log("Error: " . $th->getMessage());
+            return [];
+        }
     }
+
     public function setMatrizPresupuesto($searchedValue, $dataPresupuesto)
     {
         $array = [];
@@ -375,15 +380,27 @@ class Presupuesto extends Mysql
                 if ($value->type_item == '3') {
                     $metrado = $value->metered ? $value->metered : 0;
                     $cu = $value->cu ? $value->cu : 0;
-                    $total_parcial = ($metrado * $cu); // number_format(($metrado*$cu), 2, '.', '');
+
+                    $total_parcial = ($metrado * $cu);
+
                     $childrens[$key]->total_parcial = $total_parcial;
+
                     $met = $value->metered ? $value->metered : 0;
-                    $childrens[$key]->mo  = $value->mo  ? $value->mo  * $met : 0; // $value->mo ? number_format(($value->mo*$met), 2, '.', '') : 0;
-                    $childrens[$key]->mat = $value->mat ? $value->mat * $met : 0; // $value->mat ? number_format(($value->mat*$met), 2, '.', '') : 0;
-                    $childrens[$key]->eq  = $value->eq  ? $value->eq  * $met : 0; // $value->eq ? number_format(($value->eq*$met), 2, '.', '') : 0;
-                    $childrens[$key]->sc  = $value->sc  ? $value->sc  * $met : 0; // $value->sc ? number_format(($value->sc*$met), 2, '.', '') : 0;
-                    $childrens[$key]->sp  = $value->sp  ? $value->sp  * $met : 0; // $value->sp ? number_format(($value->sp*$met), 2, '.', '') : 0;
+
+                    $childrens[$key]->mo  = $value->mo  ? $value->mo  * $met : 0;
+                    $childrens[$key]->mat = $value->mat ? $value->mat * $met : 0;
+                    $childrens[$key]->eq  = $value->eq  ? $value->eq  * $met : 0;
+                    $childrens[$key]->sc  = $value->sc  ? $value->sc  * $met : 0;
+                    $childrens[$key]->sp  = $value->sp  ? $value->sp  * $met : 0;
+
                     $childrens[$key]->unmetered = $met == 0;
+
+                    // TRAER APUS / SUBPARTIDAS
+                    /*
+                    $apus = $this->getDetallePartida($value->id);
+
+                    $childrens[$key]->detail = $apus;*/
+
                     continue;
                 }
                 $detail = $this->setMatrizPresupuesto($value->id, $dataPresupuesto);
@@ -397,6 +414,258 @@ class Presupuesto extends Mysql
         }
 
         return $childrens;
+    }
+
+    /*
+    private function getDetallePartida($presupuestoId, $subpartidaId = null)
+    {
+        error_log("=== getDetallePartida ===");
+        error_log("presupuestoId: " . $presupuestoId);
+        error_log("subpartidaId: " . ($subpartidaId ?? 'NULL'));
+        try {
+            $where = 'WHERE pp.presupuestos_id = :id AND pp.partida_id IS NOT NULL';
+            $id = $presupuestoId;
+
+            if ($subpartidaId) {
+                $where = 'WHERE pp.subpartida_id = :id';
+                $id = $subpartidaId;
+            }
+
+            $sql = "SELECT
+                        pp.id,
+                        pp.iu,
+                        pp.cuadrilla,
+                        pp.cantidad,
+                        pp.unidad_medidas_id,
+                        pp.presupuestos_id,
+                        pp.partida_id,
+                        pp.subpartida_id,
+                        pp.precio AS punit,
+                        ip.id AS insumo_id,
+                        ip.tipo,
+                        ip.insumos,
+                        ip.precio,
+                        um.alias,
+                        um.apu_cantidad,
+                        pt.partida
+                    FROM apus_partida_presupuestos pp
+                    LEFT JOIN insumos_proyecto ip ON pp.insumo_id = ip.id
+                    LEFT JOIN partidas_proyecto pt ON pp.partida_id = pt.id
+                    INNER JOIN unidad_medidas um ON um.id = pp.unidad_medidas_id
+                    {$where}
+                    AND pp.deleted_at IS NULL";
+
+            $detalle = self::fetchAllObj($sql, ['id' => $id]);
+
+            // SI UNA FILA ES SUBPARTIDA, CARGAR SUS HIJOS
+            $newDetalle = [];
+
+            foreach ($detalle as $item) {
+                // =========================
+                // SUBPARTIDA
+                // =========================
+                if ($item->partida_id) {
+                    $newItem = new \stdClass();
+
+                    $newItem->id = $item->id;
+                    $newItem->name = $item->partida;
+                    $newItem->uni = $item->unidad_medidas_id;
+
+                    $newItem->proyecto_generales_id = null;
+                    $newItem->partidas_id = $item->partida_id;
+                    $newItem->subpresupuestos_id = null;
+                    $newItem->presupuestos_title_id = null;
+
+                    $newItem->cu = $item->punit ?? 0;
+
+                    $newItem->mo = 0;
+                    $newItem->mat = 0;
+                    $newItem->eq = 0;
+                    $newItem->sc = 0;
+                    $newItem->sp = 0;
+
+                    $newItem->metered = $item->cantidad;
+
+                    $newItem->presupuestos_proyecto_generales_id = $item->presupuestos_id;
+
+                    $newItem->level = null;
+
+                    $newItem->type_item = '3';
+
+                    $newItem->total_parcial = 0;
+
+                    $newItem->unmetered = true;
+
+                    $newItem->detail = $this->getDetallePartida(
+                        $presupuestoId,
+                        $item->id
+                    );
+
+                    $newDetalle[] = $newItem;
+                }
+            }
+
+            return $newDetalle;
+        } catch (Exception $e) {
+            error_log("Error al traer detalle de partida: " . $e->getMessage());
+            return [];
+        }
+    }*/
+
+        // ====================================
+        // MOVER PARTIDA
+        // ====================================
+        /**
+     * Método principal para mover partida a otra partida (convertirla en subpartida)
+     */
+    public function moverPartida($request)
+    {
+        try {
+            $itemId = $request->item_id ?? null;
+            $newParentId = $request->new_parent_id ?? null;
+            $proyectoId = $request->proyecto_generales_id ?? null;
+
+            // =========================
+            // VALIDACIONES BÁSICAS
+            // =========================
+            if (!$itemId || !$newParentId || !$proyectoId) {
+                return [
+                    'success' => false,
+                    'message' => 'Faltan parámetros'
+                ];
+            }
+
+            // No permitir mover un item a si mismo
+            if ($itemId == $newParentId) {
+                return [
+                    'success' => false,
+                    'message' => 'No puedes mover un item dentro de sí mismo'
+                ];
+            }
+
+            // =========================
+            // BUSCAR ITEM A MOVER
+            // =========================
+            $sqlItem = "SELECT
+                            id,
+                            descripcion,
+                            type_item,
+                            presupuestos_proyecto_generales_id,
+                            proyecto_generales_id
+                        FROM presupuestos
+                        WHERE id = :id
+                        AND proyecto_generales_id = :proyecto_id
+                        AND deleted_at IS NULL";
+
+            $item = self::fetchObj($sqlItem, [
+                'id' => $itemId,
+                'proyecto_id' => $proyectoId
+            ]);
+
+            if (!$item) {
+                return [
+                    'success' => false,
+                    'message' => 'La partida no existe'
+                ];
+            }
+
+            // =========================
+            // BUSCAR NUEVO PADRE
+            // =========================
+            $sqlParent = "SELECT
+                            id,
+                            descripcion,
+                            type_item,
+                            presupuestos_proyecto_generales_id,
+                            subpresupuestos_id
+                        FROM presupuestos
+                        WHERE id = :id
+                        AND proyecto_generales_id = :proyecto_id
+                        AND deleted_at IS NULL";
+
+            $parent = self::fetchObj($sqlParent, [
+                'id' => $newParentId,
+                'proyecto_id' => $proyectoId
+            ]);
+
+            if (!$parent) {
+                return [
+                    'success' => false,
+                    'message' => 'El nuevo padre no existe'
+                ];
+            }
+
+            // =========================
+            // DETERMINAR TIPO DE MOVIMIENTO
+            // =========================
+
+            if ($parent->type_item == 1) {
+                // MOVER A TÍTULO
+                error_log("Movimiento a TÍTULO (type_item=1)");
+                return $this->moverATitulo($itemId, $newParentId, $proyectoId);
+            } elseif ($parent->type_item == 3) {
+                // MOVER A PARTIDA (crear subpartida)
+                $subpartida = new SubpartidaProyecto();
+                $data = (object) [
+                    'partida' => $item->descripcion ?? '',
+                    'rendimiento' => 0,
+                    'unidad_medidas_id' => 9,
+                    'id' => 0,
+                    'masterid' => 0,
+                    'descripcion' => $item->descripcion ?? '',
+                    'proyectos_generales_id' => $proyectoId,
+                    'presupuestos_id' => $parent->id,
+                    'cuadrilla' => 0,
+                    'precio' => 0,
+                    'cantidad' => 0,
+                    'subpresupuestos_id' => $parent->subpresupuestos_id,
+                    'rendimiento_unid' => 'UND/DÍA'
+                ];
+                $result = $subpartida->save($data);
+
+                if ($result['success']) {
+                    self::update(
+                        'presupuestos',
+                        [
+                            'deleted_at' => date('Y-m-d H:i:s')
+                        ],
+                        [
+                            'id' => $itemId
+                        ]
+                    );
+                }
+
+                return $result;
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'Tipo de destino no válido'
+                ];
+            }
+        } catch (\Throwable $th) {
+            error_log("Error al mover partida: " . $th->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error al mover partida: ' . $th->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Mueve una partida a un título (solo cambia el padre)
+     */
+    private function moverATitulo($itemId, $titleId, $proyectoId)
+    {
+        self::update('presupuestos', [
+            'presupuestos_proyecto_generales_id' => $titleId
+        ], [
+            'id' => $itemId
+        ]);
+
+        return [
+            'success' => true,
+            'message' => 'Partida movida al título correctamente'
+        ];
     }
 
     private function savePresupuestoPartida()
