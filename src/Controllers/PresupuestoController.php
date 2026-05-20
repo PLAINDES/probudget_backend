@@ -33,6 +33,17 @@ class PresupuestoController
         return $presupuesto->getListPresupuesto();
     }
 
+    public function moverPartida($request)
+    {
+        try {
+            $presupuesto   = new Presupuesto($request);
+            return $presupuesto->moverPartida($request);
+        } catch (\Throwable $th) {
+            error_log("Error moverPartida controller: " . $th->getMessage());
+            return ["success" => false, "message" => $th->getMessage()];
+        }
+    }
+
     public function getListMetrado($request)
     {
         $presupuesto   = new Presupuesto($request);

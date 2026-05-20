@@ -125,6 +125,7 @@ class SubpartidaProyecto extends Mysql
 
             return $response;
         } catch (\Throwable $th) {
+            error_log("error en guardar subpartida: " . $th->getMessage());
             $response['success'] = false;
             $response['message'] = 'Error al guardar partida';
         }
