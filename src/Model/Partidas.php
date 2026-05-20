@@ -94,6 +94,10 @@ class Partidas extends Mysql
     {
         $resp = ['success' => true, 'message' => 'Partida guardada'];
         try {
+            if (is_array($request)) {
+                $request = (object) $request;
+            }
+
             $data = [];
 
             if ($request->id == '0' && $request->masterid == '0') {
