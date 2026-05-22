@@ -560,7 +560,7 @@ class User extends Mysql
         $resp = [];
 
         try {
-            $sql = 'SELECT id,email,first_name,last_name,picture 
+            $sql = 'SELECT id,email,first_name,last_name,picture,roleId
                     FROM users 
                     WHERE deleted_at IS NULL AND email = :email 
                     LIMIT 1';
