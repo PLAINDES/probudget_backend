@@ -7,7 +7,7 @@ class Gemini
     private $apiKey;
     private $model;
 
-    public function __construct($apiKey = null, $model = 'gemini-2.0-flash-exp')
+    public function __construct($apiKey = null, $model = 'gemini-2.0-flash')
     {
         $this->apiKey = $apiKey ?? $_ENV['GEMINI_API_KEY'];
         $this->model = $model;
