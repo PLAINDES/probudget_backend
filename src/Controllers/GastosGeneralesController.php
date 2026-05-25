@@ -37,4 +37,10 @@ class GastosGeneralesController
         $gastosGenerales   = new GastosGenerales(false);
         return $gastosGenerales->changeDisaggregated($request);
     }
+
+    public function moverGasto($request)
+    {
+        $gastosGenerales   = new GastosGenerales(false);
+        return $gastosGenerales->moverGasto($request);
+    }
 }
