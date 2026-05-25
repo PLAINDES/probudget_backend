@@ -437,4 +437,171 @@ class GastosGenerales extends Mysql
             return $resp;
         }
     }
+
+    public function moverGasto($request)
+    {
+        try {
+            $gastoId = (int) ($request->id ?? 0);
+            $proyectoGeneralesId = (int) ($request->proyecto_generales_id ?? 0);
+            $typeItem = (int) ($request->type_item ?? 0);
+
+            $parentId = (int) ($request->parent_id ?? 0);
+            $parentGruposId = (int) ($request->parent_grupos_id ?? 0);
+
+            $gasto = $this->obtenerGasto(
+                $gastoId,
+                $proyectoGeneralesId
+            );
+
+            if (!$gasto) {
+                return [
+                    'success' => false,
+                    'message' => 'Gasto no encontrado'
+                ];
+            }
+
+            switch ($typeItem) {
+                case 2:
+                    return $this->moverGrupoCompleto(
+                        $gastoId,
+                        $proyectoGeneralesId,
+                        $parentGruposId
+                    );
+
+                case 3:
+                    return $this->moverGastoIndividual(
+                        $gastoId,
+                        $parentId,
+                        $parentGruposId
+                    );
+
+                default:
+                    return [
+                        'success' => false,
+                        'message' => 'Tipo de item no válido'
+                    ];
+            }
+        } catch (\Throwable $th) {
+            error_log($th->getMessage());
+
+            return [
+                'success' => false,
+                'message' => 'Error al mover gasto'
+            ];
+        }
+    }
+
+    private function obtenerGasto(
+        int $gastoId,
+        int $proyectoGeneralesId
+    ) {
+        $sql = "SELECT *
+            FROM gastos_generales
+            WHERE id = :id
+            AND proyecto_generales_id = :proyecto_generales_id
+            AND deleted_at IS NULL";
+
+        return self::fetchObj($sql, [
+            'id' => $gastoId,
+            'proyecto_generales_id' => $proyectoGeneralesId
+        ]);
+    }
+
+    private function obtenerHijos(
+        int $gastoId,
+        int $proyectoGeneralesId
+    ) {
+        $sql = "SELECT *
+                FROM gastos_generales
+                WHERE gastos_generales_id = :gasto_id
+                AND proyecto_generales_id = :proyecto_generales_id
+                AND deleted_at IS NULL";
+
+        return self::fetchAllObj($sql, [
+            'gasto_id' => $gastoId,
+            'proyecto_generales_id' => $proyectoGeneralesId
+        ]);
+    }
+
+    private function moverGastoIndividual(
+        int $gastoId,
+        int $parentId,
+        int $parentGruposId
+    ) {
+        // Evitar moverse sobre sí mismo
+        if ($gastoId === $parentId) {
+            return [
+                'success' => false,
+                'message' => 'No se puede mover un gasto sobre sí mismo'
+            ];
+        }
+
+        $campos = [
+            'grupos_id' => $parentGruposId,
+            'gastos_generales_id' => $parentId
+        ];
+
+        $actualizado = self::update(
+            'gastos_generales',
+            $campos,
+            ['id' => $gastoId]
+        );
+
+        if (!$actualizado) {
+            return [
+                'success' => false,
+                'message' => 'No se pudo mover el gasto'
+            ];
+        }
+
+        return [
+            'success' => true,
+            'message' => 'Gasto movido correctamente'
+        ];
+    }
+
+    private function moverGrupoCompleto(
+        int $gastoId,
+        int $proyectoGeneralesId,
+        int $parentGruposId
+    ) {
+        $actualizado = self::update(
+            'gastos_generales',
+            [
+                'grupos_id' => $parentGruposId
+            ],
+            [
+                'id' => $gastoId
+            ]
+        );
+
+        if (!$actualizado) {
+            return [
+                'success' => false,
+                'message' => 'No se pudo mover el grupo'
+            ];
+        }
+
+        $hijos = $this->obtenerHijos(
+            $gastoId,
+            $proyectoGeneralesId
+        );
+
+        foreach ($hijos as $hijo) {
+            self::update(
+                'gastos_generales',
+                [
+                    'grupos_id' => $parentGruposId
+                ],
+                [
+                    'id' => $hijo->id
+                ]
+            );
+        }
+
+        return [
+            'success' => true,
+            'message' => 'Grupo movido correctamente'
+        ];
+    }
 }
