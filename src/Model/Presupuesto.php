@@ -343,11 +343,26 @@ class Presupuesto extends Mysql
                 if ($value->presupuestos_proyecto_generales_id == null || $value->presupuestos_proyecto_generales_id == 0) {
                     $detail = $this->setMatrizPresupuesto($value->id, $presupuestos_general);
                     $total = 0;
+                    $mo = 0;
+                    $mat = 0;
+                    $eq = 0;
+                    $sc = 0;
+                    $sp = 0;
                     foreach ($detail as $item) {
                         $total += ($item->total_parcial * 1);
+                        $mo += ($item->mo * 1);
+                        $mat += ($item->mat * 1);
+                        $eq += ($item->eq * 1);
+                        $sc += ($item->sc * 1);
+                        $sp += ($item->sp * 1);
                     }
                     $presupuestos_general[$key]->detail = $detail;
                     $presupuestos_general[$key]->total_parcial = $total;
+                    $presupuestos_general[$key]->mo = $mo;
+                    $presupuestos_general[$key]->mat = $mat;
+                    $presupuestos_general[$key]->eq = $eq;
+                    $presupuestos_general[$key]->sc = $sc;
+                    $presupuestos_general[$key]->sp = $sp;
                     array_push($data, $presupuestos_general[$key]);
                 }
             }
