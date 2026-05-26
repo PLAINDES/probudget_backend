@@ -448,6 +448,8 @@ class GastosGenerales extends Mysql
             $parentId = (int) ($request->parent_id ?? 0);
             $parentGruposId = (int) ($request->parent_grupos_id ?? 0);
 
+            $action = $request->actionClipboard ?? null;
+
             $gasto = $this->obtenerGasto(
                 $gastoId,
                 $proyectoGeneralesId
@@ -462,18 +464,43 @@ class GastosGenerales extends Mysql
 
             switch ($typeItem) {
                 case 2:
-                    return $this->moverGrupoCompleto(
-                        $gastoId,
-                        $proyectoGeneralesId,
-                        $parentGruposId
-                    );
+                    if ($action == 'cortar' || !$action) {
+                        return $this->moverGrupoCompleto(
+                            $gastoId,
+                            $proyectoGeneralesId,
+                            $parentGruposId,
+                        );
+                    } elseif ($action == 'copiar') {
+                        return $this->copiarGrupo(
+                            $gasto,
+                            $parentGruposId
+                        );
+                    }
+
+                    return [
+                            'success' => false,
+                            'message' => 'No se pudo mover el grupo',
+                        ];
 
                 case 3:
-                    return $this->moverGastoIndividual(
-                        $gastoId,
-                        $parentId,
-                        $parentGruposId
-                    );
+                    if ($action == 'cortar' || !$action) {
+                        return $this->moverGastoIndividual(
+                            $gastoId,
+                            $parentId,
+                            $parentGruposId,
+                        );
+                    } elseif ($action == 'copiar') {
+                        return $this->copiarGasto(
+                            $gasto,
+                            $parentId,
+                            $parentGruposId
+                        );
+                    }
+
+                    return [
+                        'success' => false,
+                        'message' => 'No se pudo mover el gasto',
+                    ];
 
                 default:
                     return [
@@ -560,6 +587,45 @@ class GastosGenerales extends Mysql
         ];
     }
 
+    private function copiarGasto($gasto, int $parentId = 0, int $parentGruposId = 0)
+    {
+        $campos = [
+            'grupos_id' => $parentGruposId,
+            'proyecto_generales_id' => $gasto->proyecto_generales_id,
+            'descripcion' => $gasto->descripcion,
+            'duracion' => $gasto->duracion,
+            'cantidad' => $gasto->cantidad,
+            'porcentaje_partida' => $gasto->porcentaje_partida,
+            'precio' => $gasto->precio,
+            'parcial' => $gasto->parcial,
+            'unidad_medidas_id' => $gasto->unidad_medidas_id,
+            'deleted_at' => null
+        ];
+
+        if ($parentId > 0) {
+            $campos['gastos_generales_id'] = $parentId;
+        }
+
+        $insertado = self::insert(
+            'gastos_generales',
+            $campos
+        );
+
+        if (!$insertado) {
+            return [
+                'success' => false,
+                'message' => 'No se pudo copiar el gasto',
+                'data' => $insertado
+            ];
+        }
+
+        return [
+            'success' => true,
+            'message' => 'Gasto copiado correctamente',
+            'lastInsertId' => $insertado['lastInsertId']
+        ];
+    }
+
     private function moverGrupoCompleto(
         int $gastoId,
         int $proyectoGeneralesId,
@@ -602,6 +668,53 @@ class GastosGenerales extends Mysql
         return [
             'success' => true,
             'message' => 'Grupo movido correctamente'
+        ];
+    }
+
+    private function copiarGrupo(
+        $gasto,
+        int $parentGruposId
+    ) {
+        $result = $this->copiarGasto(
+            $gasto,
+            0,
+            $parentGruposId
+        );
+
+        if (!$result['success']) {
+            return [
+                'success' => false,
+                'message' => 'No se pudo copiar el grupo',
+            ];
+        }
+
+        $nuevoGastoId = $result['lastInsertId'];
+
+        $hijos = $this->obtenerHijos(
+            $gasto->id,
+            $gasto->proyecto_generales_id
+        );
+
+        if (count($hijos) > 0) {
+            foreach ($hijos as $hijo) {
+                $result = $this->copiarGasto(
+                    $hijo,
+                    $nuevoGastoId,
+                    $parentGruposId
+                );
+
+                if (!$result['success']) {
+                    return [
+                        'success' => false,
+                        'message' => 'No se pudo copiar el grupo',
+                    ];
+                }
+            }
+        }
+
+        return [
+            'success' => true,
+            'message' => 'Grupo copiado correctamente'
         ];
     }
 }
