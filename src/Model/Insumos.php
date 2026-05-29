@@ -61,40 +61,79 @@ class Insumos extends Mysql
 
     public function getListAll()
     {
-        $sql = 'SELECT insumos.id, insumos, tipo, precio , codigo, indice_unificado, unidad_medidas.alias AS unidad_medida, unidad_medidas.id AS unidad_medidas_id
-              FROM insumos
-              INNER JOIN unidad_medidas ON unidad_medidas.id = insumos.unidad_medidas_id ';
-        $minsumos = self::fetchAllObj($sql);
+        $resp = [
+        'success' => false,
+        'message' => '',
+        'data' => []
+        ];
 
+        try {
+            $sql = 'SELECT insumos.id, insumos, tipo, precio, codigo, 
+                           indice_unificado, unidad_medidas.alias AS unidad_medida, 
+                           unidad_medidas.id AS unidad_medidas_id
+                    FROM insumos
+                    INNER JOIN unidad_medidas 
+                    ON unidad_medidas.id = insumos.unidad_medidas_id ';
+            $minsumos = self::fetchAllObj($sql);
 
+            $resp['data'] = array(
+            'master' => $minsumos
+            );
 
-        $resp['success'] = true;
-        $resp['message'] = '';
-        $resp['data'] = array(
-        'master' => $minsumos
-        );
-        return $resp;
+            return $resp;
+        } catch (\Throwable $th) {
+            error_log("Error al obtener la lista de insumos: " . $th->getMessage());
+            $resp['success'] = false;
+            $resp['message'] = $th->getMessage();
+            return $resp;
+        }
     }
 
     public function getListInsumo($proyectos_generales_id)
     {
-        $sql = 'SELECT insumos.id, insumos,tipo, unidad_medidas.alias AS unidad_medida, unidad_medidas.id AS unidad_medidas_id
-              FROM insumos
-              INNER JOIN unidad_medidas ON unidad_medidas.id = insumos.unidad_medidas_id ';
-        $minsumos = self::fetchAllObj($sql);
+        try {
+            $sql = 'SELECT insumos.id, insumos,tipo, 
+                            unidad_medidas.alias AS unidad_medida, 
+                            unidad_medidas.id AS unidad_medidas_id
+                    FROM insumos
+                    INNER JOIN unidad_medidas 
+                    ON unidad_medidas.id = insumos.unidad_medidas_id ';
+            $minsumos = self::fetchAllObj($sql);
 
-        $sql = 'SELECT ipr.id, ipr.insumos,ipr.tipo,ipr.master_insumo_id, um.alias AS unidad_medida, um.id AS unidad_medidas_id
-              FROM insumos_proyecto ipr
-              INNER JOIN unidad_medidas um ON um.id = ipr.unidad_medidas_id WHERE ipr.proyectos_generales_id = :id AND ipr.master_insumo_id IS NULL';
-        $pinsumos = self::fetchAllObj($sql, ['id' => $proyectos_generales_id]);
+            $sql = 'SELECT ipr.id, ipr.insumos,ipr.tipo,ipr.master_insumo_id, 
+                            um.alias AS unidad_medida, um.id AS unidad_medidas_id
+                    FROM insumos_proyecto ipr
+                    INNER JOIN unidad_medidas um 
+                    ON um.id = ipr.unidad_medidas_id 
+                    WHERE ipr.proyectos_generales_id = :id 
+                    AND ipr.master_insumo_id IS NULL';
+            $pinsumos = self::fetchAllObj($sql, ['id' => $proyectos_generales_id]);
 
-        $resp['success'] = true;
-        $resp['message'] = '';
-        $resp['data'] = array(
-        'master' => $minsumos,
-        'proyecto' => $pinsumos
-        );
-        return $resp;
+            $sql = 'SELECT pp.id, pp.partida AS insumos, 
+                            pp.master_partida_id AS master_insumo_id,
+                            "SP" AS tipo,
+                            um.alias AS unidad_medida, 
+                            um.id AS unidad_medidas_id
+                    FROM partidas_proyecto pp
+                    INNER JOIN unidad_medidas um
+                    ON um.id = pp.unidad_medidas_id
+                    WHERE pp.proyectos_generales_id = :id
+                    AND pp.master_partida_id IS NULL';
+            $pinsumos = array_merge($pinsumos, self::fetchAllObj($sql, ['id' => $proyectos_generales_id]));
+
+            $resp['success'] = true;
+            $resp['message'] = '';
+            $resp['data'] = array(
+            'master' => $minsumos,
+            'proyecto' => $pinsumos
+            );
+            return $resp;
+        } catch (\Throwable $th) {
+            error_log("Error al obtener la lista de insumos: " . $th->getMessage());
+            $resp['success'] = false;
+            $resp['message'] = $th->getMessage();
+            return $resp;
+        }
     }
 
     public function getListInsumoByArchivo($archivo_id)
