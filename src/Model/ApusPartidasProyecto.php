@@ -16,6 +16,7 @@ class ApusPartidasProyecto extends Mysql
     public function getSave($param)
     {
         $resp = ['success' => true, 'message' => 'Apu guardado'];
+        $tipo = $param->tipo;
         try {
             $nullable = [];
             $var = [];
@@ -38,9 +39,6 @@ class ApusPartidasProyecto extends Mysql
             if (isset($param->rendimiento) && is_numeric($param->rendimiento)) {
                 $rendimientoVar['rendimiento'] = number_format($param->rendimiento, 2, '.', '');
             }
-            if (!empty($param->rendimiento_unid)) {
-                $rendimientoVar['rendimiento_unid'] = $param->rendimiento_unid;
-            }
 
             // Si hay datos de rendimiento y hay id, actualizar presupuestos_partida
             if (!empty($rendimientoVar) && $param->id) {
@@ -56,13 +54,17 @@ class ApusPartidasProyecto extends Mysql
             if ($param->master_insumo_id) {
                 $insumo = $this->findOrCreateInsumo($param->master_insumo_id, $param->proyectos_generales_id);
             } elseif ($param->proyecto_insumo_id) {
-                $insumo = $this->findInsumo($param->proyecto_insumo_id);
+                $insumo = $this->findInsumo($param->proyecto_insumo_id, $tipo);
             }
 
             if ($param->id) {
                 // UPDATE - Actualizar registro existente
                 if ($insumo) {
-                    $var['insumo_id'] = $insumo->id;
+                    if ($tipo == 'SP') {
+                        $var['partida_id'] = $insumo->id;
+                    } else {
+                        $var['insumo_id'] = $insumo->id;
+                    }
                 }
                 if ($insumo) {
                     $var['unidad_medidas_id'] = $insumo->unidad_medidas_id;
@@ -101,11 +103,41 @@ class ApusPartidasProyecto extends Mysql
                 if (!empty($insumo)) {
                     $insu = null;
                     if ($param->subpartida_id) {
-                        $sql = 'SELECT id, unidad_medidas_id FROM apus_partida_presupuestos WHERE insumo_id = :insumo_id AND subpartida_id = :subpartida_id AND deleted_at IS NULL';
-                        $insu = self::fetchObj($sql, ['insumo_id' => $insumo->id, 'subpartida_id' => $param->subpartida_id]);
+                        $sql = 'SELECT id, unidad_medidas_id 
+                                FROM apus_partida_presupuestos 
+                                WHERE insumo_id = :insumo_id 
+                                AND subpartida_id = :subpartida_id 
+                                AND deleted_at IS NULL';
+                        $insu = self::fetchObj($sql, [
+                            'insumo_id' => $insumo->id,
+                            'subpartida_id' => $param->subpartida_id
+                        ]);
                     } else {
-                        $sql = 'SELECT id, unidad_medidas_id FROM apus_partida_presupuestos WHERE insumo_id = :insumo_id AND presupuestos_id = :presupuestos_id AND subpartida_id IS NULL AND deleted_at IS NULL';
-                        $insu = self::fetchObj($sql, ['insumo_id' => $insumo->id, 'presupuestos_id' => $param->presupuestos_id]);
+                        if ($tipo == 'SP') {
+                            $sql = 'SELECT id, unidad_medidas_id
+                                    FROM apus_partida_presupuestos
+                                    WHERE partida_id = :partida_id
+                                    AND presupuestos_id = :presupuestos_id
+                                    AND subpartida_id IS NULL
+                                    AND deleted_at IS NULL';
+
+                            $insu = self::fetchObj($sql, [
+                                'partida_id' => $insumo->id,
+                                'presupuestos_id' => $param->presupuestos_id
+                            ]);
+                        } else {
+                            $sql = 'SELECT id, unidad_medidas_id
+                                    FROM apus_partida_presupuestos
+                                    WHERE insumo_id = :insumo_id
+                                    AND presupuestos_id = :presupuestos_id
+                                    AND subpartida_id IS NULL
+                                    AND deleted_at IS NULL';
+
+                            $insu = self::fetchObj($sql, [
+                                'insumo_id' => $insumo->id,
+                                'presupuestos_id' => $param->presupuestos_id
+                            ]);
+                        }
                     }
 
                     if ($insu) {
@@ -114,7 +146,13 @@ class ApusPartidasProyecto extends Mysql
                         $var['id'] = $insu->id;
                     } else {
                         // No existe, insertar nuevo
-                        $var['insumo_id'] = $insumo->id;
+
+                        if ($tipo == 'SP') {
+                            $var['partida_id'] = $insumo->id;
+                        } else {
+                            $var['insumo_id'] = $insumo->id;
+                        }
+
                         $var['unidad_medidas_id'] = $insumo->unidad_medidas_id;
                         $var['proyectos_generales_id'] = $param->proyectos_generales_id;
                         $var['presupuestos_id'] = $param->presupuestos_id;
@@ -136,6 +174,7 @@ class ApusPartidasProyecto extends Mysql
             $resp['data'] = $var;
             return $resp;
         } catch (\Throwable $th) {
+            error_log("Error al guardar el apu: " . $th->getMessage());
             $resp['success'] = false;
             $resp['message'] = $th->getMessage();
             return $resp;
@@ -147,6 +186,38 @@ class ApusPartidasProyecto extends Mysql
         $resp = ['success' => true, 'message' => 'Apu guardado'];
         try {
             $var = [];
+
+            // validar si existen
+            $sql = 'SELECT descripcion
+                    FROM indice_unificado
+                    WHERE id = :id';
+            $indice = self::fetchObj($sql, ['id' => $request->iu]);
+            if (!$indice) {
+                $resp['success'] = false;
+                $resp['message'] = 'Indice Unificado no encontrado';
+                return $resp;
+            }
+
+            $sql = 'SELECT id
+                    FROM unidad_medidas
+                    WHERE id = :id';
+            $unidad = self::fetchObj($sql, ['id' => $request->unidad_medidas_id]);
+            if (!$unidad) {
+                $resp['success'] = false;
+                $resp['message'] = 'Unidad Medida no encontrada';
+                return $resp;
+            };
+
+            $sql = 'SELECT id
+                    FROM proyecto_generales
+                    WHERE id = :id';
+            $proyecto = self::fetchObj($sql, ['id' => $request->proyectos_generales_id]);
+            if (!$proyecto) {
+                $resp['success'] = false;
+                $resp['message'] = 'Proyecto no encontrado';
+                return $resp;
+            }
+
             if ($request->cuadrilla) {
                 $var['cuadrilla'] = number_format($request->cuadrilla, 2, '.', '');
             }
@@ -163,12 +234,14 @@ class ApusPartidasProyecto extends Mysql
             $insumo = array(
                 'codigo' => $codigo,
                 'iu' => $request->iu,
+                'indice_unificado' => $indice->descripcion,
                 'tipo' => $request->tipo,
                 'insumos' => $request->insumos,
                 'precio' => $request->precio,
                 'unidad_medidas_id' => $request->unidad_medidas_id,
                 'proyectos_generales_id' => $request->proyectos_generales_id
             );
+
             $lastInsert = self::insert("insumos_proyecto", $insumo);
             $insumo['id'] = $lastInsert['lastInsertId'];
             $var['insumo_id'] = $insumo['id'];
@@ -179,10 +252,12 @@ class ApusPartidasProyecto extends Mysql
             if ($request->subpartida_id) {
                 $var['subpartida_id'] = $request->subpartida_id;
             }
+
             $lastInsert = self::insert("apus_partida_presupuestos", $var);
             $var['id'] = $lastInsert['lastInsertId'];
             $var['insumo'] = $insumo;
             $resp['data'] = $var;
+
             return $resp;
         } catch (\Throwable $th) {
             $resp['success'] = false;
@@ -193,12 +268,22 @@ class ApusPartidasProyecto extends Mysql
 
     private function findOrCreateInsumo($masterInsumoId, $proyectos_generales_id)
     {
-        $sql = 'SELECT id, unidad_medidas_id FROM insumos_proyecto WHERE master_insumo_id = :insumoId AND proyectos_generales_id = :proyectos_generales_id';
-        $insumo = self::fetchObj($sql, ['insumoId' => $masterInsumoId, 'proyectos_generales_id' => $proyectos_generales_id]);
+        $sql = 'SELECT id, unidad_medidas_id 
+                FROM insumos_proyecto 
+                WHERE master_insumo_id = :insumoId 
+                AND proyectos_generales_id = :proyectos_generales_id';
+        $insumo = self::fetchObj($sql, [
+            'insumoId' => $masterInsumoId,
+            'proyectos_generales_id' => $proyectos_generales_id
+        ]);
         if (empty($insumo)) {
             $resp = new stdClass();
-            $sql = 'SELECT id, codigo, iu, indice_unificado, tipo, insumos, precio, unidad_medidas_id FROM insumos WHERE id = :insumoId';
+            $sql = 'SELECT id, codigo, iu, indice_unificado, tipo, 
+                            insumos, precio, unidad_medidas_id 
+                    FROM insumos 
+                    WHERE id = :insumoId';
             $insumo = self::fetchObj($sql, ['insumoId' => $masterInsumoId]);
+
             $lastInsert = self::insert("insumos_proyecto", array(
                 'codigo' => $insumo->codigo,
                 'iu' => $insumo->iu,
@@ -217,10 +302,32 @@ class ApusPartidasProyecto extends Mysql
         return $insumo;
     }
 
-    private function findInsumo($id)
+    private function findInsumo($id, $tipo)
     {
-        $sql = 'SELECT id, codigo, iu, indice_unificado, tipo, insumos, precio, unidad_medidas_id FROM insumos_proyecto WHERE id = :insumoId';
-        $insumo = self::fetchObj($sql, ['insumoId' => $id]);
+        $insumo = null;
+        $sql = '';
+
+        if ($tipo == 'SP') {
+            $sql = 'SELECT id, "SP" AS tipo, partida AS insumos,
+                            unidad_medidas_id
+                    FROM partidas_proyecto
+                    WHERE id = :id';
+        } else {
+            $sql = 'SELECT id, codigo, iu, indice_unificado, tipo, 
+                        insumos, precio, unidad_medidas_id 
+                    FROM insumos_proyecto 
+                    WHERE id = :id';
+        }
+
+        $insumo = self::fetchObj($sql, ['id' => $id]);
+
+        if (!$insumo) {
+            return [
+                'success' => false,
+                'message' => 'Insumo no encontrado'
+            ];
+        };
+
         return $insumo;
     }
 
@@ -505,9 +612,10 @@ class ApusPartidasProyecto extends Mysql
                     LEFT JOIN partidas_proyecto pt ON pt.id = pp.partida_id
                     {$where}";
             $cabecera = self::fetchObj($sql, ['id' => $id]);
+
             if ($cabecera) {
                 $sql = "SELECT pp.id,
-                        pp.iu,
+                        ip.iu,
                         pp.cuadrilla,
                         pp.cantidad,
                         pp.unidad_medidas_id,                        
