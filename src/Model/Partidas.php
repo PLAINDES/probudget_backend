@@ -49,44 +49,83 @@ class Partidas extends Mysql
 
     public function getListPartida($request)
     {
-        $map = [];
+        try {
+            $map = [];
 
-        $sql = 'SELECT id, partida, rendimiento, rendimiento_unid, unidad_medidas_id FROM partidas';
-        $patidasMaster = self::fetchAllObj($sql);
+            $sql = 'SELECT 
+                        p.id,
+                        p.partida,
+                        p.rendimiento,
+                        p.rendimiento_unid,
+                        p.unidad_medidas_id,
+                        um.descripcion AS unidad_medida
+                    FROM partidas p
+                    LEFT JOIN unidad_medidas um
+                        ON p.unidad_medidas_id = um.id';
+            $patidasMaster = self::fetchAllObj($sql);
 
-        foreach ($patidasMaster as $key => $value) {
-            $map[$value->id] = $key;
-            $patidasMaster[$key]->apus = array();
+            foreach ($patidasMaster as $key => $value) {
+                $map[$value->id] = $key;
+                $patidasMaster[$key]->apus = array();
+            }
+
+            $sql = 'SELECT 
+                    ap.id,
+                    ap.cuadrilla,
+                    ap.cantidad,
+                    ap.insumo_id,
+                    ap.partida_id,
+                    ap.unidad_medidas_id,
+                    um.descripcion AS unidad_medida,
+                    im.codigo,
+                    im.tipo,
+                    im.insumos,
+                    im.precio
+                FROM apus_partidas ap
+                INNER JOIN insumos im 
+                    ON ap.insumo_id = im.id
+                LEFT JOIN unidad_medidas um
+                    ON ap.unidad_medidas_id = um.id';
+            $apusMaster = self::fetchAllObj($sql);
+
+            foreach ($apusMaster as $value) {
+                $key = $map[$value->partida_id];
+                array_push($patidasMaster[$key]->apus, $value);
+            }
+
+            $map = [];
+            $sql = 'SELECT 
+                    pp.id,
+                    pp.partida,
+                    pp.rendimiento,
+                    pp.rendimiento_unid,
+                    um.descripcion AS unidad_medida,
+                    pp.unidad_medidas_id,
+                    pp.master_partida_id
+                FROM partidas_proyecto pp
+                LEFT JOIN unidad_medidas um
+                    ON pp.unidad_medidas_id = um.id
+                WHERE pp.proyectos_generales_id = :id';
+
+            $patidasProyecto = self::fetchAllObj($sql, [
+                'id' => $request->proyectos_generales_id
+            ]);
+
+            $data = array(
+            'master' => $patidasMaster,
+            'proyecto' => $patidasProyecto
+            );
+
+            $resp['success'] = true;
+            $resp['message'] = 'Lista de partidas';
+            $resp['data'] = $data;
+            return $resp;
+        } catch (\Throwable $th) {
+            error_log('Error al listar partidas: ' . $th->getMessage());
+            $resp['success'] = false;
+            $resp['message'] = $th->getMessage();
+            return $resp;
         }
-
-        $sql = 'SELECT ap.id, ap.cuadrilla, ap.cantidad, ap.insumo_id, 
-              ap.partida_id, ap.unidad_medidas_id, im.codigo, im.tipo, im.insumos, im.precio
-              FROM apus_partidas ap
-              INNER JOIN insumos im ON ap.insumo_id = im.id';
-        $apusMaster = self::fetchAllObj($sql);
-
-        foreach ($apusMaster as $value) {
-            $key = $map[$value->partida_id];
-            array_push($patidasMaster[$key]->apus, $value);
-        }
-
-        $map = [];
-        $sql = 'SELECT 
-                    pp.id, pp.partida, pp.rendimiento, pp.rendimiento_unid, 
-                    pp.unidad_medidas_id, pp.master_partida_id
-              FROM partidas_proyecto pp
-              WHERE pp.proyectos_generales_id = :id';
-        $patidasProyecto = self::fetchAllObj($sql, ['id' => $request->proyectos_generales_id]);
-
-        $data = array(
-        'master' => $patidasMaster,
-        'proyecto' => $patidasProyecto
-        );
-
-        $resp['success'] = true;
-        $resp['message'] = 'Lista de partidas';
-        $resp['data'] = $data;
-        return $resp;
     }
 
 
