@@ -159,14 +159,18 @@ class Presupuesto extends Mysql
                     $sql = 'SELECT id, partidas_id, type_item FROM presupuestos WHERE id = :id  AND deleted_at is NULL';
                     $presupuestos = self::fetchObj($sql, ['id' => $this->_id]);
                     if ($presupuestos && $presupuestos->id) {
-                        $sql = 'SELECT COUNT(1) AS checked FROM apus_partida_presupuestos WHERE presupuestos_id = :id  AND deleted_at is NULL';
+                        /*
+                        Comentado pero quiza sea necesario
+                        $sql = 'SELECT COUNT(1) AS checked
+                        FROM apus_partida_presupuestos
+                        WHERE presupuestos_id = :id  AND deleted_at is NULL';
                         $verify = self::fetchObj($sql, ['id' => $this->_id]);
 
                         if ($verify && $verify->checked) {
                             $resp['success'] = false;
                             $resp['message'] = 'Error la partida ya tiene apus asignados';
                             return $resp;
-                        }
+                        }*/
 
                         $update = self::update("presupuestos", $this->_values, ['id' => $this->_id]);
 
@@ -312,29 +316,31 @@ class Presupuesto extends Mysql
             }
 
 
-            $sql_general = "SELECT        
-                        id,
-                        descripcion AS 'name',
-                        unidad_medidas_id AS 'uni',
-                        proyecto_generales_id,
-                        partidas_id,
-                        subpresupuestos_id,
-                        presupuestos_title_id,
-                        cu,                        
-                        mo,
-                        mt AS mat,
-                        eq,
-                        sc,
-                        sp,
-                        metrado AS 'metered',                        
-                        presupuestos_proyecto_generales_id,
-                        nro_orden AS 'level',
-                        type_item
-                FROM presupuestos 
-                WHERE proyecto_generales_id = :id 
-                        AND deleted_at IS NULL
-                        {$subpresupuestoCondition}
-                ORDER BY nro_orden ASC";
+            $sql_general = "SELECT
+                            p.id,
+                            p.descripcion AS name,
+                            um.descripcion AS uni,
+                            p.proyecto_generales_id,
+                            p.partidas_id,
+                            p.subpresupuestos_id,
+                            p.presupuestos_title_id,
+                            p.cu,
+                            p.mo,
+                            p.mt AS mat,
+                            p.eq,
+                            p.sc,
+                            p.sp,
+                            p.metrado AS metered,
+                            p.presupuestos_proyecto_generales_id,
+                            p.nro_orden AS level,
+                            p.type_item
+                        FROM presupuestos p
+                        LEFT JOIN unidad_medidas um
+                            ON um.id = p.unidad_medidas_id
+                        WHERE p.proyecto_generales_id = :id
+                            AND p.deleted_at IS NULL
+                            {$subpresupuestoCondition}
+                        ORDER BY p.nro_orden ASC";
 
             $presupuestos_general = self::fetchAllObj($sql_general, ['id' => $this->_id]);
             $data = array();
