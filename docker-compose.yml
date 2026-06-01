@@ -4,6 +4,8 @@ services:
     container_name: probudget_backend
     env_file:
       - .env
+    volumes:
+      - ./.env:/var/www/html/.env:ro
     ports:
       - "8001:80"
     restart: always
