@@ -2,6 +2,8 @@ services:
   app:
     build: .
     container_name: probudget_backend
+    env_file:
+      - .env
     ports:
       - "8001:80"
     restart: always
