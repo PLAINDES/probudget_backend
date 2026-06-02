@@ -139,11 +139,23 @@ class Partidas extends Mysql
 
             $data = [];
 
+            // buscar unidad
+            $sql = 'SELECT descripcion
+                    FROM unidad_medidas
+                    WHERE id = :id';
+            $unidad = self::fetchObj($sql, ['id' => $request->unidad_medidas_id]);
+
+            if (!$unidad) {
+                $resp['success'] = false;
+                $resp['message'] = 'Unidad de medida no encontrada';
+                return $resp;
+            }
+
             if ($request->id == '0' && $request->masterid == '0') {
                 $rend = number_format(0, 2, '.', '');
                 $var = [
                     'partida' => $request->partida,
-                    'rendimiento_unid' => $request->rendimiento_unid,
+                    'rendimiento_unid' => strtoupper($unidad->descripcion . "/DIA"),
                     'unidad_medidas_id' => $request->unidad_medidas_id,
                     'proyectos_generales_id' => $request->proyectos_generales_id,
                 ];
