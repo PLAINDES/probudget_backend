@@ -132,16 +132,24 @@ class Presupuesto extends Mysql
                     $datapartida = json_decode($this->idspartida);
                     if ($datapartida) {
                         $this->_master_partidas_id = $datapartida->masterid;
+
+                        // buscar partida
+                        $sql = 'SELECT id, unidad_medidas_id
+                                FROM partidas_proyecto
+                                WHERE id = :id';
+                        $partida = self::fetchObj($sql, ['id' => $datapartida->id]);
+
+                        if (!$partida) {
+                            $resp['success'] = false;
+                            $resp['message'] = 'Partida no encontrada';
+                            return $resp;
+                        }
+
                         $partidas = new Partidas();
                         $result = $partidas->getSave([
                             'id' => $datapartida->id ?? 0,
                             'masterid' => $datapartida->masterid ?? 0,
-                            'partida' => $this->_descripcion,
-                            'rendimiento_unid' => $this->_rendimiento_unid,
-                            'unidad_medidas_id' => $this->_unidad_medidas_id,
-                            'rendimiento' => $this->_rendimiento,
-                            'proyecto_generales_id' => $this->_proyecto_generales_id,
-                            'subpresupuesto_id' => $this->_subpresupuestos_id
+                            'unidad_medidas_id' => $partida->unidad_medidas_id,
                         ]);
 
                         if (!empty($result['data'])) {
@@ -150,7 +158,8 @@ class Presupuesto extends Mysql
                             $partida_id = $result['data']['id'];
                             $this->_rendimiento_unid = $result['data']['rendimiento_unid'];
                             $this->_rendimiento = $result['data']['rendimiento'];
-                            $this->_values['unidad_medidas_id'] = $this->_unidad_medidas_id = $result['data']['unidad_medidas_id'];
+                            $this->_values['unidad_medidas_id'] =
+                                $this->_unidad_medidas_id = $result['data']['unidad_medidas_id'];
                         }
                     }
                 }
@@ -209,7 +218,11 @@ class Presupuesto extends Mysql
                     $proyecto_general = self::fetchObj("SELECT * FROM proyecto_generales 
                                                     WHERE id = :id;", ['id' => $this->_proyecto_generales_id]);
 
-                    $result = $plan->getValidate(['modulo' => 2, 'user_id' => @$proyecto_general->users_id,'proyecto_id' => $this->_proyecto_generales_id]);
+                    $result = $plan->getValidate([
+                        'modulo' => 2,
+                        'user_id' => $proyecto_general->users_id,
+                        'proyecto_id' => $this->_proyecto_generales_id
+                    ]);
 
                     if (!$result['success']) {
                         $resp['success'] = false;
@@ -568,18 +581,20 @@ class Presupuesto extends Mysql
             // BUSCAR ITEM A MOVER
             // =========================
             $sqlItem = "SELECT
-                            id,
-                            descripcion,
-                            type_item,
-                            presupuestos_proyecto_generales_id,
-                            proyecto_generales_id
-                        FROM presupuestos
-                        WHERE id = :id
-                        AND proyecto_generales_id = :proyecto_id
-                        AND deleted_at IS NULL";
+                            ps.id,
+                            ps.descripcion,
+                            ps.type_item,
+                            pp.rendimiento,
+                            pp.rendimiento_unid,
+                            ps.unidad_medidas_id
+                        FROM presupuestos_partida pp
+                        LEFT JOIN presupuestos ps ON ps.id = pp.presupuestos_id
+                        WHERE pp.presupuestos_id = :presupuestos_id
+                        AND pp.proyectos_generales_id = :proyecto_id
+                        AND ps.deleted_at IS NULL";
 
             $item = self::fetchObj($sqlItem, [
-                'id' => $itemId,
+                'presupuestos_id' => $itemId,
                 'proyecto_id' => $proyectoId
             ]);
 
@@ -597,7 +612,6 @@ class Presupuesto extends Mysql
                             id,
                             descripcion,
                             type_item,
-                            presupuestos_proyecto_generales_id,
                             subpresupuestos_id
                         FROM presupuestos
                         WHERE id = :id
@@ -622,15 +636,14 @@ class Presupuesto extends Mysql
 
             if ($parent->type_item == 1) {
                 // MOVER A TÍTULO
-                error_log("Movimiento a TÍTULO (type_item=1)");
                 return $this->moverATitulo($itemId, $newParentId, $proyectoId);
             } elseif ($parent->type_item == 3) {
                 // MOVER A PARTIDA (crear subpartida)
                 $subpartida = new SubpartidaProyecto();
                 $data = (object) [
                     'partida' => $item->descripcion ?? '',
-                    'rendimiento' => 0,
-                    'unidad_medidas_id' => 9,
+                    'rendimiento' => $item->rendimiento ?? '',
+                    'unidad_medidas_id' => $item->unidad_medidas_id ?? '',
                     'id' => 0,
                     'masterid' => 0,
                     'descripcion' => $item->descripcion ?? '',
@@ -640,7 +653,7 @@ class Presupuesto extends Mysql
                     'precio' => 0,
                     'cantidad' => 0,
                     'subpresupuestos_id' => $parent->subpresupuestos_id,
-                    'rendimiento_unid' => 'UND/DÍA'
+                    'rendimiento_unid' => $item->rendimiento_unid
                 ];
                 $result = $subpartida->save($data);
 
@@ -654,6 +667,28 @@ class Presupuesto extends Mysql
                             'id' => $itemId
                         ]
                     );
+
+                    $sql = 'SELECT id
+                            FROM apus_partida_presupuestos
+                            WHERE presupuestos_id = :presupuestos_id
+                            AND deleted_at IS NULL';
+                    $apus = self::fetchAllObj($sql, [
+                        'presupuestos_id' => $item->id
+                    ]);
+
+                    if ($apus) {
+                        foreach ($apus as $key => $value) {
+                            self::update(
+                                'apus_partida_presupuestos',
+                                [
+                                    'subpartida_id' => $result['data']->subpartida_id
+                                ],
+                                [
+                                    'id' => $value->id
+                                ]
+                            );
+                        }
+                    }
                 }
 
                 return $result;
@@ -693,9 +728,16 @@ class Presupuesto extends Mysql
     {
         if ($this->_type_item == '3') {
             $var = [];
-            $sql_a = 'SELECT id FROM presupuestos_partida 
-                  WHERE presupuestos_id = :presupuestos_id AND proyectos_generales_id = :proyectos_generales_id AND subpartida_id IS NULL';
-            $val_a = self::fetchObj($sql_a, ['presupuestos_id' => $this->_id, 'proyectos_generales_id' => $this->_proyecto_generales_id]);
+            $sql_a = 'SELECT id 
+                      FROM presupuestos_partida 
+                      WHERE presupuestos_id = :presupuestos_id 
+                      AND proyectos_generales_id = :proyectos_generales_id 
+                      AND subpartida_id IS NULL';
+            $val_a = self::fetchObj($sql_a, [
+                'presupuestos_id' => $this->_id,
+                'proyectos_generales_id' => $this->_proyecto_generales_id
+            ]);
+
             if ($this->_rendimiento) {
                 $var['rendimiento'] = $this->_rendimiento;
             }
