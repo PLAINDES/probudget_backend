@@ -120,9 +120,16 @@ class Categoria extends Mysql
         }
     }
 
-    public function getListProyectoGeneral($categoriaId)
+    public function getListProyectoGeneral($categoriaId = null)
     {
-        $response = [];
+        $params = [];
+        $where = "WHERE deleted_at IS NULL";
+
+        if (!empty($categoriaId)) {
+            $where .= " AND categoriaId = :categoriaId";
+            $params['categoriaId'] = $categoriaId;
+        }
+
         $sql = "SELECT
                     id,
                     proyecto,
@@ -139,13 +146,12 @@ class Categoria extends Mysql
                     fecha_inicio,
                     fecha_fin,
                     costo_directo
-            FROM proyecto_generales
-            WHERE categoriaId = :categoriaId AND deleted_at is NULL
-            ORDER BY id ASC";
-        $result = self::fetchAllObj($sql, ['categoriaId' => $categoriaId]);
-        if ($result) {
-            $response = $result;
-        }
-        return $response;
+                FROM proyecto_generales
+                {$where}
+                ORDER BY id ASC";
+
+        $result = self::fetchAllObj($sql, $params);
+
+        return $result ?: [];
     }
 }

@@ -328,32 +328,54 @@ class Presupuesto extends Mysql
                 $subpresupuestoCondition = "AND subpresupuestos_id IN ({$this->_subpresupuestos_id})";
             }
 
+            $sqlProyecto = "SELECT
+                                pg.proyecto,
+                                pg.cliente,
+                                pg.direccion,
+                                d.descripcion AS distrito,
+                                p.descripcion AS provincia,
+                                dep.descripcion AS departamento,
+                                pg.fecha_base,
+                                pg.moneda,
+                                pg.categoriaId
+                            FROM proyecto_generales pg
+                            LEFT JOIN ub_distritos d
+                                ON d.id = pg.distrito
+                            LEFT JOIN ub_provincias p
+                                ON p.id = d.ub_provincias_id
+                            LEFT JOIN ub_departamentos dep
+                                ON dep.id = p.ub_departamentos_id
+                            WHERE pg.id = :id";
+
+            $proyecto = self::fetchObj($sqlProyecto, [
+                'id' => $this->_id
+            ]);
 
             $sql_general = "SELECT
-                            p.id,
-                            p.descripcion AS name,
-                            um.descripcion AS uni,
-                            p.proyecto_generales_id,
-                            p.partidas_id,
-                            p.subpresupuestos_id,
-                            p.presupuestos_title_id,
-                            p.cu,
-                            p.mo,
-                            p.mt AS mat,
-                            p.eq,
-                            p.sc,
-                            p.sp,
-                            p.metrado AS metered,
-                            p.presupuestos_proyecto_generales_id,
-                            p.nro_orden AS level,
-                            p.type_item
-                        FROM presupuestos p
-                        LEFT JOIN unidad_medidas um
-                            ON um.id = p.unidad_medidas_id
-                        WHERE p.proyecto_generales_id = :id
+                                p.id,
+                                p.descripcion AS name,
+                                um.descripcion AS uni,
+                                p.proyecto_generales_id,
+                                p.partidas_id,
+                                p.subpresupuestos_id,
+                                p.presupuestos_title_id,
+                                p.cu,
+                                p.mo,
+                                p.mt AS mat,
+                                p.eq,
+                                p.sc,
+                                p.sp,
+                                p.metrado AS metered,
+                                p.presupuestos_proyecto_generales_id,
+                                p.nro_orden AS level,
+                                p.type_item
+                            FROM presupuestos p
+                            LEFT JOIN unidad_medidas um
+                                ON um.id = p.unidad_medidas_id
+                            WHERE p.proyecto_generales_id = :id
                             AND p.deleted_at IS NULL
                             {$subpresupuestoCondition}
-                        ORDER BY p.nro_orden ASC";
+                            ORDER BY p.nro_orden ASC";
 
             $presupuestos_general = self::fetchAllObj($sql_general, ['id' => $this->_id]);
             $data = array();
@@ -386,7 +408,10 @@ class Presupuesto extends Mysql
                 }
             }
 
-            return $data;
+            return [
+                'proyecto' => $proyecto,
+                'items' => $data
+            ];
         } catch (\Throwable $th) {
             error_log("Error: " . $th->getMessage());
             return [];
