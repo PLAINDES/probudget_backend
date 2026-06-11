@@ -6,6 +6,9 @@ RUN apt-get update && apt-get install -y \
   libfreetype6-dev \
   libzip-dev \
   zip \
+  libreoffice \
+  libreoffice-calc \
+  fonts-dejavu \
   && rm -rf /var/lib/apt/lists/*
 
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg
