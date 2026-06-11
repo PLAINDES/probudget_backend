@@ -37,4 +37,10 @@ class CategoriaController
         $categoria   = new Categoria();
         return $categoria->getDelete($request);
     }
+
+    public function crearPresupuestoColegio($request)
+    {
+        $categoria   = new Categoria();
+        return $categoria->crearPresupuestoColegio($request);
+    }
 }
