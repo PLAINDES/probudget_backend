@@ -177,7 +177,6 @@ class Categoria extends Mysql
     {
         ini_set("memory_limit", "1024M");
         set_time_limit(300);
-        error_log("=== crearPresupuestoColegio ===");
 
         $sql = "SELECT id FROM categorias WHERE id = :id";
         $categoria = self::fetchObj($sql, ["id" => $request->categoriaId]);
@@ -207,13 +206,9 @@ class Categoria extends Mysql
                 throw new Exception("No se pudo copiar la plantilla");
             }
 
-            error_log("Copia creada: $tempFile");
-
             $reader = IOFactory::createReader("Xlsx");
             $reader->setReadDataOnly(true);
             $spreadsheetInfo = $reader->listWorksheetNames($tempFile);
-
-            error_log("Hojas encontradas: " . implode(", ", $spreadsheetInfo));
 
             if (!isset($spreadsheetInfo[1]) || !isset($spreadsheetInfo[2])) {
                 throw new Exception(
@@ -223,10 +218,6 @@ class Categoria extends Mysql
 
             $nombreHoja2 = $spreadsheetInfo[1]; // Datos iniciales
             $nombreHoja3 = $spreadsheetInfo[2]; // PROVISIONALES
-
-            error_log(
-                "Hoja datos: $nombreHoja2 | Hoja resultados: $nombreHoja3",
-            );
 
             // DEFINIR MAPAS de HOJAS
             $hojasPresupuesto = [
@@ -303,8 +294,6 @@ class Categoria extends Mysql
             // EXTERIORES
             $this->agregarFilasExteriores($request->exteriores, $sheet);
 
-            error_log("Datos escritos en hoja 2");
-
             // Guardar temporal para forzar recálculo
             $writer = new Xlsx($spreadsheet);
             $writer->save($tempFile);
@@ -314,10 +303,6 @@ class Categoria extends Mysql
             unset($writer);
 
             gc_collect_cycles();
-
-            error_log("Excel con datos guardado: {$tempFile}");
-
-            error_log("Recalculando fórmulas con LibreOffice...");
 
             $recalculadoPath = $generatedPath . "/recalculado";
 
@@ -336,12 +321,7 @@ class Categoria extends Mysql
                 escapeshellarg($tempFile),
             );
 
-            error_log("COMANDO LIBREOFFICE:");
-            error_log($comando);
-
             exec($comando, $salida, $codigo);
-
-            error_log(print_r($salida, true));
 
             if ($codigo !== 0) {
                 throw new Exception("LibreOffice falló");
@@ -378,9 +358,6 @@ class Categoria extends Mysql
             foreach ($spreadsheetFinal->getAllSheets() as $s) {
                 $nombresFinales[] = $s->getTitle();
             }
-            error_log(
-                "Hojas en spreadsheetFinal: " . implode(", ", $nombresFinales),
-            );
 
             // Leer nombre del proyecto
             $hojaResultados = $spreadsheetFinal->getSheetByName($nombreHoja3);
@@ -392,7 +369,6 @@ class Categoria extends Mysql
             }
 
             $nombreProyecto = $hojaResultados->getCell("B3")->getValue();
-            error_log("Nombre proyecto leído: " . $nombreProyecto);
 
             // GUARDAR proyecto general
             $args = (object) [
@@ -404,8 +380,6 @@ class Categoria extends Mysql
             $proyectoGeneral = new Proyectogeneral($args);
             $result = $proyectoGeneral->save();
             $proyectoId = $result["data"];
-
-            error_log("Proyecto guardado con id: $proyectoId");
 
             // Cargar catálogos
             $todasUnidades = self::fetchAllObj(
@@ -441,18 +415,12 @@ class Categoria extends Mysql
                 $mapaSubcategorias[$clave] = $s->id;
             }
 
-            error_log(
-                "Subcategorias cargadas: " .
-                    json_encode(array_keys($mapaSubcategorias)),
-            );
-
             // Mapa para no insertar subcategoria duplicada
             $subcategoriasInsertadas = [];
 
             $nroOrden = 1;
 
             foreach ($hojasPresupuesto as $nombreHoja => $nombreSubcategoria) {
-                error_log("NOMBRE HOJA DE HOJAS PRESUPUESTO $nombreHoja");
                 $hojaPresupuesto = $spreadsheetFinal->getSheetByName(
                     $nombreHoja,
                 );
@@ -462,7 +430,6 @@ class Categoria extends Mysql
                 }
 
                 $nombreHojaApu = $mapaHojasApu[$nombreHoja] ?? null;
-                error_log("NOMBRE HOJA APU: $nombreHojaApu");
                 $hojaApu = $nombreHojaApu
                     ? $spreadsheetFinal->getSheetByName($nombreHojaApu)
                     : null;
@@ -608,8 +575,6 @@ class Categoria extends Mysql
                     }
                 }
 
-                error_log("MAPA APUS INSERTADOS: " . json_encode($mapaApus));
-
                 // ── PRESUPUESTO ────────────────────────────────────────────────────────
                 $maxFila = $hojaPresupuesto->getHighestRow();
 
@@ -630,9 +595,6 @@ class Categoria extends Mysql
                     );
                     $subcategoriasInsertadas[$nombreSubcategoria] =
                         $resultSubcategoria["lastInsertId"];
-                    error_log(
-                        "Subcategoria insertada: $nombreSubcategoria | id: {$subcategoriasInsertadas[$nombreSubcategoria]}",
-                    );
                 }
 
                 $subpresupuestoProyectoId =
@@ -648,7 +610,6 @@ class Categoria extends Mysql
                     $descripcion = trim(
                         $hojaPresupuesto->getCell("B{$fila}")->getValue(),
                     );
-                    error_log("Item: {$item} | Descripcion: {$descripcion}");
 
                     if (empty($item) && empty($descripcion)) {
                         $fila++;
@@ -684,8 +645,6 @@ class Categoria extends Mysql
                             ->getCell("J{$fila}")
                             ->getOldCalculatedValue() ??
                         $hojaPresupuesto->getCell("J{$fila}")->getValue();
-
-                    error_log("METRADO {$metrado} | CU {$cu}");
 
                     $unidadNorm = mb_strtoupper(
                         trim(preg_replace("/\s+/", " ", $unidad)),
@@ -733,14 +692,6 @@ class Categoria extends Mysql
                         ]);
                         $presupuestoId = $resultPresupuesto["lastInsertId"];
 
-                        error_log(
-                            "MAPA UNIDADES: " . json_encode($mapaUnidades),
-                        );
-                        error_log("APU: " . json_encode($apu));
-                        error_log(
-                            "MAPA APU INSUMOS " . json_encode($apu["insumos"]),
-                        );
-
                         // ── INSUMOS DE ESTA PARTIDA ────────────────────────────────────
                         if ($apu && !empty($apu["insumos"])) {
                             foreach ($apu["insumos"] as $insumo) {
@@ -754,9 +705,7 @@ class Categoria extends Mysql
                                         ),
                                     ),
                                 );
-                                error_log(
-                                    "UNIDAD INSUMO NORM: {$unidadInsumoNorm}",
-                                );
+
                                 $unidadInsumoId =
                                     $mapaUnidades[$unidadInsumoNorm] ??
                                     $unidadDefectoId;
@@ -772,13 +721,6 @@ class Categoria extends Mysql
 
                                 // 3) Construir datos para insumos_proyecto
                                 //    Prioridad: Excel > maestro > null
-                                error_log(
-                                    "INSUMO MAESTRO UNIDAD MEDIDA: " .
-                                        json_encode($insumoMaestro),
-                                );
-                                error_log(
-                                    "UNIDAD MEDIDA INSUMOS " . $unidadInsumoId,
-                                );
                                 $datosInsumoProyecto = [
                                     "codigo" => $insumoMaestro->codigo ?? null,
                                     "iu" => $insumoMaestro->iu ?? null,
@@ -813,9 +755,6 @@ class Categoria extends Mysql
                                     );
                                     $mapaInsumosProyecto[$cacheKey] =
                                         $resultInsumo["lastInsertId"];
-                                    error_log(
-                                        "insumos_proyecto insertado: {$insumo["nombre"]} | id: {$mapaInsumosProyecto[$cacheKey]}",
-                                    );
                                 }
 
                                 $insumoProyectoId =
@@ -853,10 +792,6 @@ class Categoria extends Mysql
                                     //'subpartida_id' => $proyectoId,
                                     //'partida_id' => $partidaId
                                 ]);
-
-                                error_log(
-                                    "apus_partida_presupuestos insertado: partida={$partidaId} insumo={$insumoProyectoId}",
-                                );
                             }
                         }
 
@@ -908,8 +843,6 @@ class Categoria extends Mysql
                     $fila++;
                 }
             }
-
-            error_log("Presupuestos guardados. Total: " . ($nroOrden - 1));
 
             $spreadsheetFinal->disconnectWorksheets();
             unset($spreadsheetFinal);
