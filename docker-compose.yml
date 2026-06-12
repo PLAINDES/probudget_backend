@@ -9,8 +9,8 @@ services:
     ports:
       - "8001:80"
     restart: always
-    mem_limit: 512m
-    cpus: "0.5"
+    mem_limit: 1g
+    cpus: "1"
     networks:
       - probudget_net
     logging:
