@@ -342,6 +342,7 @@ class Categoria extends Mysql
                     [$nombreHoja3],
                     array_values($mapaHojasApu),
                     array_keys($hojasPresupuesto),
+                    ['Obras provisionales']
                 ),
             );
 
@@ -421,9 +422,7 @@ class Categoria extends Mysql
             $nroOrden = 1;
 
             foreach ($hojasPresupuesto as $nombreHoja => $nombreSubcategoria) {
-                $hojaPresupuesto = $spreadsheetFinal->getSheetByName(
-                    $nombreHoja,
-                );
+                $hojaPresupuesto = $spreadsheetFinal->getSheetByName($nombreHoja);
                 if (!$hojaPresupuesto) {
                     error_log("Hoja no encontrada: $nombreHoja");
                     continue;
@@ -439,47 +438,59 @@ class Categoria extends Mysql
                 if ($hojaApu) {
                     $gruposValidos = [
                         "MANO DE OBRA" => "mo",
-                        "MATERIALES" => "mt",
-                        "EQUIPOS" => "eq",
+                        "MATERIALES"   => "mt",
+                        "EQUIPOS"      => "eq",
                         "SUBCONTRATOS" => "sc",
-                        "SUBPARTIDAS" => "sp",
+                        "SUBPARTIDAS"  => "sp",
                     ];
 
-                    $maxFilaApu = $hojaApu->getHighestRow();
+                    $maxFilaApu   = $hojaApu->getHighestRow();
                     $codigoActual = null;
-                    $grupoActual = null;
+                    $grupoActual  = null;
 
-                    for ($filaApu = 1; $filaApu <= $maxFilaApu; $filaApu++) {
-                        $codigo = trim(
-                            $hojaApu
-                                ->getCell("C{$filaApu}")
-                                ->getFormattedValue(),
+                    $mapaSubpartidas = [];
+
+                    for ($fila = 1; $fila <= $maxFilaApu; $fila++) {
+                        $titulo = mb_strtoupper(
+                            trim($hojaApu->getCell("R{$fila}")->getFormattedValue())
                         );
 
-                        // ── NUEVA APU ──────────────────────────────────────────────────
+                        if ($titulo !== "PARTIDA") {
+                            continue;
+                        }
+
+                        $codigoSub = trim(
+                            $hojaApu->getCell("S{$fila}")->getFormattedValue()
+                        );
+
+                        if (empty($codigoSub)) {
+                            continue;
+                        }
+
+                        $mapaSubpartidas[$codigoSub] = [
+                            'fila_inicio' => $fila,
+                        ];
+                    }
+
+                    for ($filaApu = 1; $filaApu <= $maxFilaApu; $filaApu++) {
+                        $codigo = trim($hojaApu->getCell("B{$filaApu}")->getFormattedValue());
+
+                        // ── NUEVA APU ──────────────────────────────────────────────────────────
                         if (preg_match('/^\d+(\.\d+)+$/', $codigo)) {
                             $filaRendimiento = $filaApu + 1;
-                            $codigoActual = $codigo;
+                            $codigoActual    = $codigo;
 
                             $mapaApus[$codigoActual] = [
-                                "fila" => $filaApu,
-                                "rendimiento_unid" => trim(
-                                    $hojaApu
-                                        ->getCell("C{$filaRendimiento}")
-                                        ->getFormattedValue(),
-                                ),
-                                "rendimiento" => $hojaApu
-                                    ->getCell("E{$filaRendimiento}")
-                                    ->getValue(),
-                                "cu" => $hojaApu
-                                    ->getCell("K{$filaApu}")
-                                    ->getValue(),
-                                "mo" => null,
-                                "mt" => null,
-                                "eq" => null,
-                                "sc" => null,
-                                "sp" => null,
-                                "insumos" => [], // aquí acumula los insumos de esta APU
+                                "fila"             => $filaApu,
+                                "rendimiento_unid" => trim($hojaApu->getCell("B{$filaRendimiento}")->getFormattedValue()),
+                                "rendimiento"      => $hojaApu->getCell("D{$filaRendimiento}")->getValue(),
+                                "cu"               => $hojaApu->getCell("J{$filaApu}")->getValue(),
+                                "mo"               => null,
+                                "mt"               => null,
+                                "eq"               => null,
+                                "sc"               => null,
+                                "sp"               => null,
+                                "insumos"          => [],
                             ];
 
                             $grupoActual = null;
@@ -490,17 +501,15 @@ class Categoria extends Mysql
                             continue;
                         }
 
-                        // ── DETECTAR GRUPO ─────────────────────────────────────────────
+                        // ── DETECTAR GRUPO ─────────────────────────────────────────────────────
+                        $valorCelda = $hojaApu
+                        ->getCell("B{$filaApu}")
+                        ->getFormattedValue();
+
                         $texto = mb_strtoupper(
                             trim(
-                                preg_replace(
-                                    "/\s+/",
-                                    " ",
-                                    $hojaApu
-                                        ->getCell("C{$filaApu}")
-                                        ->getFormattedValue(),
-                                ),
-                            ),
+                                preg_replace('/\s+/', ' ', $valorCelda)
+                            )
                         );
 
                         if (isset($gruposValidos[$texto])) {
@@ -511,105 +520,218 @@ class Categoria extends Mysql
                         if (!$grupoActual) {
                             continue;
                         }
-                        $valorK = $hojaApu->getCell("K{$filaApu}")->getValue();
-                        $esNegrita = $hojaApu
-                            ->getStyle("K{$filaApu}")
-                            ->getFont()
-                            ->getBold();
 
-                        // ── FILA TOTAL DEL GRUPO (negrita) → cerrar grupo ─────────────
-                        if ($esNegrita && is_numeric($valorK)) {
-                            $mapaApus[$codigoActual][$grupoActual] = $valorK;
+                        $valorJ   = $hojaApu->getCell("J{$filaApu}")->getOldCalculatedValue()
+                            ?? $hojaApu->getCell("J{$filaApu}")->getValue();
+                        $esNegrita = $hojaApu->getStyle("J{$filaApu}")->getFont()->getBold();
+
+                        // ── FILA TOTAL DEL GRUPO (negrita) → cerrar grupo ─────────────────────
+                        if ($esNegrita && is_numeric($valorJ)) {
+                            $mapaApus[$codigoActual][$grupoActual] = $valorJ;
                             $grupoActual = null;
                             continue;
                         }
 
-                        // ── FILA DE INSUMO ─────────────────────────────────────────────
-                        // Solo capturamos si tiene nombre en C y precio numérico en J
-                        $nombreInsumo = trim(
-                            $hojaApu
-                                ->getCell("C{$filaApu}")
-                                ->getFormattedValue(),
-                        );
-                        $precioInsumo = $hojaApu
-                            ->getCell("J{$filaApu}")
-                            ->getValue();
+                        // ── INSUMO TIPO SUBPARTIDA ─────────────────────────────────────────────
+                        if ($grupoActual === 'sp') {
+                            $nombreInsumoSp = trim($hojaApu->getCell("B{$filaApu}")->getFormattedValue());
 
-                        if (
-                            empty($nombreInsumo) ||
-                            !is_numeric($precioInsumo)
-                        ) {
+                            $codigoSubpartida = trim(
+                                $hojaApu->getCell("A{$filaApu}")->getFormattedValue()
+                            );
+
+                            $precioInsumoSp = $hojaApu->getCell("I{$filaApu}")->getOldCalculatedValue()
+                                ?? $hojaApu->getCell("I{$filaApu}")->getValue();
+                            $cantidadSp     = $hojaApu->getCell("H{$filaApu}")->getOldCalculatedValue()
+                                ?? $hojaApu->getCell("H{$filaApu}")->getValue();
+                            $parcialSp      = $hojaApu->getCell("J{$filaApu}")->getOldCalculatedValue()
+                                ?? $hojaApu->getCell("J{$filaApu}")->getValue();
+                            $unidadSp       = trim($hojaApu->getCell("F{$filaApu}")->getFormattedValue());
+
+                            if (empty($nombreInsumoSp) || !is_numeric($precioInsumoSp)) {
+                                continue;
+                            }
+
+                            // Buscar bloque de subpartida a la derecha: localizar fila con "PARTIDA" en col R
+                            $filaInicioSub = null;
+
+                            if (isset($mapaSubpartidas[$codigoSubpartida])) {
+                                $filaInicioSub = $mapaSubpartidas[$codigoSubpartida]['fila_inicio'];
+                            }
+
+                            $insumosSubpartida  = [];
+                            $rendimientoSub     = null;
+                            $rendimientoUnidSub = null;
+                            $nombreSubpartida   = $nombreInsumoSp;
+
+                            if ($filaInicioSub) {
+                                $nombreSubpartida = trim(
+                                    $hojaApu->getCell("T{$filaInicioSub}")->getFormattedValue()
+                                );
+
+                                $filaRendSub = $filaInicioSub + 1;
+                                $filaDataSub = $filaInicioSub + 3;
+
+                                $rendimientoSub = $hojaApu->getCell("T{$filaRendSub}")->getOldCalculatedValue()
+                                    ?? $hojaApu->getCell("T{$filaRendSub}")->getValue();
+
+                                $rendimientoUnidSub = trim(
+                                    $hojaApu->getCell("S{$filaRendSub}")->getFormattedValue()
+                                );
+
+                                $grupoSubActual = null;
+
+                                $gruposValidosSub = [
+                                    "MANO DE OBRA" => "mo",
+                                    "MATERIALES"   => "mt",
+                                    "EQUIPOS"      => "eq",
+                                    "SUBCONTRATOS" => "sc",
+                                ];
+
+                                for ($filaSub = $filaDataSub; $filaSub <= $maxFilaApu; $filaSub++) {
+                                    // Nueva subpartida en R
+                                    $rCheck = mb_strtoupper(trim(
+                                        $hojaApu->getCell("R{$filaSub}")->getFormattedValue()
+                                    ));
+
+                                    if ($rCheck === 'PARTIDA') {
+                                        break;
+                                    }
+
+                                    // Detectar grupos
+                                    $valorSub = $hojaApu
+                                    ->getCell("S{$filaSub}")
+                                    ->getFormattedValue();
+
+                                    $textoSub = mb_strtoupper(
+                                        trim(
+                                            preg_replace('/\s+/', ' ', $valorSub) ?? ''
+                                        )
+                                    );
+
+                                    if (isset($gruposValidosSub[$textoSub])) {
+                                        $grupoSubActual = $gruposValidosSub[$textoSub];
+                                        continue;
+                                    }
+
+                                    if (!$grupoSubActual) {
+                                        continue;
+                                    }
+
+                                    // Total del grupo
+                                    $valorW    = $hojaApu->getCell("AA{$filaSub}")
+                                        ->getOldCalculatedValue()
+                                        ?? $hojaApu->getCell("AA{$filaSub}")->getValue();
+
+                                    $esNegritaSub = $hojaApu->getStyle("AA{$filaSub}")
+                                        ->getFont()
+                                        ->getBold();
+
+                                    if ($esNegritaSub && is_numeric($valorW)) {
+                                        $grupoSubActual = null;
+                                        continue;
+                                    }
+
+                                    // Insumo
+                                    $nombreInsumoSub = trim($hojaApu->getCell("S{$filaSub}")->getFormattedValue());
+
+                                    $precioInsumoSub = $hojaApu->getCell("Z{$filaSub}")             ->getOldCalculatedValue() ?? $hojaApu->getCell("Z{$filaSub}")->getValue();
+
+                                    if (empty($nombreInsumoSub) || !is_numeric($precioInsumoSub)) {
+                                        continue;
+                                    }
+
+                                    $unidadInsumoSub = trim($hojaApu->getCell("W{$filaSub}")->getFormattedValue());
+
+                                    $cuadrillaInsumoSub = $hojaApu->getCell("X{$filaSub}")->getValue();
+
+                                    $cantidadInsumoSub = $hojaApu->getCell("Y{$filaSub}")->getOldCalculatedValue()
+                                            ?? $hojaApu->getCell("Y{$filaSub}")->getValue();
+
+                                    $parcialInsumoSub = $hojaApu->getCell("AA{$filaSub}")->getOldCalculatedValue()
+                                            ?? $hojaApu->getCell("AA{$filaSub}")->getValue();
+
+                                    $insumosSubpartida[] = [
+                                        "nombre"    => $nombreInsumoSub,
+                                        "unidad"    => $unidadInsumoSub,
+                                        "cuadrilla" => is_numeric($cuadrillaInsumoSub) ? (float) $cuadrillaInsumoSub : null,
+                                        "cantidad"  => is_numeric($cantidadInsumoSub) ? (float) $cantidadInsumoSub : null,
+                                        "precio"    => (float) $precioInsumoSub,
+                                        "parcial"   => is_numeric($parcialInsumoSub) ? (float) $parcialInsumoSub : null,
+                                        "tipo"      => strtoupper($grupoSubActual),
+                                    ];
+                                }
+                            }
+
+                            $mapaApus[$codigoActual]["insumos"][] = [
+                                "grupo"              => "sp",
+                                "nombre"             => $nombreSubpartida,
+                                "unidad"             => $unidadSp,
+                                "cuadrilla"          => null,
+                                "cantidad"           => is_numeric($cantidadSp) ? (float)$cantidadSp : null,
+                                "precio"             => (float)$precioInsumoSp,
+                                "parcial"            => is_numeric($parcialSp)  ? (float)$parcialSp  : null,
+                                "tipo"               => "SP",
+                                "rendimiento"        => is_numeric($rendimientoSub) ? (float)$rendimientoSub : null,
+                                "rendimiento_unid"   => $rendimientoUnidSub,
+                                "insumos_subpartida" => $insumosSubpartida,
+                            ];
+
+                            continue; // no caer al bloque genérico de insumo
+                        }
+
+                        // ── FILA DE INSUMO NORMAL (MO / MT / EQ / SC) ─────────────────────────
+                        $nombreInsumo = trim($hojaApu->getCell("B{$filaApu}")->getFormattedValue());
+                        $precioInsumo = $hojaApu->getCell("I{$filaApu}")->getOldCalculatedValue()
+                            ?? $hojaApu->getCell("I{$filaApu}")->getValue();
+
+                        if (empty($nombreInsumo) || !is_numeric($precioInsumo)) {
                             continue;
                         }
-                        $unidadInsumo = trim(
-                            $hojaApu
-                                ->getCell("G{$filaApu}")
-                                ->getFormattedValue(),
-                        );
-                        $cuadrillaInsumo = $hojaApu
-                            ->getCell("H{$filaApu}")
-                            ->getValue();
-                        $cantidadInsumo = $hojaApu
-                            ->getCell("I{$filaApu}")
-                            ->getValue();
-                        $parcialInsumo = $hojaApu
-                            ->getCell("K{$filaApu}")
-                            ->getValue();
+
+                        $unidadInsumo    = trim($hojaApu->getCell("F{$filaApu}")->getFormattedValue());
+                        $cuadrillaInsumo = $hojaApu->getCell("G{$filaApu}")->getValue();
+                        $cantidadInsumo  = $hojaApu->getCell("H{$filaApu}")->getOldCalculatedValue()
+                            ?? $hojaApu->getCell("H{$filaApu}")->getValue();
+                        $parcialInsumo   = $hojaApu->getCell("J{$filaApu}")->getOldCalculatedValue()
+                            ?? $hojaApu->getCell("J{$filaApu}")->getValue();
 
                         $mapaApus[$codigoActual]["insumos"][] = [
-                            "grupo" => $grupoActual,
-                            "nombre" => $nombreInsumo,
-                            "unidad" => $unidadInsumo,
-                            "cuadrilla" => is_numeric($cuadrillaInsumo)
-                                ? (float) $cuadrillaInsumo
-                                : null,
-                            "cantidad" => is_numeric($cantidadInsumo)
-                                ? (float) $cantidadInsumo
-                                : null,
-                            "precio" => (float) $precioInsumo,
-                            "parcial" => is_numeric($parcialInsumo)
-                                ? (float) $parcialInsumo
-                                : null,
-                            "tipo" => strtoupper($grupoActual),
+                            "grupo"     => $grupoActual,
+                            "nombre"    => $nombreInsumo,
+                            "unidad"    => $unidadInsumo,
+                            "cuadrilla" => is_numeric($cuadrillaInsumo) ? (float)$cuadrillaInsumo : null,
+                            "cantidad"  => is_numeric($cantidadInsumo)  ? (float)$cantidadInsumo  : null,
+                            "precio"    => (float)$precioInsumo,
+                            "parcial"   => is_numeric($parcialInsumo)   ? (float)$parcialInsumo   : null,
+                            "tipo"      => strtoupper($grupoActual),
                         ];
                     }
                 }
 
-                // ── PRESUPUESTO ────────────────────────────────────────────────────────
+                // ── PRESUPUESTO ────────────────────────────────────────────────────────────────
                 $maxFila = $hojaPresupuesto->getHighestRow();
 
-                $subpresupuestoId =
-                    $mapaSubcategorias[
-                        mb_strtoupper(trim($nombreSubcategoria))
-                    ] ?? null;
+                $subpresupuestoId = $mapaSubcategorias[mb_strtoupper(trim($nombreSubcategoria))] ?? null;
 
                 if (!isset($subcategoriasInsertadas[$nombreSubcategoria])) {
-                    $resultSubcategoria = self::insert(
-                        "subcategorias_proyecto_general",
-                        [
-                            "descripcion" => $nombreSubcategoria,
-                            "orden" => count($subcategoriasInsertadas) + 1,
-                            "subcategorias_master_id" => $subpresupuestoId,
-                            "proyecto_generales_id" => $proyectoId,
-                        ],
-                    );
-                    $subcategoriasInsertadas[$nombreSubcategoria] =
-                        $resultSubcategoria["lastInsertId"];
+                    $resultSubcategoria = self::insert("subcategorias_proyecto_general", [
+                        "descripcion"             => $nombreSubcategoria,
+                        "orden"                   => count($subcategoriasInsertadas) + 1,
+                        "subcategorias_master_id" => $subpresupuestoId,
+                        "proyecto_generales_id"   => $proyectoId,
+                    ]);
+                    $subcategoriasInsertadas[$nombreSubcategoria] = $resultSubcategoria["lastInsertId"];
                 }
 
-                $subpresupuestoProyectoId =
-                    $subcategoriasInsertadas[$nombreSubcategoria];
+                $subpresupuestoProyectoId = $subcategoriasInsertadas[$nombreSubcategoria];
                 $padreNivel1 = null;
                 $padreNivel2 = null;
-                $fila = 3;
+                $fila        = 3;
 
                 while ($fila <= $maxFila) {
-                    $item = trim(
-                        $hojaPresupuesto->getCell("A{$fila}")->getValue(),
-                    );
-                    $descripcion = trim(
-                        $hojaPresupuesto->getCell("B{$fila}")->getValue(),
-                    );
+                    $item        = trim($hojaPresupuesto->getCell("A{$fila}")->getValue());
+                    $descripcion = trim($hojaPresupuesto->getCell("B{$fila}")->getValue());
 
                     if (empty($item) && empty($descripcion)) {
                         $fila++;
@@ -620,9 +742,9 @@ class Categoria extends Mysql
                         continue;
                     }
 
-                    $partes = array_filter(
+                    $partes  = array_filter(
                         explode(".", rtrim($item, ".")),
-                        fn($p) => $p !== "" && is_numeric($p),
+                        fn($p) => $p !== "" && is_numeric($p)
                     );
                     $niveles = count($partes);
 
@@ -631,210 +753,250 @@ class Categoria extends Mysql
                         continue;
                     }
 
-                    $unidad = trim(
-                        $hojaPresupuesto->getCell("H{$fila}")->getValue(),
-                    );
-                    $metrado =
-                        $hojaPresupuesto
-                            ->getCell("I{$fila}")
-                            ->getOldCalculatedValue() ??
-                        $hojaPresupuesto->getCell("I{$fila}")->getValue();
+                    $unidad  = trim($hojaPresupuesto->getCell("G{$fila}")->getValue());
+                    $metrado = $hojaPresupuesto->getCell("H{$fila}")->getOldCalculatedValue();
+                    $cu      = $hojaPresupuesto->getCell("I{$fila}")->getOldCalculatedValue();
 
-                    $cu =
-                        $hojaPresupuesto
-                            ->getCell("J{$fila}")
-                            ->getOldCalculatedValue() ??
-                        $hojaPresupuesto->getCell("J{$fila}")->getValue();
+                    $unidadNorm     = mb_strtoupper(trim(preg_replace("/\s+/", " ", $unidad)));
+                    $unidadMedidaId = $mapaUnidades[$unidadNorm] ?? $unidadDefectoId;
 
-                    $unidadNorm = mb_strtoupper(
-                        trim(preg_replace("/\s+/", " ", $unidad)),
-                    );
-                    $unidadMedidaId =
-                        $mapaUnidades[$unidadNorm] ?? $unidadDefectoId;
-
-                    if (!is_numeric($metrado) && !empty($metrado)) {
-                        error_log(
-                            "Metrado inválido. Hoja: {$nombreHoja}, Fila: {$fila}, Item: {$item}, Valor: {$metrado}",
-                        );
-                    }
-
-                    // ── PARTIDA (tiene unidad) ─────────────────────────────────────────
+                    // ── PARTIDA (tiene unidad) ─────────────────────────────────────────────────
                     if (!empty($unidad)) {
                         $apu = $mapaApus[$item] ?? null;
 
                         $resultPartida = self::insert("partidas_proyecto", [
-                            "partida" => $descripcion,
+                            "partida"                => $descripcion,
                             "proyectos_generales_id" => $proyectoId,
-                            "unidad_medidas_id" => $unidadMedidaId,
-                            "rendimiento" => $apu["rendimiento"] ?? null,
-                            "rendimiento_unid" =>
-                                $apu["rendimiento_unid"] ?? null,
+                            "unidad_medidas_id"      => $unidadMedidaId,
+                            "rendimiento"            => $apu["rendimiento"] ?? null,
+                            "rendimiento_unid"       => $apu["rendimiento_unid"] ?? null,
                         ]);
                         $partidaId = $resultPartida["lastInsertId"];
 
                         $resultPresupuesto = self::insert("presupuestos", [
-                            "nro_orden" => $nroOrden,
-                            "descripcion" => $descripcion,
-                            "type_item" => 3,
-                            "proyecto_generales_id" => $proyectoId,
-                            "presupuestos_proyecto_generales_id" =>
-                                $padreNivel2 ?? $padreNivel1,
-                            "subpresupuestos_id" => $subpresupuestoProyectoId,
-                            "partidas_id" => $partidaId,
-                            "metrado" => $metrado,
-                            "cu" => $cu,
-                            "mo" => $apu["mo"] ?? null,
-                            "mt" => $apu["mt"] ?? null,
-                            "eq" => $apu["eq"] ?? null,
-                            "sc" => $apu["sc"] ?? null,
-                            "sp" => $apu["sp"] ?? null,
-                            "unidad_medidas_id" => $unidadMedidaId,
+                            "nro_orden"                          => $nroOrden,
+                            "descripcion"                        => $descripcion,
+                            "type_item"                          => 3,
+                            "proyecto_generales_id"              => $proyectoId,
+                            "presupuestos_proyecto_generales_id" => $padreNivel2 ?? $padreNivel1,
+                            "subpresupuestos_id"                 => $subpresupuestoProyectoId,
+                            "partidas_id"                        => $partidaId,
+                            "metrado"                            => $metrado,
+                            "cu"                                 => $cu,
+                            "mo"                                 => $apu["mo"] ?? null,
+                            "mt"                                 => $apu["mt"] ?? null,
+                            "eq"                                 => $apu["eq"] ?? null,
+                            "sc"                                 => $apu["sc"] ?? null,
+                            "sp"                                 => $apu["sp"] ?? null,
+                            "unidad_medidas_id"                  => $unidadMedidaId,
                         ]);
                         $presupuestoId = $resultPresupuesto["lastInsertId"];
 
-                        // ── INSUMOS DE ESTA PARTIDA ────────────────────────────────────
+                        self::insert("presupuestos_partida", [
+                            "rendimiento"            => $apu["rendimiento"] ?? null,
+                            "rendimiento_unid"       => $apu["rendimiento_unid"] ?? null,
+                            "presupuestos_id"        => $presupuestoId,
+                            "proyectos_generales_id" => $proyectoId,
+                            "partida_id"             => $partidaId,
+                            "subpartida_id"          => null,
+                        ]);
+
+                        // ── INSUMOS DE ESTA PARTIDA ────────────────────────────────────────────
                         if ($apu && !empty($apu["insumos"])) {
                             foreach ($apu["insumos"] as $insumo) {
-                                // 1) Resolver unidad_medidas_id del insumo
-                                $unidadInsumoNorm = mb_strtoupper(
-                                    trim(
-                                        preg_replace(
-                                            "/\s+/",
-                                            " ",
-                                            $insumo["unidad"],
-                                        ),
-                                    ),
-                                );
+                                $esSubpartida = strtoupper($insumo["tipo"]) === "SP";
 
-                                $unidadInsumoId =
-                                    $mapaUnidades[$unidadInsumoNorm] ??
-                                    $unidadDefectoId;
+                                $unidadInsumoNorm = mb_strtoupper(trim(preg_replace("/\s+/", " ", $insumo["unidad"])));
+                                $unidadInsumoId   = $mapaUnidades[$unidadInsumoNorm] ?? $unidadDefectoId;
 
-                                // 2) Buscar en tabla maestra "insumos" por nombre
-                                $nombreBusqueda = addslashes(
-                                    trim($insumo["nombre"]),
-                                );
-                                $insumoMaestro = self::fetchObj(
-                                    "SELECT * FROM insumos WHERE UPPER(TRIM(insumos)) = UPPER(TRIM(:nombre)) LIMIT 1",
-                                    ["nombre" => trim($insumo["nombre"])],
-                                );
+                                // ── SUBPARTIDA ────────────────────────────────────────────────
+                                if ($esSubpartida) {
+                                    // 1. Crear la partida de la subpartida
+                                    $resultSubpartidaPartida = self::insert("partidas_proyecto", [
+                                        "partida"                => $insumo["nombre"],
+                                        "rendimiento"            => $insumo["rendimiento"] ?? null,
+                                        "rendimiento_unid"       => $insumo["rendimiento_unid"] ?? null,
+                                        "unidad_medidas_id"      => $unidadInsumoId,
+                                        "proyectos_generales_id" => $proyectoId,
+                                        "master_partida_id"      => null,
+                                    ]);
 
-                                // 3) Construir datos para insumos_proyecto
-                                //    Prioridad: Excel > maestro > null
-                                $datosInsumoProyecto = [
-                                    "codigo" => $insumoMaestro->codigo ?? null,
-                                    "iu" => $insumoMaestro->iu ?? null,
-                                    "indice_unificado" =>
-                                        $insumoMaestro->indice_unificado ??
-                                        null,
-                                    "tipo" => $insumo["tipo"] ?? null,
-                                    "insumos" => $insumo["nombre"],
-                                    "precio" => $insumo["precio"], // del Excel
-                                    "unidad_medidas_id" =>
-                                        $unidadInsumoId ??
-                                        ($insumoMaestro->unidad_medidas_id ??
-                                            $unidadDefectoId),
-                                    "master_insumo_id" =>
-                                        $insumoMaestro->id ?? null,
-                                    "proyectos_generales_id" => $proyectoId,
-                                ];
+                                    $subpartidaPartidaId = $resultSubpartidaPartida["lastInsertId"];
 
-                                // 4) Cache: evitar duplicar el mismo insumo en el mismo proyecto
-                                //    Clave: nombre normalizado (puedes usar master_id si existe)
-                                $cacheKey =
-                                    $proyectoId .
-                                    "_" .
-                                    mb_strtoupper(trim($insumo["nombre"]));
+                                    // 2. Registrar la subpartida dentro del APU principal
+                                    $resultApuSub = self::insert("apus_partida_presupuestos", [
+                                        "cuadrilla"              => null,
+                                        "cantidad"               => $insumo["cantidad"],
+                                        "precio"                 => $insumo["precio"],
+                                        "insumo_id"              => null,
+                                        "unidad_medidas_id"      => $unidadInsumoId,
+                                        "proyectos_generales_id" => $proyectoId,
+                                        "presupuestos_id"        => $presupuestoId,
+                                        "subpresupuestos_id"     => $subpresupuestoProyectoId,
+                                        "partida_id"             => $subpartidaPartidaId,
+                                        "subpartida_id"          => null,
+                                        "iu"                     => null,
+                                        "monomio"                => null,
+                                    ]);
 
-                                $esSubpartida = strtoupper($insumo["tipo"]) == "SP";
+                                    $apuSubId = $resultApuSub["lastInsertId"];
 
-                                if (!isset($mapaInsumosProyecto[$cacheKey]) && !$esSubpartida) {
-                                    $resultInsumo = self::insert(
-                                        "insumos_proyecto",
-                                        $datosInsumoProyecto,
-                                    );
-                                    $mapaInsumosProyecto[$cacheKey] =
-                                        $resultInsumo["lastInsertId"];
+                                    // 3. Crear la cabecera del APU hijo
+                                    self::insert("presupuestos_partida", [
+                                        "rendimiento"            => $insumo["rendimiento"] ?? null,
+                                        "rendimiento_unid"       => $insumo["rendimiento_unid"] ?? null,
+                                        "presupuestos_id"        => $presupuestoId,
+                                        "proyectos_generales_id" => $proyectoId,
+                                        "partida_id"             => $subpartidaPartidaId,
+                                        "subpartida_id"          => $apuSubId,
+                                    ]);
+
+                                    // 4. Insertar los insumos de la subpartida
+                                    foreach ($insumo["insumos_subpartida"] ?? [] as $insumoSub) {
+                                        $unidadSubInsumoNorm = mb_strtoupper(
+                                            trim(preg_replace("/\s+/", " ", $insumoSub["unidad"]))
+                                        );
+
+                                        $unidadSubInsumoId = $mapaUnidades[$unidadSubInsumoNorm]
+                                            ?? $unidadDefectoId;
+
+                                        $insumoMaestroSub = self::fetchObj(
+                                            "SELECT *
+                                             FROM insumos
+                                             WHERE UPPER(TRIM(insumos)) = UPPER(TRIM(:nombre))
+                                             LIMIT 1",
+                                            [
+                                                "nombre" => trim($insumoSub["nombre"])
+                                            ]
+                                        );
+
+                                        $cacheKeySub = $proyectoId . "_"
+                                            . mb_strtoupper(trim($insumoSub["nombre"]));
+
+                                        if (!isset($mapaInsumosProyecto[$cacheKeySub])) {
+                                            $resultInsumoSub = self::insert("insumos_proyecto", [
+                                                "codigo"                 => $insumoMaestroSub->codigo ?? null,
+                                                "iu"                     => $insumoMaestroSub->iu ?? null,
+                                                "indice_unificado"       => $insumoMaestroSub->indice_unificado ?? null,
+                                                "tipo"                   => $insumoSub["tipo"] ?? null,
+                                                "insumos"                => $insumoSub["nombre"],
+                                                "precio"                 => $insumoSub["precio"],
+                                                "unidad_medidas_id"      => $unidadSubInsumoId
+                                                    ?? ($insumoMaestroSub->unidad_medidas_id ?? $unidadDefectoId),
+                                                "master_insumo_id"       => $insumoMaestroSub->id ?? null,
+                                                "proyectos_generales_id" => $proyectoId,
+                                            ]);
+
+                                            $mapaInsumosProyecto[$cacheKeySub] =
+                                                $resultInsumoSub["lastInsertId"];
+                                        }
+
+                                        self::insert("apus_partida_presupuestos", [
+                                            "cuadrilla"              => $insumoSub["cuadrilla"],
+                                            "cantidad"               => $insumoSub["cantidad"],
+                                            "precio"                 => $insumoSub["precio"],
+                                            "insumo_id"              => $mapaInsumosProyecto[$cacheKeySub],
+                                            "unidad_medidas_id"      => $unidadSubInsumoId,
+                                            "proyectos_generales_id" => $proyectoId,
+                                            "presupuestos_id"        => $presupuestoId,
+                                            "subpresupuestos_id"     => $subpresupuestoProyectoId,
+                                            "partida_id"             => null,
+                                            "subpartida_id"          => $apuSubId,
+                                            "iu"                     => $insumoMaestroSub->iu ?? null,
+                                            "monomio"                => null,
+                                        ]);
+                                    }
+
+                                    continue;
                                 }
 
-                                $insumoProyectoId =
-                                    $mapaInsumosProyecto[$cacheKey];
+                                // ── INSUMO NORMAL (MO / MT / EQ / SC) ────────────────────────
+                                $insumoMaestro = self::fetchObj(
+                                    "SELECT * FROM insumos WHERE UPPER(TRIM(insumos)) = UPPER(TRIM(:nombre)) LIMIT 1",
+                                    ["nombre" => trim($insumo["nombre"])]
+                                );
 
-                                // 5) Insertar en apus_partida_presupuestos
-                                $resultApus = self::insert("apus_partida_presupuestos", [
-                                    "cuadrilla" => !$esSubpartida ? $insumo["cuadrilla"] : null,
-                                    "cantidad" => $insumo["cantidad"],
-                                    "precio" => $insumo["precio"],
-                                    "insumo_id" => !$esSubpartida ? $insumoProyectoId : null,
-                                    "unidad_medidas_id" =>
-                                        $unidadInsumoId ??
-                                        ($insumoMaestro->unidad_medidas_id ??
-                                            $unidadDefectoId),
+                                $cacheKey = $proyectoId . "_" . mb_strtoupper(trim($insumo["nombre"]));
+
+                                if (!isset($mapaInsumosProyecto[$cacheKey])) {
+                                    $resultInsumo = self::insert("insumos_proyecto", [
+                                        "codigo"                 => $insumoMaestro->codigo ?? null,
+                                        "iu"                     => $insumoMaestro->iu ?? null,
+                                        "indice_unificado"       => $insumoMaestro->indice_unificado ?? null,
+                                        "tipo"                   => $insumo["tipo"] ?? null,
+                                        "insumos"                => $insumo["nombre"],
+                                        "precio"                 => $insumo["precio"],
+                                        "unidad_medidas_id"      => $unidadInsumoId ?? ($insumoMaestro->unidad_medidas_id ?? $unidadDefectoId),
+                                        "master_insumo_id"       => $insumoMaestro->id ?? null,
+                                        "proyectos_generales_id" => $proyectoId,
+                                    ]);
+                                    $mapaInsumosProyecto[$cacheKey] = $resultInsumo["lastInsertId"];
+                                }
+
+                                $insumoProyectoId = $mapaInsumosProyecto[$cacheKey];
+
+                                // apus_partida_presupuestos para insumo normal:
+                                //   presupuestos_id = presupuesto padre
+                                //   subpartida_id   = null
+                                //   partida_id      = null
+                                //   insumo_id       = el insumo de proyecto
+                                self::insert("apus_partida_presupuestos", [
+                                    "cuadrilla"              => $insumo["cuadrilla"],
+                                    "cantidad"               => $insumo["cantidad"],
+                                    "precio"                 => $insumo["precio"],
+                                    "insumo_id"              => $insumoProyectoId,
+                                    "unidad_medidas_id"      => $unidadInsumoId
+                                            ?? ($insumoMaestro->unidad_medidas_id
+                                            ?? $unidadDefectoId),
                                     "proyectos_generales_id" => $proyectoId,
-                                    "presupuestos_id" => $presupuestoId,
-                                    "subpresupuestos_id" => $subpresupuestoProyectoId,
-                                    "partida_id" => $esSubpartida ? $partidaId : null,
-                                    "subpartida_id" => null,
-                                    "iu" => $insumoMaestro->iu ?? null,
-                                    "monomio" => null,
-                                ]);
-
-                                $apusId = $resultApus["lastInsertId"];
-
-                                // INSERTAR en presupuestos_partida
-                                self::insert("presupuestos_partida", [
-                                    'rendimiento' => $insumo["rendimiento"],
-                                    'rendimiento_unid' => $insumo["rendimiento_unid"],
-                                    'presupuestos_id' => $presupuestoId,
-                                    'proyectos_generales_id' => $proyectoId,
-                                    'partida_id' => null,
-                                    'subpartida_id' => null
-                                    //'subpartida_id' => $proyectoId,
-                                    //'partida_id' => $partidaId
+                                    "presupuestos_id"        => $presupuestoId,   // ← padre
+                                    "subpresupuestos_id"     => $subpresupuestoProyectoId,
+                                    "partida_id"             => null,
+                                    "subpartida_id"          => null,
+                                    "iu"                     => $insumoMaestro->iu ?? null,
+                                    "monomio"                => null,
                                 ]);
                             }
                         }
-
-                        // ── TÍTULO nivel 1-2 ──────────────────────────────────────────────
+                    // ── TÍTULO nivel 1-2 ──────────────────────────────────────────────────────
                     } elseif ($niveles <= 2) {
                         $result = self::insert("presupuestos", [
-                            "nro_orden" => $nroOrden,
-                            "descripcion" => $descripcion,
-                            "type_item" => 1,
-                            "proyecto_generales_id" => $proyectoId,
+                            "nro_orden"                          => $nroOrden,
+                            "descripcion"                        => $descripcion,
+                            "type_item"                          => 1,
+                            "proyecto_generales_id"              => $proyectoId,
                             "presupuestos_proyecto_generales_id" => null,
-                            "subpresupuestos_id" => $subpresupuestoProyectoId,
-                            "partidas_id" => null,
-                            "metrado" => null,
-                            "cu" => null,
-                            "mo" => null,
-                            "mt" => null,
-                            "eq" => null,
-                            "sc" => null,
-                            "sp" => null,
-                            "unidad_medidas_id" => null,
+                            "subpresupuestos_id"                 => $subpresupuestoProyectoId,
+                            "partidas_id"                        => null,
+                            "metrado"                            => null,
+                            "cu"                                 => null,
+                            "mo"                                 => null,
+                            "mt"                                 => null,
+                            "eq"                                 => null,
+                            "sc"                                 => null,
+                            "sp"                                 => null,
+                            "unidad_medidas_id"                  => null,
                         ]);
                         $padreNivel1 = $result["lastInsertId"];
                         $padreNivel2 = null;
 
-                        // ── SUBTÍTULO nivel 3+ ────────────────────────────────────────────
+                    // ── SUBTÍTULO nivel 3+ ────────────────────────────────────────────────────
                     } else {
                         $result = self::insert("presupuestos", [
-                            "nro_orden" => $nroOrden,
-                            "descripcion" => $descripcion,
-                            "type_item" => 2,
-                            "proyecto_generales_id" => $proyectoId,
+                            "nro_orden"                          => $nroOrden,
+                            "descripcion"                        => $descripcion,
+                            "type_item"                          => 2,
+                            "proyecto_generales_id"              => $proyectoId,
                             "presupuestos_proyecto_generales_id" => $padreNivel1,
-                            "subpresupuestos_id" => $subpresupuestoProyectoId,
-                            "partidas_id" => null,
-                            "metrado" => null,
-                            "cu" => null,
-                            "mo" => null,
-                            "mt" => null,
-                            "eq" => null,
-                            "sc" => null,
-                            "sp" => null,
-                            "unidad_medidas_id" => null,
+                            "subpresupuestos_id"                 => $subpresupuestoProyectoId,
+                            "metrado"                            => null,
+                            "cu"                                 => null,
+                            "mo"                                 => null,
+                            "mt"                                 => null,
+                            "eq"                                 => null,
+                            "sc"                                 => null,
+                            "sp"                                 => null,
+                            "unidad_medidas_id"                  => null,
                         ]);
                         $padreNivel2 = $result["lastInsertId"];
                     }
