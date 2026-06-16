@@ -554,7 +554,7 @@ class ApusPartidasProyecto extends Mysql
         $resp = new stdClass();
         $presupuesto_id = $cabecera->presupuestos_id;
         $rend = $cabecera->rendimiento ? $cabecera->rendimiento : 0;
-        $jorn = $cabecera->jornada_laboral;
+        $jorn = $cabecera->jornada_laboral ?? 8;
 
         $mototal = 0;
         foreach ($apus as $key => $e) {
@@ -569,6 +569,7 @@ class ApusPartidasProyecto extends Mysql
         }
 
         $eqtotal = 0;
+
         foreach ($apus as $key => $e) {
             if (strtolower($e->tipo) == 'eq') {
                 if ($e->apu_cantidad) {
@@ -576,13 +577,23 @@ class ApusPartidasProyecto extends Mysql
                     $apus[$key]->cuadrilla = '';
                 } else {
                     $cuadrilla = $e->cuadrilla ? $e->cuadrilla : 0;
-                    $apus[$key]->cantidad = $rend ? number_format((($cuadrilla * $jorn) / $rend), 4, '.', '') : 0.0000;
+                    $apus[$key]->cantidad = $rend
+                        ? number_format((($cuadrilla * $jorn) / $rend), 4, '.', '')
+                        : 0.0000;
                 }
-                $cantidad = $apus[$key]->cantidad ? $apus[$key]->cantidad : 0.0000;
-                $precio = $apus[$key]->precio ? $apus[$key]->precio : 0;
-                $parcial = ($cantidad * $precio);
-                $apus[$key]->parcial = $parcial; // number_format($parcial, 2, '.', '');
-                $apus[$key]->precio = $precio; // number_format($precio, 2, '.', '');
+
+                $cantidad = $apus[$key]->cantidad ?: 0.0000;
+                $precio   = $apus[$key]->precio ?: 0;
+
+                if (strtolower(trim($e->alias)) == '%mo') {
+                    $parcial = ($cantidad / 100) * $precio;
+                } else {
+                    $parcial = $cantidad * $precio;
+                }
+
+                $apus[$key]->parcial = $parcial;
+                $apus[$key]->precio  = $precio;
+
                 $eqtotal += $parcial;
             }
         }
