@@ -267,10 +267,6 @@ class Categoria extends Mysql
                 $request->incluyeDemoliciones ? "SI" : "NO",
             );
 
-            // ESTRUCTURAS
-            $sheet->setCellValue("B11", $request->areaTechada);
-            $sheet->setCellValue("C11", $request->areaEscalera);
-
             // CIMENTACIONES
             foreach ($request->cimentaciones ?? [] as $index => $cimentacion) {
                 if ($index >= 4) {
@@ -279,12 +275,15 @@ class Categoria extends Mysql
 
                 $fila = 5 + $index;
                 $sheet->setCellValue("B{$fila}", $cimentacion["area"]);
-                $sheet->setCellValue("D{$fila}", $cimentacion["tipo"]);
+                $sheet->setCellValue("D{$fila}", strtolower($cimentacion["tipo"]));
             }
 
+            // ESTRUCTURAS
+            $sheet->setCellValue("B11", $request->areaTechada);
+            $sheet->setCellValue("B13", $request->areaEscalera);
             // COLUMNETAS Y VIGUETAS
             $sheet->setCellValue(
-                "D10",
+                "D11",
                 $request->incluyeColumnetasViguetas ? "SI" : "NO",
             );
 
@@ -1094,7 +1093,6 @@ class Categoria extends Mysql
             "ESCALERA PRIM" => 66,
             "ESCALERA SEC" => 67,
             "AREA DE INGRESO" => 68,
-            "#AMBIENTES" => 69,
         ];
 
         $normalizar = function ($str) {
