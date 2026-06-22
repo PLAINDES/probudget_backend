@@ -176,10 +176,12 @@ class Proyectogeneral extends Mysql
                 }
             } else {
                 $plan = new Plan();
+                /*
+                TODO: DESCOMENTAR LUEGO
                 $result = $plan->getValidate(['modulo' => 1, 'user_id' => $this->_values['users_id']]);
                 if (!$result['success']) {
                     return $result;
-                }
+                }*/
                 $insert = self::insert("proyecto_generales", $this->_values);
                 if ($insert && $insert["lastInsertId"]) {
                     $id = $insert["lastInsertId"];
