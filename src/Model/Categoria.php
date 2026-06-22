@@ -380,9 +380,10 @@ class Categoria extends Mysql
             $proyectoGeneral = new Proyectogeneral($args);
             $result = $proyectoGeneral->save();
 
+            /*
             if (!$result['success']) {
                 throw new Exception($result['message']);
-            }
+            }*/
 
             $proyectoId = $result["data"];
             error_log("id proyecto general guardado: " . $proyectoId);
