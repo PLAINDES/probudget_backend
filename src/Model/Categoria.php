@@ -379,7 +379,6 @@ class Categoria extends Mysql
 
             $proyectoGeneral = new Proyectogeneral($args);
             $result = $proyectoGeneral->save();
-            error_log("Proyecto general guardado: " . json_encode($result));
 
             if (!$result['success']) {
                 throw new Exception($result['message']);
