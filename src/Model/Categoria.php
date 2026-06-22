@@ -379,7 +379,9 @@ class Categoria extends Mysql
 
             $proyectoGeneral = new Proyectogeneral($args);
             $result = $proyectoGeneral->save();
+            error_log("Proyecto general guardado: " . json_encode($result));
             $proyectoId = $result["data"];
+            error_log("id proyecto general guardado: " . $proyectoId);
 
             // Cargar catálogos
             $todasUnidades = self::fetchAllObj(
