@@ -116,7 +116,7 @@ class GastosGenerales extends Mysql
                 'unidad_medidas_id',
                 'proyecto_generales_id',
                 'gastos_generales_id',
-                'disaggregated'
+                'disaggregated',
             ];
 
             foreach ($column as $value) {
@@ -150,6 +150,46 @@ class GastosGenerales extends Mysql
                     $resp['message'] = 'No se puede actualizar el registro';
                 }
             } else {
+                if (
+                    !$this->_gastos_generales_id &&
+                    //$this->_descripcion == 'PERSONAL DE OBRA' &&
+                    $this->_grupos_id == '1'
+                ) {
+                    $sql = "SELECT id
+                        FROM gastos_generales
+                        WHERE proyecto_generales_id = :proyecto
+                        AND grupos_id = 1
+                        AND descripcion = :descripcion
+                        AND gastos_generales_id IS NULL
+                        LIMIT 1";
+
+                    $existente = self::fetchObj($sql, [
+                        'proyecto' => $this->_proyecto_generales_id,
+                        'descripcion' => 'PERSONAL DE OBRA'
+                    ]);
+
+                    if ($existente) {
+                        $this->_gastos_generales_id = $existente->id;
+                    } else {
+                        $result = self::insert('gastos_generales', [
+                            'descripcion' => 'PERSONAL DE OBRA',
+                            'grupos_id' => 1,
+                            'proyecto_generales_id' => $this->_proyecto_generales_id,
+                            'duracion' => 0,
+                            'cantidad' => 0,
+                            'porcentaje_partida' => 0,
+                            'precio' => 0,
+                            'parcial' => 0,
+                            'unidad_medidas_id' => null,
+                            'deleted_at' => null
+                        ]);
+
+                        $this->_gastos_generales_id = $result['lastInsertId'];
+                    }
+
+                    $this->_values['gastos_generales_id'] = $this->_gastos_generales_id;
+                }
+
                 $insert = self::insert("gastos_generales", $this->_values);
                 if ($insert && $insert["lastInsertId"]) {
                     $id = $insert["lastInsertId"];
@@ -178,6 +218,7 @@ class GastosGenerales extends Mysql
                     WHERE proyectos_generales_id=:id 
                     AND type_percentage='TGG'";
             $totalgastogeneral = self::fetchObj($sql, ['id' => $this->_id]);
+
             if ($this->_disaggregated) {
                 $result = $this->getDetailGeneralExpense();
                 $args = new stdClass();
@@ -338,15 +379,47 @@ class GastosGenerales extends Mysql
                     $detalle = $this->setMatrizGeneralExpense($searchedValue, $gastos_generales_detalle);
                     $parcial = 0;
                     foreach ($detalle as $row) {
-                        $parcial = $parcial + ($row->partial * 1);
+                        $parcial += (float)($row->partial ?? 0);
                     }
+                    $value->total = number_format($parcial, 2, '.', '');
                     $value->partial = number_format($parcial, 2, '.', '');
                     $value->detail = $detalle;
                     $suma_parcial = $suma_parcial + $parcial;
                     array_push($array_grupo_detalle, $value);
                 }
 
+                $grupo->subtotal = number_format($suma_parcial, 2, '.', '');
                 $grupo->partial = number_format($suma_parcial, 2, '.', '');
+
+                if ($grupo->id == 1) {
+                    $existe = false;
+
+                    foreach ($array_grupo_detalle as $item) {
+                        if (trim($item->name) === 'PERSONAL DE OBRA') {
+                            $existe = true;
+                            break;
+                        }
+                    }
+
+                    if (!$existe) {
+                        array_unshift($array_grupo_detalle, (object)[
+                            'id' => null,
+                            'name' => 'PERSONAL DE OBRA',
+                            'grupos_id' => 1,
+                            'grupos_descripcion' => $grupo->name,
+                            'duration' => null,
+                            'quantity' => null,
+                            'percentage' => null,
+                            'price' => null,
+                            'partial' => '0.00',
+                            'gastos_generales_id' => null,
+                            'unit' => null,
+                            'proyecto_generales_id' => $this->_id,
+                            'detail' => []
+                        ]);
+                    }
+                }
+
                 $grupo->items = $array_grupo_detalle;
                 $total_parcial = $total_parcial + $suma_parcial;
                 array_push($array_grupos, $grupo);
@@ -369,9 +442,30 @@ class GastosGenerales extends Mysql
             $percentage = 0.00;
 
             foreach ($grupos as $value) {
-                $value->items = [];
+                if ($value->id == 1) {
+                    $value->items = [
+                        (object)[
+                            'id' => null,
+                            'name' => 'PERSONAL DE OBRA',
+                            'grupos_id' => 1,
+                            'grupos_descripcion' => $value->name,
+                            'duration' => null,
+                            'quantity' => null,
+                            'percentage' => null,
+                            'price' => null,
+                            'partial' => '0.00',
+                            'gastos_generales_id' => null,
+                            'unit' => null,
+                            'proyecto_generales_id' => $this->_id,
+                            'detail' => []
+                        ]
+                    ];
+                } else {
+                    $value->items = [];
+                }
+
                 $value->partial = 0;
-                array_push($array_grupos, $value);
+                $array_grupos[] = $value;
             }
 
             $matrix['success'] = true;
@@ -392,21 +486,35 @@ class GastosGenerales extends Mysql
         $object = array_filter($gastos_generales_detalle, function ($e) use ($searchedValue) {
             return $e->gastos_generales_id == $searchedValue;
         });
+
         if (count($object)) {
             foreach ($object as $item) {
                 $newSearchedValue = $item->id;
                 $newDetalle = $this->setMatrizGeneralExpense($newSearchedValue, $gastos_generales_detalle);
+
                 if (count($newDetalle)) {
+                    // Nodo intermedio: suma los parciales de sus hijos
                     $parcial = 0;
                     foreach ($newDetalle as $row) {
-                        $parcial = $parcial + ($row->partial * 1);
+                        $parcial += (float)($row->partial ?? 0);
                     }
                     $item->partial = number_format($parcial, 2, '.', '');
+                } else {
+                    // Nodo hoja: calcular parcial si es null
+                    if ($item->partial === null || $item->partial === '') {
+                        $duration   = (float)($item->duration   ?? 0);
+                        $quantity   = (float)($item->quantity   ?? 0);
+                        $percentage = (float)($item->percentage ?? 0);
+                        $price      = (float)($item->price      ?? 0);
+                        $item->partial = number_format($duration * $quantity * ($percentage / 100) * $price, 2, '.', '');
+                    }
                 }
+
                 $item->detail = $newDetalle;
                 array_push($detalle, $item);
             }
         }
+
         return $detalle;
     }
 

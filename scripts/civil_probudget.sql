@@ -23177,3 +23177,54 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+-- CREAR GASTOS FINANCIEROS
+CREATE TABLE IF NOT EXISTS tipo_garantia (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(200) UNIQUE NOT NULL,
+    sort_order INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO tipo_garantia (name, sort_order)
+VALUES 
+('A.- GARANTIA DE FIEL CUMPLIMIENTO DEL CONTRATO', 1),
+('B.- GARANTIA DEL ADELANTO DIRECTO', 2),
+('C.- GARANTIA DEL ADELANTO PARA MATERIALES', 3);
+
+CREATE TABLE IF NOT EXISTS gastos_financieros (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    tasa DECIMAL(5,2) NULL,
+    comision_banco DECIMAL(5,2) NULL,
+    periodo_meses DECIMAL(5,2) NULL,
+    garantia_bancaria DECIMAL(5,2) NULL,
+
+    tipo_garantia_id INT NULL,
+    proyecto_generales_id INT NOT NULL,
+    
+    
+    FOREIGN KEY (tipo_garantia_id)
+        REFERENCES tipo_garantia(id),
+    FOREIGN KEY (proyecto_generales_id)
+        REFERENCES proyecto_generales(id)
+);
+
+-- TIPOS SEGUROS
+CREATE TABLE tipos_seguro (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    codigo VARCHAR(50) NOT NULL,
+    nombre VARCHAR(150) NOT NULL
+);
+
+INSERT INTO tipos_seguro (codigo, nombre)
+VALUES
+('SCTR', 'SEGURO COMPLEMENTARIO DE TRABAJO DE RIESGO'),
+('VIDA_LEY', 'VIDA LEY'),
+('CAR', 'SEGUROS CONTRA TODO RIESGO (CAR)');
+
+CREATE TABLE seguros (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    proyecto_generales_id BIGINT NOT NULL,
+    tipo_seguro_id BIGINT NOT NULL,
+    datos JSON NULL
+);

@@ -91,17 +91,7 @@ class GastosFinancieros extends Mysql
     public function getList($request)
     {
         try {
-            $pie = $this->
-                        recalculoPresupuesto->getPiePresupuesto(['id' => $request->proyectoGeneralesId])['data']['pie'];
-
-            $costoDirecto = null;
-
-            foreach ($pie as $item) {
-                if ($item['descripcion'] === 'Costo Directo') {
-                    $costoDirecto = $item['monto'];
-                    break;
-                }
-            }
+            $costoDirecto = $this->getCostoDirecto($request->proyectoGeneralesId);
 
             // buscar gasto
             $sql = 'SELECT
@@ -183,5 +173,21 @@ class GastosFinancieros extends Mysql
                 'message' => $th->getMessage()
             ];
         }
+    }
+
+    public function getCostoDirecto($proyectoGeneralesId)
+    {
+        $pie = $this->recalculoPresupuesto->getPiePresupuesto(['id' => $proyectoGeneralesId])['data']['pie'];
+
+        $costoDirecto = null;
+
+        foreach ($pie as $item) {
+            if ($item['descripcion'] === 'Costo Directo') {
+                $costoDirecto = $item['monto'];
+                break;
+            }
+        }
+
+        return $costoDirecto;
     }
 }
