@@ -1203,12 +1203,14 @@ class Categoria extends Mysql
         for ($i = 5; $i <= 8; $i++) {
             $sheet->setCellValue("B{$i}", null);
             $sheet->setCellValue("D{$i}", null);
+            $sheet->setCellValue("E{$i}", null);
         }
 
         // Limpiar ambientes (filas 16-68, columnas B y C)
         for ($i = 16; $i <= 68; $i++) {
             $sheet->setCellValue("B{$i}", null);
             $sheet->setCellValue("C{$i}", null);
+            $sheet->setCellValue("D{$i}", null);
         }
 
         // Limpiar exteriores (filas 72-83, columnas B y C)
@@ -1216,6 +1218,7 @@ class Categoria extends Mysql
             $sheet->setCellValue("B{$i}", null);
             $sheet->setCellValue("C{$i}", null);
             $sheet->setCellValue("D{$i}", null);
+            $sheet->setCellValue("E{$i}", null);
         }
     }
 }
