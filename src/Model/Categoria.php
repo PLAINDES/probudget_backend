@@ -375,18 +375,18 @@ class Categoria extends Mysql
                 "users_id" => $request->users_id,
                 "proyecto" => $nombreProyecto,
                 "categoriaId" => $request->categoriaId,
+                'jornada_laboral' => 8,
             ];
 
             $proyectoGeneral = new Proyectogeneral($args);
             $result = $proyectoGeneral->save();
 
-            /*
+            /* TODO: descomentar luego
             if (!$result['success']) {
                 throw new Exception($result['message']);
             }*/
 
             $proyectoId = $result["data"];
-            error_log("id proyecto general guardado: " . $proyectoId);
 
             // Cargar catálogos
             $todasUnidades = self::fetchAllObj(
@@ -554,6 +554,8 @@ class Categoria extends Mysql
                                 ?? $hojaApu->getCell("J{$filaApu}")->getValue();
                             $unidadSp       = trim($hojaApu->getCell("F{$filaApu}")->getFormattedValue());
 
+                            $iuSp = trim($hojaApu->getCell("K{$filaApu}")->getFormattedValue());
+
                             if (empty($nombreInsumoSp) || !is_numeric($precioInsumoSp)) {
                                 continue;
                             }
@@ -657,6 +659,9 @@ class Categoria extends Mysql
                                     $parcialInsumoSub = $hojaApu->getCell("AA{$filaSub}")->getOldCalculatedValue()
                                             ?? $hojaApu->getCell("AA{$filaSub}")->getValue();
 
+                                    $iuApuSub = $hojaApu->getCell("AB{$filaSub}")->getOldCalculatedValue()
+                                        ?? $hojaApu->getCell("AB{$filaSub}")->getValue();
+
                                     $insumosSubpartida[] = [
                                         "nombre"    => $nombreInsumoSub,
                                         "unidad"    => $unidadInsumoSub,
@@ -665,6 +670,7 @@ class Categoria extends Mysql
                                         "precio"    => (float) $precioInsumoSub,
                                         "parcial"   => is_numeric($parcialInsumoSub) ? (float) $parcialInsumoSub : null,
                                         "tipo"      => strtoupper($grupoSubActual),
+                                        'iu' => $iuApuSub
                                     ];
                                 }
                             }
@@ -701,6 +707,7 @@ class Categoria extends Mysql
                             ?? $hojaApu->getCell("H{$filaApu}")->getValue();
                         $parcialInsumo   = $hojaApu->getCell("J{$filaApu}")->getOldCalculatedValue()
                             ?? $hojaApu->getCell("J{$filaApu}")->getValue();
+                        $iuInsumo        = $hojaApu->getCell("K{$filaApu}")->getValue();
 
                         $mapaApus[$codigoActual]["insumos"][] = [
                             "grupo"     => $grupoActual,
@@ -711,6 +718,7 @@ class Categoria extends Mysql
                             "precio"    => (float)$precioInsumo,
                             "parcial"   => is_numeric($parcialInsumo)   ? (float)$parcialInsumo   : null,
                             "tipo"      => strtoupper($grupoActual),
+                            'iu' => $iuInsumo
                         ];
                     }
                 }
@@ -841,7 +849,7 @@ class Categoria extends Mysql
                                         "subpresupuestos_id"     => $subpresupuestoProyectoId,
                                         "partida_id"             => $subpartidaPartidaId,
                                         "subpartida_id"          => null,
-                                        "iu"                     => null,
+                                        "iu"                     => $insumo["iu"] ?? null,
                                         "monomio"                => null,
                                     ]);
 
@@ -882,8 +890,9 @@ class Categoria extends Mysql
                                         if (!isset($mapaInsumosProyecto[$cacheKeySub])) {
                                             $resultInsumoSub = self::insert("insumos_proyecto", [
                                                 "codigo"                 => $insumoMaestroSub->codigo ?? null,
-                                                "iu"                     => $insumoMaestroSub->iu ?? null,
-                                                "indice_unificado"       => $insumoMaestroSub->indice_unificado ?? null,
+                                                "iu"                     => $insumoMaestroSub->iu ?? $insumoSub["iu"],
+                                                "indice_unificado"       => $insumoMaestroSub->indice_unificado
+                                                    ?? $grupoActual,
                                                 "tipo"                   => $insumoSub["tipo"] ?? null,
                                                 "insumos"                => $insumoSub["nombre"],
                                                 "precio"                 => $insumoSub["precio"],
@@ -927,8 +936,8 @@ class Categoria extends Mysql
                                 if (!isset($mapaInsumosProyecto[$cacheKey])) {
                                     $resultInsumo = self::insert("insumos_proyecto", [
                                         "codigo"                 => $insumoMaestro->codigo ?? null,
-                                        "iu"                     => $insumoMaestro->iu ?? null,
-                                        "indice_unificado"       => $insumoMaestro->indice_unificado ?? null,
+                                        "iu"                     => $insumoMaestro->iu ?? $insumo["iu"],
+                                        "indice_unificado"       => $insumoMaestro->indice_unificado ?? $grupoActual,
                                         "tipo"                   => $insumo["tipo"] ?? null,
                                         "insumos"                => $insumo["nombre"],
                                         "precio"                 => $insumo["precio"],
