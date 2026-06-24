@@ -267,6 +267,18 @@ class Categoria extends Mysql
                 $request->incluyeDemoliciones ? "SI" : "NO",
             );
 
+            // ESTRUCTURAS
+            $sheet->setCellValue("B11", $request->areaTechada);
+            $sheet->setCellValue("B13", $request->areaEscalera);
+            // COLUMNETAS Y VIGUETAS
+            $sheet->setCellValue(
+                "D11",
+                $request->incluyeColumnetasViguetas ? "SI" : "NO",
+            );
+
+            // LIMPIAR CAMPOS ANTES DE INSERTAR
+            $this->limpiarCampos($sheet);
+
             // CIMENTACIONES
             foreach ($request->cimentaciones ?? [] as $index => $cimentacion) {
                 if ($index >= 4) {
@@ -277,15 +289,6 @@ class Categoria extends Mysql
                 $sheet->setCellValue("B{$fila}", $cimentacion["area"]);
                 $sheet->setCellValue("D{$fila}", strtolower($cimentacion["tipo"]));
             }
-
-            // ESTRUCTURAS
-            $sheet->setCellValue("B11", $request->areaTechada);
-            $sheet->setCellValue("B13", $request->areaEscalera);
-            // COLUMNETAS Y VIGUETAS
-            $sheet->setCellValue(
-                "D11",
-                $request->incluyeColumnetasViguetas ? "SI" : "NO",
-            );
 
             // AMBIENTES
             $this->agregarFilasAmbiente($request->ambientes, $sheet);
@@ -1178,11 +1181,33 @@ class Categoria extends Mysql
                 $sheet->setCellValue("B{$fila}", $ext["cantidad"]);
             } elseif ($tipo == $normalizar("CERCO PERIMETRICO H=3.00m")) {
                 $sheet->setCellValue("B{$fila}", $ext["cantidad"]);
-                $sheet->setCellValue("C{$fila}", $ext["ml"]);
+                $sheet->setCellValue("D{$fila}", $ext["ml"]);
             } else {
                 $sheet->setCellValue("B{$fila}", $ext["cantidad"]);
                 $sheet->setCellValue("C{$fila}", $ext["area"]);
             }
+        }
+    }
+
+    private function limpiarCampos($sheet)
+    {
+        // Limpiar cimentaciones (filas 5-8)
+        for ($i = 5; $i <= 8; $i++) {
+            $sheet->setCellValue("B{$i}", null);
+            $sheet->setCellValue("D{$i}", null);
+        }
+
+        // Limpiar ambientes (filas 16-68, columnas B y C)
+        for ($i = 16; $i <= 68; $i++) {
+            $sheet->setCellValue("B{$i}", null);
+            $sheet->setCellValue("C{$i}", null);
+        }
+
+        // Limpiar exteriores (filas 72-83, columnas B y C)
+        for ($i = 72; $i <= 83; $i++) {
+            $sheet->setCellValue("B{$i}", null);
+            $sheet->setCellValue("C{$i}", null);
+            $sheet->setCellValue("D{$i}", null);
         }
     }
 }
