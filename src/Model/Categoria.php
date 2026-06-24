@@ -203,6 +203,7 @@ class Categoria extends Mysql
             $tempFile = $generatedPath . "/temp_" . time() . ".xlsx";
 
             if (!copy($templatePath, $tempFile)) {
+                error_log("No se pudo copiar la plantilla");
                 throw new Exception("No se pudo copiar la plantilla");
             }
 
@@ -211,6 +212,7 @@ class Categoria extends Mysql
             $spreadsheetInfo = $reader->listWorksheetNames($tempFile);
 
             if (!isset($spreadsheetInfo[1]) || !isset($spreadsheetInfo[2])) {
+                error_log("La plantilla no tiene las hojas necesarias");
                 throw new Exception(
                     "La plantilla no tiene las hojas necesarias",
                 );
@@ -253,6 +255,7 @@ class Categoria extends Mysql
             $sheet = $spreadsheet->getSheetByName($nombreHoja2);
 
             if (!$sheet) {
+                error_log("No se encontró la hoja: $nombreHoja2");
                 throw new Exception("No se encontró la hoja: $nombreHoja2");
             }
 
@@ -284,6 +287,9 @@ class Categoria extends Mysql
                 if ($index >= 4) {
                     break;
                 }
+
+                error_log('- Cimentación area: ' . json_encode($cimentacion["area"]));
+                error_log('- Cimentación tipo: ' . json_encode($cimentacion["tipo"]));
 
                 $fila = 5 + $index;
                 $sheet->setCellValue("B{$fila}", $cimentacion["area"]);
@@ -1059,6 +1065,7 @@ class Categoria extends Mysql
 
     private function agregarFilasAmbiente($ambientes, $sheet)
     {
+        error_log('Ambientes: ' . json_encode($ambientes));
         $ambienteFilas = [
             "BIBLIOTECA" => 16,
             "LABORATORIO" => 17,
@@ -1071,7 +1078,7 @@ class Categoria extends Mysql
             "SECRETARÍA" => 24,
             "SALA DE ESPERA" => 25,
             "COORDINACIÓN ADMINISTRATIVA" => 26,
-            "ARCHIVOS" => 27,
+            "ARCHIVO" => 27,
             "TALLER CREATIVO PRIM" => 28,
             "TALLER CREATIVO SEC" => 29,
             "ECONOMATO" => 30,
@@ -1140,6 +1147,7 @@ class Categoria extends Mysql
 
     private function agregarFilasExteriores($exteriores, $sheet)
     {
+        error_log('Exteriores: ' . json_encode($exteriores));
         $exterioresFilas = [
             "AREAS VERDES" => 72,
             "LOSA DEPORTIVA" => 73,
