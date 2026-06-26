@@ -559,11 +559,12 @@ class ApusPartidasProyecto extends Mysql
         $mototal = 0;
         foreach ($apus as $key => $e) {
             if (strtolower($e->tipo) == 'mo') {
-                $cuadrilla = $e->cuadrilla ? $e->cuadrilla : 0;
-                $precio = $e->precio ? $e->precio : 0;
-                $apus[$key]->cantidad = $rend ? number_format((($cuadrilla * $jorn) / $rend), 4, '.', '') : 0.0000;
+                $cuadrilla = $e->cuadrilla ? number_format($e->cuadrilla, 4, '.', '') : 0.0000;
+                $precio = $e->precio ? number_format($e->precio, 2, '.', '') : 0.00;
+                $apus[$key]->cantidad =
+                    $rend ? number_format((($cuadrilla * $jorn) / $rend), 4, '.', '') : 0.0000;
                 $parcial = ($apus[$key]->cantidad * $precio);
-                $apus[$key]->parcial = $parcial; // number_format($parcial, 2, '.', '');
+                $apus[$key]->parcial = number_format($parcial, 2, '.', ''); // number_format($parcial, 2, '.', '');
                 $mototal += $parcial;
             }
         }
@@ -576,7 +577,7 @@ class ApusPartidasProyecto extends Mysql
                     $apus[$key]->precio = $mototal;
                     $apus[$key]->cuadrilla = '';
                 } else {
-                    $cuadrilla = $e->cuadrilla ? $e->cuadrilla : 0;
+                    $cuadrilla = $e->cuadrilla ? number_format($e->cuadrilla, 4, '.', '') : 0.0000;
                     $apus[$key]->cantidad = $rend
                         ? number_format((($cuadrilla * $jorn) / $rend), 4, '.', '')
                         : 0.0000;

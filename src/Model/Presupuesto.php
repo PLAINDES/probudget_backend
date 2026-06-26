@@ -381,7 +381,10 @@ class Presupuesto extends Mysql
             $data = array();
 
             foreach ($presupuestos_general as $key => $value) {
-                if ($value->presupuestos_proyecto_generales_id == null || $value->presupuestos_proyecto_generales_id == 0) {
+                if (
+                    $value->presupuestos_proyecto_generales_id == null
+                    || $value->presupuestos_proyecto_generales_id == 0
+                ) {
                     $detail = $this->setMatrizPresupuesto($value->id, $presupuestos_general);
                     $total = 0;
                     $mo = 0;
@@ -398,7 +401,7 @@ class Presupuesto extends Mysql
                         $sp += ($item->sp * 1);
                     }
                     $presupuestos_general[$key]->detail = $detail;
-                    $presupuestos_general[$key]->total_parcial = $total;
+                    $presupuestos_general[$key]->total_parcial = number_format($total, 2, '.', '');
                     $presupuestos_general[$key]->mo = $mo;
                     $presupuestos_general[$key]->mat = $mat;
                     $presupuestos_general[$key]->eq = $eq;
@@ -442,7 +445,7 @@ class Presupuesto extends Mysql
 
                     $total_parcial = ($metrado * $cu);
 
-                    $childrens[$key]->total_parcial = $total_parcial;
+                    $childrens[$key]->total_parcial = number_format($total_parcial, 2, '.', '');
 
                     $met = $value->metered ? $value->metered : 0;
 
@@ -467,7 +470,7 @@ class Presupuesto extends Mysql
                 foreach ($detail as $item) {
                     $total += ($item->total_parcial * 1);
                 }
-                $childrens[$key]->total_parcial = $total; // number_format($total, 2, '.', '');
+                $childrens[$key]->total_parcial = number_format($total, 2, '.', '');
                 $childrens[$key]->detail = $detail;
             }
         }
