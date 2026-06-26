@@ -255,7 +255,6 @@ class Categoria extends Mysql
             $sheet = $spreadsheet->getSheetByName($nombreHoja2);
 
             if (!$sheet) {
-                error_log("No se encontró la hoja: $nombreHoja2");
                 throw new Exception("No se encontró la hoja: $nombreHoja2");
             }
 
@@ -287,9 +286,6 @@ class Categoria extends Mysql
                 if ($index >= 4) {
                     break;
                 }
-
-                error_log('- Cimentación area: ' . json_encode($cimentacion["area"]));
-                error_log('- Cimentación tipo: ' . json_encode($cimentacion["tipo"]));
 
                 $fila = 5 + $index;
                 $sheet->setCellValue("B{$fila}", $cimentacion["area"]);
@@ -439,7 +435,6 @@ class Categoria extends Mysql
             foreach ($hojasPresupuesto as $nombreHoja => $nombreSubcategoria) {
                 $hojaPresupuesto = $spreadsheetFinal->getSheetByName($nombreHoja);
                 if (!$hojaPresupuesto) {
-                    error_log("Hoja no encontrada: $nombreHoja");
                     continue;
                 }
 
@@ -497,9 +492,13 @@ class Categoria extends Mysql
 
                             $mapaApus[$codigoActual] = [
                                 "fila"             => $filaApu,
-                                "rendimiento_unid" => trim($hojaApu->getCell("B{$filaRendimiento}")->getFormattedValue()),
+                                "rendimiento_unid" =>
+                                    trim($hojaApu->getCell("B{$filaRendimiento}")
+                                    ->getFormattedValue()),
                                 "rendimiento"      => $hojaApu->getCell("D{$filaRendimiento}")->getValue(),
-                                "cu"               => $hojaApu->getCell("J{$filaApu}")->getValue(),
+                                "cu"               =>
+                                    $hojaApu->getCell("J{$filaApu}")->getOldCalculatedValue()
+                                    ?? $hojaApu->getCell("J{$filaApu}")->getValue(),
                                 "mo"               => null,
                                 "mt"               => null,
                                 "eq"               => null,
@@ -538,10 +537,13 @@ class Categoria extends Mysql
 
                         $valorJ   = $hojaApu->getCell("J{$filaApu}")->getOldCalculatedValue()
                             ?? $hojaApu->getCell("J{$filaApu}")->getValue();
-                        $esNegrita = $hojaApu->getStyle("J{$filaApu}")->getFont()->getBold();
+                        $nombreCelda = trim($hojaApu->getCell("B{$filaApu}")->getFormattedValue());
+
+                        $esTotalGrupo = empty($nombreCelda) && is_numeric($valorJ) && $valorJ > 0;
+                        //$esNegrita = $hojaApu->getStyle("J{$filaApu}")->getFont()->getBold();
 
                         // ── FILA TOTAL DEL GRUPO (negrita) → cerrar grupo ─────────────────────
-                        if ($esNegrita && is_numeric($valorJ)) {
+                        if ($esTotalGrupo) {
                             $mapaApus[$codigoActual][$grupoActual] = $valorJ;
                             $grupoActual = null;
                             continue;
@@ -555,13 +557,19 @@ class Categoria extends Mysql
                                 $hojaApu->getCell("A{$filaApu}")->getFormattedValue()
                             );
 
-                            $precioInsumoSp = $hojaApu->getCell("I{$filaApu}")->getOldCalculatedValue()
+                            $precioInsumoSp =
+                                $hojaApu->getCell("I{$filaApu}")->getOldCalculatedValue()
                                 ?? $hojaApu->getCell("I{$filaApu}")->getValue();
-                            $cantidadSp     = $hojaApu->getCell("H{$filaApu}")->getOldCalculatedValue()
+
+                            $cantidadSp =
+                                $hojaApu->getCell("H{$filaApu}")->getOldCalculatedValue()
                                 ?? $hojaApu->getCell("H{$filaApu}")->getValue();
-                            $parcialSp      = $hojaApu->getCell("J{$filaApu}")->getOldCalculatedValue()
+
+                            $parcialSp =
+                                $hojaApu->getCell("J{$filaApu}")->getOldCalculatedValue()
                                 ?? $hojaApu->getCell("J{$filaApu}")->getValue();
-                            $unidadSp       = trim($hojaApu->getCell("F{$filaApu}")->getFormattedValue());
+
+                            $unidadSp = trim($hojaApu->getCell("F{$filaApu}")->getFormattedValue());
 
                             $iuSp = trim($hojaApu->getCell("K{$filaApu}")->getFormattedValue());
 
@@ -640,19 +648,31 @@ class Categoria extends Mysql
                                         ->getOldCalculatedValue()
                                         ?? $hojaApu->getCell("AA{$filaSub}")->getValue();
 
-                                    $esNegritaSub = $hojaApu->getStyle("AA{$filaSub}")
+                                    /*$esNegritaSub = $hojaApu->getStyle("AA{$filaSub}")
                                         ->getFont()
                                         ->getBold();
 
                                     if ($esNegritaSub && is_numeric($valorW)) {
                                         $grupoSubActual = null;
                                         continue;
+                                    }*/
+
+                                    $nombreCeldaSub = trim($hojaApu->getCell("S{$filaSub}")->getFormattedValue());
+                                    $esTotalGrupoSub = empty($nombreCeldaSub) && is_numeric($valorW) && $valorW > 0;
+
+                                    if ($esTotalGrupoSub) {
+                                        $totalesSubpartida[$grupoSubActual] = (float) $valorW;
+                                        $grupoSubActual = null;
+                                        continue;
                                     }
 
                                     // Insumo
-                                    $nombreInsumoSub = trim($hojaApu->getCell("S{$filaSub}")->getFormattedValue());
+                                    $nombreInsumoSub =
+                                        trim($hojaApu->getCell("S{$filaSub}")->getFormattedValue());
 
-                                    $precioInsumoSub = $hojaApu->getCell("Z{$filaSub}")             ->getOldCalculatedValue() ?? $hojaApu->getCell("Z{$filaSub}")->getValue();
+                                    $precioInsumoSub =
+                                        $hojaApu->getCell("Z{$filaSub}")->getOldCalculatedValue()
+                                        ?? $hojaApu->getCell("Z{$filaSub}")->getValue();
 
                                     if (empty($nombreInsumoSub) || !is_numeric($precioInsumoSub)) {
                                         continue;
@@ -703,7 +723,8 @@ class Categoria extends Mysql
 
                         // ── FILA DE INSUMO NORMAL (MO / MT / EQ / SC) ─────────────────────────
                         $nombreInsumo = trim($hojaApu->getCell("B{$filaApu}")->getFormattedValue());
-                        $precioInsumo = $hojaApu->getCell("I{$filaApu}")->getOldCalculatedValue()
+                        $precioInsumo =
+                            $hojaApu->getCell("I{$filaApu}")->getOldCalculatedValue()
                             ?? $hojaApu->getCell("I{$filaApu}")->getValue();
 
                         if (empty($nombreInsumo) || !is_numeric($precioInsumo)) {
@@ -711,11 +732,18 @@ class Categoria extends Mysql
                         }
 
                         $unidadInsumo    = trim($hojaApu->getCell("F{$filaApu}")->getFormattedValue());
-                        $cuadrillaInsumo = $hojaApu->getCell("G{$filaApu}")->getValue();
-                        $cantidadInsumo  = $hojaApu->getCell("H{$filaApu}")->getOldCalculatedValue()
+                        $cuadrillaInsumo =
+                            $hojaApu->getCell("H{$filaApu}")->getOldCalculatedValue()
+                            ?? $hojaApu->getCell("G{$filaApu}")->getValue();
+
+                        $cantidadInsumo  =
+                            $hojaApu->getCell("H{$filaApu}")->getOldCalculatedValue()
                             ?? $hojaApu->getCell("H{$filaApu}")->getValue();
-                        $parcialInsumo   = $hojaApu->getCell("J{$filaApu}")->getOldCalculatedValue()
+
+                        $parcialInsumo   =
+                            $hojaApu->getCell("J{$filaApu}")->getOldCalculatedValue()
                             ?? $hojaApu->getCell("J{$filaApu}")->getValue();
+
                         $iuInsumo        = $hojaApu->getCell("K{$filaApu}")->getValue();
 
                         $mapaApus[$codigoActual]["insumos"][] = [
@@ -777,8 +805,10 @@ class Categoria extends Mysql
                     }
 
                     $unidad  = trim($hojaPresupuesto->getCell("G{$fila}")->getValue());
-                    $metrado = $hojaPresupuesto->getCell("H{$fila}")->getOldCalculatedValue();
-                    $cu      = $hojaPresupuesto->getCell("I{$fila}")->getOldCalculatedValue();
+                    $metrado = $hojaPresupuesto->getCell("H{$fila}")->getOldCalculatedValue()
+                        ?? $hojaPresupuesto->getCell("H{$fila}")->getValue();
+                    $cu      = $hojaPresupuesto->getCell("I{$fila}")->getOldCalculatedValue()
+                        ?? $hojaPresupuesto->getCell("I{$fila}")->getValue();
 
                     $unidadNorm     = mb_strtoupper(trim(preg_replace("/\s+/", " ", $unidad)));
                     $unidadMedidaId = $mapaUnidades[$unidadNorm] ?? $unidadDefectoId;
@@ -806,11 +836,11 @@ class Categoria extends Mysql
                             "partidas_id"                        => $partidaId,
                             "metrado"                            => $metrado,
                             "cu"                                 => $cu,
-                            "mo"                                 => $apu["mo"] ?? null,
-                            "mt"                                 => $apu["mt"] ?? null,
-                            "eq"                                 => $apu["eq"] ?? null,
-                            "sc"                                 => $apu["sc"] ?? null,
-                            "sp"                                 => $apu["sp"] ?? null,
+                            "mo"                                 => $apu["mo"] * $metrado ?? null,
+                            "mt"                                 => $apu["mt"] * $metrado ?? null,
+                            "eq"                                 => $apu["eq"] * $metrado ?? null,
+                            "sc"                                 => $apu["sc"] * $metrado ?? null,
+                            "sp"                                 => $apu["sp"] * $metrado ?? null,
                             "unidad_medidas_id"                  => $unidadMedidaId,
                         ]);
                         $presupuestoId = $resultPresupuesto["lastInsertId"];
