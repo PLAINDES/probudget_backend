@@ -733,7 +733,7 @@ class Categoria extends Mysql
 
                         $unidadInsumo    = trim($hojaApu->getCell("F{$filaApu}")->getFormattedValue());
                         $cuadrillaInsumo =
-                            $hojaApu->getCell("H{$filaApu}")->getOldCalculatedValue()
+                            $hojaApu->getCell("G{$filaApu}")->getOldCalculatedValue()
                             ?? $hojaApu->getCell("G{$filaApu}")->getValue();
 
                         $cantidadInsumo  =
@@ -924,7 +924,10 @@ class Categoria extends Mysql
                                         );
 
                                         $cacheKeySub = $proyectoId . "_"
-                                            . mb_strtoupper(trim($insumoSub["nombre"]));
+                                            . mb_strtoupper(trim($insumoSub["nombre"])) . "_"
+                                            . (string)$insumoSub["precio"] . "_"
+                                            . mb_strtoupper(trim($insumoSub["unidad"])) . "_"
+                                            . mb_strtoupper($insumoSub["tipo"] ?? '');
 
                                         if (!isset($mapaInsumosProyecto[$cacheKeySub])) {
                                             $resultInsumoSub = self::insert("insumos_proyecto", [
@@ -970,7 +973,11 @@ class Categoria extends Mysql
                                     ["nombre" => trim($insumo["nombre"])]
                                 );
 
-                                $cacheKey = $proyectoId . "_" . mb_strtoupper(trim($insumo["nombre"]));
+                                $cacheKey = $proyectoId . "_"
+                                            . mb_strtoupper(trim($insumo["nombre"])) . "_"
+                                            . (string)$insumo["precio"] . "_"
+                                            . mb_strtoupper(trim($insumo["unidad"])) . "_"
+                                            . mb_strtoupper($insumo["tipo"] ?? '');
 
                                 if (!isset($mapaInsumosProyecto[$cacheKey])) {
                                     $resultInsumo = self::insert("insumos_proyecto", [
@@ -1219,7 +1226,7 @@ class Categoria extends Mysql
                 $sheet->setCellValue("B{$fila}", $ext["cantidad"]);
             } elseif ($tipo == $normalizar("CERCO PERIMETRICO H=3.00m")) {
                 $sheet->setCellValue("B{$fila}", $ext["cantidad"]);
-                $sheet->setCellValue("D{$fila}", $ext["ml"]);
+                $sheet->setCellValue("D{$fila}", $ext["area"]);
             } else {
                 $sheet->setCellValue("B{$fila}", $ext["cantidad"]);
                 $sheet->setCellValue("C{$fila}", $ext["area"]);
