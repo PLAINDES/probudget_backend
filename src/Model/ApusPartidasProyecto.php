@@ -588,12 +588,14 @@ class ApusPartidasProyecto extends Mysql
 
                 if (strtolower(trim($e->alias)) == '%mo') {
                     $parcial = ($cantidad / 100) * $precio;
+                    $parcial = number_format($parcial, 2, '.', '');
                 } else {
                     $parcial = $cantidad * $precio;
+                    $parcial = number_format($parcial, 2, '.', '');
                 }
 
-                $apus[$key]->parcial = $parcial;
-                $apus[$key]->precio  = $precio;
+                $apus[$key]->parcial = number_format($parcial, 2, '.', '');
+                $apus[$key]->precio  = number_format($precio, 2, '.', '');
 
                 $eqtotal += $parcial;
             }
