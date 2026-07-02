@@ -564,6 +564,7 @@ class ApusPartidasProyecto extends Mysql
                 $apus[$key]->cantidad =
                     $rend ? number_format((($cuadrilla * $jorn) / $rend), 4, '.', '') : 0.0000;
                 $parcial = ($apus[$key]->cantidad * $precio);
+                $parcial = number_format($parcial, 2, '.', '');
                 $apus[$key]->parcial = number_format($parcial, 2, '.', ''); // number_format($parcial, 2, '.', '');
                 $mototal += $parcial;
             }
@@ -610,6 +611,7 @@ class ApusPartidasProyecto extends Mysql
                 $precio = $e->punit ? $e->punit : 0.00;
                 $cantidad = $e->cantidad ? $e->cantidad : 0.0000;
                 $parcial = ($cantidad * $precio);
+                $parcial = number_format($parcial, 2, '.', '');
                 $apus[$key]->parcial = $parcial; // number_format($parcial, 2, '.', '');
                 $sptotal += $parcial;
                 $apus[$key]->tipo = 'SP';
