@@ -622,6 +622,7 @@ class ApusPartidasProyecto extends Mysql
                     $precio = $alias == '%mo' ? $mototal : $eqtotal;
                 }
                 $parcial = ($cantidad * $precio);
+                $parcial = number_format($parcial, 2, '.', '');
                 $apus[$key]->parcial = $parcial; // number_format($parcial, 2, '.', '');
                 $apus[$key]->precio = $precio;
                 $sctotal += $parcial;
@@ -634,6 +635,7 @@ class ApusPartidasProyecto extends Mysql
                     $precio = $alias == '%mo' ? $mototal : $eqtotal;
                 }
                 $parcial = ($cantidad * $precio);
+                $parcial = number_format($parcial, 2, '.', '');
                 $apus[$key]->parcial = $parcial; // number_format($parcial, 2, '.', '');
                 $apus[$key]->cuadrilla = '';
                 $mttotal += $parcial;
