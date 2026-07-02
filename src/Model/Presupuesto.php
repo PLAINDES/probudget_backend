@@ -382,8 +382,7 @@ class Presupuesto extends Mysql
 
             foreach ($presupuestos_general as $key => $value) {
                 if (
-                    $value->presupuestos_proyecto_generales_id == null
-                    || $value->presupuestos_proyecto_generales_id == 0
+                    $value->type_item == '1'
                 ) {
                     $detail = $this->setMatrizPresupuesto($value->id, $presupuestos_general);
                     $total = 0;
@@ -466,11 +465,29 @@ class Presupuesto extends Mysql
                     continue;
                 }
                 $detail = $this->setMatrizPresupuesto($value->id, $dataPresupuesto);
+
                 $total = 0;
+                $mo = 0;
+                $mat = 0;
+                $eq = 0;
+                $sc = 0;
+                $sp = 0;
+
                 foreach ($detail as $item) {
                     $total += ($item->total_parcial * 1);
+                    $mo  += ($item->mo  * 1);
+                    $mat += ($item->mat * 1);
+                    $eq  += ($item->eq  * 1);
+                    $sc  += ($item->sc  * 1);
+                    $sp  += ($item->sp  * 1);
                 }
+
                 $childrens[$key]->total_parcial = number_format($total, 2, '.', '');
+                $childrens[$key]->mo  = $mo;
+                $childrens[$key]->mat = $mat;
+                $childrens[$key]->eq  = $eq;
+                $childrens[$key]->sc  = $sc;
+                $childrens[$key]->sp  = $sp;
                 $childrens[$key]->detail = $detail;
             }
         }
