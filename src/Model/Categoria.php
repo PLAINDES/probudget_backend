@@ -597,8 +597,8 @@ class Categoria extends Mysql
                                 $filaRendSub = $filaInicioSub + 1;
                                 $filaDataSub = $filaInicioSub + 3;
 
-                                $rendimientoSub = $hojaApu->getCell("T{$filaRendSub}")->getOldCalculatedValue()
-                                    ?? $hojaApu->getCell("T{$filaRendSub}")->getValue();
+                                $rendimientoSub = $hojaApu->getCell("U{$filaRendSub}")->getOldCalculatedValue()
+                                    ?? $hojaApu->getCell("U{$filaRendSub}")->getValue();
 
                                 $rendimientoUnidSub = trim(
                                     $hojaApu->getCell("S{$filaRendSub}")->getFormattedValue()
@@ -836,11 +836,11 @@ class Categoria extends Mysql
                             "partidas_id"                        => $partidaId,
                             "metrado"                            => $metrado,
                             "cu"                                 => $cu,
-                            "mo"                                 => $apu["mo"] * $metrado ?? null,
-                            "mt"                                 => $apu["mt"] * $metrado ?? null,
-                            "eq"                                 => $apu["eq"] * $metrado ?? null,
-                            "sc"                                 => $apu["sc"] * $metrado ?? null,
-                            "sp"                                 => $apu["sp"] * $metrado ?? null,
+                            "mo"                                 => $apu["mo"] ?? null,
+                            "mt"                                 => $apu["mt"] ?? null,
+                            "eq"                                 => $apu["eq"] ?? null,
+                            "sc"                                 => $apu["sc"] ?? null,
+                            "sp"                                 => $apu["sp"] ?? null,
                             "unidad_medidas_id"                  => $unidadMedidaId,
                         ]);
                         $presupuestoId = $resultPresupuesto["lastInsertId"];
