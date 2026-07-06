@@ -1086,8 +1086,7 @@ class Categoria extends Mysql
                 "success" => false,
                 "message" => $e->getMessage(),
             ];
-        } /*finally {
-        TODO: descomentar
+        } finally {
             if ($perfilLibreOffice && is_dir($perfilLibreOffice)) {
                 exec("rm -rf " . escapeshellarg($perfilLibreOffice));
             }
@@ -1099,7 +1098,7 @@ class Categoria extends Mysql
             if ($tempFileRecalculado && file_exists($tempFileRecalculado)) {
                 unlink($tempFileRecalculado);
             }
-        }*/
+        }
     }
 
     private function agregarFilasAmbiente($ambientes, $sheet)
