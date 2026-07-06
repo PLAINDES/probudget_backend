@@ -373,13 +373,15 @@ class Categoria extends Mysql
                 );
             }
 
-            $nombreProyecto = $hojaResultados->getCell("B3")->getValue();
-
             // GUARDAR proyecto general
             $args = (object) [
                 "users_id" => $request->users_id,
-                "proyecto" => $nombreProyecto,
+                "proyecto" => $request->proyecto,
                 "categoriaId" => $request->categoriaId,
+                "cliente" => $request->cliente,
+                "provincia" => $request->provincia,
+                "distrito" => $request->distrito,
+                "departamento" => $request->departamento,
                 'jornada_laboral' => 8,
             ];
 
