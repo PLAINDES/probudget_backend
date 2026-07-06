@@ -1104,6 +1104,7 @@ class Categoria extends Mysql
 
     private function agregarFilasAmbiente($ambientes, $sheet)
     {
+        error_log('Ambientes: ' . json_encode($ambientes));
         $ambienteFilas = [
             "BIBLIOTECA" => 16,
             "LABORATORIO" => 17,
@@ -1185,10 +1186,11 @@ class Categoria extends Mysql
 
     private function agregarFilasExteriores($exteriores, $sheet)
     {
+        error_log('exteriores' . json_encode($exteriores));
         $exterioresFilas = [
             "AREAS VERDES" => 72,
             "LOSA DEPORTIVA" => 73,
-            "COBERTURA DE LOSA DEPORTIVA" => 74,
+            "COBERTURA LOSA DEPORTIVA" => 74,
             "PATIO DE INICIAL" => 75,
             "COBERTURA PATIO DE INICIAL" => 76,
             "ASTA DE BANDERA" => 77,
