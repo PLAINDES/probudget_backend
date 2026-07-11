@@ -408,12 +408,16 @@ class Categoria extends Mysql
             $proyectoGeneral = new Proyectogeneral($args);
             $result = $proyectoGeneral->save();
 
+            error_log("result: " . print_r($result, true));
+
             /* TODO: descomentar luego
             if (!$result['success']) {
                 throw new Exception($result['message']);
             }*/
 
             $proyectoId = $result["data"];
+
+            error_log("proyectoId: $proyectoId");
 
             $this->guardarResumen($hojaResumen, $proyectoId);
 
@@ -1167,6 +1171,7 @@ class Categoria extends Mysql
 
     private function guardarResumen($hojaResumen, $proyectoId)
     {
+        error_log("ID RECIBIDO EN GUARDAR RESUMEN: $proyectoId");
         $exteriores = [
             "AREAS VERDES" => 72,
             "LOSA DEPORTIVA" => 73,
