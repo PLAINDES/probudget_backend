@@ -22443,6 +22443,7 @@ INSERT INTO `unidad_medidas` (`id`, `descripcion`, `alias`, `apu_cantidad`, `bud
 (22, 'Día', 'Día', NULL, 23),
 (23, 'ADFADF', 'ADFADF', NULL, NULL),
 (24, '%EQ', '%EQ', NULL, NULL);
+(25, 'ML', 'ML', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -23227,4 +23228,35 @@ CREATE TABLE seguros (
     proyecto_generales_id BIGINT NOT NULL,
     tipo_seguro_id BIGINT NOT NULL,
     datos JSON NULL
+);
+
+CREATE TABLE presupuesto_resumen (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    descripcion VARCHAR(150) NOT NULL,
+    tipo_factor VARCHAR(150) NOT NULL,
+    u_fisica_um VARCHAR(150) NOT NULL,
+    u_fisica_meta DECIMAL(10,2) NOT NULL,
+    o_um_id INT NOT NULL,
+    o_meta DECIMAL(10,2) NOT NULL,
+    costo_precio_mercado DECIMAL(10,2) NOT NULL,
+    proyecto_generales_id INT NOT NULL,
+
+    CONSTRAINT fk_presupuesto_resumen_unidad_medida
+        FOREIGN KEY (o_um_id)
+        REFERENCES unidad_medidas(id),
+
+    CONSTRAINT fk_presupuesto_resumen_proyecto_general
+        FOREIGN KEY (proyecto_generales_id)
+        REFERENCES proyecto_generales(id)
+);
+
+CREATE TABLE IF NOT EXISTS probudget_pdfs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    proyecto_id BIGINT UNSIGNED NOT NULL,
+    tipo VARCHAR(50) NOT NULL,
+    url VARCHAR(500) NOT NULL,
+    especialidad_id INT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_proyecto_tipo (proyecto_id, tipo)
 );
