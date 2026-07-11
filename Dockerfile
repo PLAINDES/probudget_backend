@@ -30,6 +30,9 @@ RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
 RUN echo "error_log = /dev/stdout" >> /usr/local/etc/php/conf.d/docker-php-ext-logging.ini
 RUN echo "log_errors = On" >> /usr/local/etc/php/conf.d/docker-php-ext-logging.ini
 
+RUN echo "upload_max_filesize = 30M" > /usr/local/etc/php/conf.d/uploads.ini \
+  && echo "post_max_size = 40M" >> /usr/local/etc/php/conf.d/uploads.ini
+
 WORKDIR /var/www/html
 
 COPY composer.json composer.lock ./
