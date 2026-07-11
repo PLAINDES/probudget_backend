@@ -211,7 +211,7 @@ class Categoria extends Mysql
             $reader->setReadDataOnly(true);
             $spreadsheetInfo = $reader->listWorksheetNames($tempFile);
 
-            if (!isset($spreadsheetInfo[1]) || !isset($spreadsheetInfo[2])) {
+            if (!isset($spreadsheetInfo[1]) || !isset($spreadsheetInfo[2]) || !isset($spreadsheetInfo[3])) {
                 error_log("La plantilla no tiene las hojas necesarias");
                 throw new Exception(
                     "La plantilla no tiene las hojas necesarias",
@@ -219,7 +219,8 @@ class Categoria extends Mysql
             }
 
             $nombreHoja2 = $spreadsheetInfo[1]; // Datos iniciales
-            $nombreHoja3 = $spreadsheetInfo[2]; // PROVISIONALES
+            $nombreHoja3 = $spreadsheetInfo[2]; // RESUMEN
+            $nombreHoja4 = $spreadsheetInfo[3]; // PROVISIONALES
 
             // DEFINIR MAPAS de HOJAS
             $hojasPresupuesto = [
@@ -253,9 +254,14 @@ class Categoria extends Mysql
             $spreadsheet = $reader->load($tempFile);
 
             $sheet = $spreadsheet->getSheetByName($nombreHoja2);
+            $sheetResumen = $spreadsheet->getSheetByName($nombreHoja3);
 
             if (!$sheet) {
                 throw new Exception("No se encontró la hoja: $nombreHoja2");
+            }
+
+            if (!$sheetResumen) {
+                throw new Exception("No se encontró la hoja: $nombreHoja3");
             }
 
             $sheet->getProtection()->setSheet(false);
@@ -343,10 +349,11 @@ class Categoria extends Mysql
             // Recargar solo las hojas necesarias para lectura
             $hojasACargar = array_unique(
                 array_merge(
-                    [$nombreHoja3],
+                    [$nombreHoja4, $nombreHoja3],
                     array_values($mapaHojasApu),
                     array_keys($hojasPresupuesto),
-                    ['Obras provisionales']
+                    ['Obras provisionales'],
+                    ['Datos iniciales ', 'calculo r'],
                 ),
             );
 
@@ -359,30 +366,43 @@ class Categoria extends Mysql
 
             $spreadsheetFinal = $reader2->load($tempFileRecalculado);
 
+            $todasLasHojas = $reader2->listWorksheetNames($tempFileRecalculado);
+            error_log("Hojas disponibles: " . implode(' | ', $todasLasHojas));
+
             $nombresFinales = [];
             foreach ($spreadsheetFinal->getAllSheets() as $s) {
                 $nombresFinales[] = $s->getTitle();
             }
 
             // Leer nombre del proyecto
-            $hojaResultados = $spreadsheetFinal->getSheetByName($nombreHoja3);
+            $hojaResultados = $spreadsheetFinal->getSheetByName($nombreHoja4);
+            $nombreProyecto = $hojaResultados->getCell("B3")->getValue() ?? "";
+
+            $hojaResumen = $spreadsheetFinal->getSheetByName($nombreHoja3);
 
             if (!$hojaResultados) {
                 throw new Exception(
-                    "No se encontró la hoja de resultados: $nombreHoja3",
+                    "No se encontró la hoja de resultados: $nombreHoja4",
+                );
+            }
+
+            if (!$hojaResumen) {
+                throw new Exception(
+                    "No se encontró la hoja de resumen: $nombreHoja3",
                 );
             }
 
             // GUARDAR proyecto general
             $args = (object) [
                 "users_id" => $request->users_id,
-                "proyecto" => $request->proyecto,
+                "proyecto" => $request->proyecto ?? $nombreProyecto,
                 "categoriaId" => $request->categoriaId,
                 "cliente" => $request->cliente,
                 "provincia" => $request->provincia,
                 "distrito" => $request->distrito,
                 "departamento" => $request->departamento,
                 'jornada_laboral' => 8,
+                'uso_plantilla' => true
             ];
 
             $proyectoGeneral = new Proyectogeneral($args);
@@ -394,6 +414,8 @@ class Categoria extends Mysql
             }*/
 
             $proyectoId = $result["data"];
+
+            $this->guardarResumen($hojaResumen, $proyectoId);
 
             // Cargar catálogos
             $todasUnidades = self::fetchAllObj(
@@ -1086,7 +1108,7 @@ class Categoria extends Mysql
                 "success" => false,
                 "message" => $e->getMessage(),
             ];
-        } finally {
+        } /*finally {
             if ($perfilLibreOffice && is_dir($perfilLibreOffice)) {
                 exec("rm -rf " . escapeshellarg($perfilLibreOffice));
             }
@@ -1098,6 +1120,193 @@ class Categoria extends Mysql
             if ($tempFileRecalculado && file_exists($tempFileRecalculado)) {
                 unlink($tempFileRecalculado);
             }
+        }*/
+    }
+
+    private function normalizarTexto(string $texto): string
+    {
+        $texto = mb_strtoupper(trim($texto));
+        $texto = preg_replace('/\s+/', ' ', $texto);
+        // quitar tildes
+        $from = ['Á','É','Í','Ó','Ú','À','È','Ì','Ò','Ù','Ä','Ë','Ï','Ö','Ü','Ñ'];
+        $to   = ['A','E','I','O','U','A','E','I','O','U','A','E','I','O','U','N'];
+        return str_replace($from, $to, $texto);
+    }
+
+    public function determinarTipoFactor(string $descripcion, array $ambientes, array $exteriores): string
+    {
+        $desc = $this->normalizarTexto($descripcion);
+
+        $aulasKeys = ['AULAS CICLO I', 'AULAS CICLO II', 'AULAS PRIMARIA', 'AULAS SECUNDARIA', 'AULAS PSICOMOTRICIDAD'];
+        $aulasNorm = array_map(fn($k) => $this->normalizarTexto($k), $aulasKeys);
+
+        if (in_array($desc, $aulasNorm)) {
+            return 'AULAS';
+        }
+
+        $exterioresNorm = array_combine(
+            array_map(fn($k) => $this->normalizarTexto($k), array_keys($exteriores)),
+            array_values($exteriores)
+        );
+
+        if (isset($exterioresNorm[$desc])) {
+            return 'ESPACIOS FISICOS';
+        }
+
+        $ambientesNorm = array_combine(
+            array_map(fn($k) => $this->normalizarTexto($k), array_keys($ambientes)),
+            array_values($ambientes)
+        );
+
+        if (isset($ambientesNorm[$desc])) {
+            return 'AMBIENTES';
+        }
+
+        return 'INFRAESTRUCTURA';
+    }
+
+    private function guardarResumen($hojaResumen, $proyectoId)
+    {
+        $exteriores = [
+            "AREAS VERDES" => 72,
+            "LOSA DEPORTIVA" => 73,
+            "COBERTURA LOSA DEPORTIVA" => 74,
+            "PATIO DE INICIAL" => 75,
+            "COBERTURA PATIO DE INICIAL" => 76,
+            "ASTA DE BANDERA" => 77,
+            "VEREDAS Y RAMPAS DE CONCRETO" => 78,
+            "PAVIMENTO RIGIDO VEHICULAR" => 79,
+            "LAMAS EN PASADIZOS" => 80,
+            "ESTACIONAMIENTO DE BICICLETAS" => 81,
+            "CERCO PERIMETRICO H=3.00m" => 82,
+            "PORTADA DE INGRESO (PORTON METALICO)" => 83,
+        ];
+
+        $ambientes = [
+            "BIBLIOTECA" => 16,
+            "LABORATORIO" => 17,
+            "ALMACÉN MAT. DEP." => 18,
+            "SUM" => 19,
+            "MÓDULO DE CONECTIVIDAD" => 20,
+            "DIRECCIÓN ADM." => 21,
+            "SUBDIRECCIÓN" => 22,
+            "SALA DE REUNIONES" => 23,
+            "SECRETARÍA" => 24,
+            "ÁREA DE ESPERA" => 25,
+            "COORDINACIÓN ADMINISTRATIVA" => 26,
+            "ARCHIVO" => 27,
+            "TALLER CREATIVO PRIM" => 28,
+            "TALLER CREATIVO SEC" => 29,
+            "ECONOMATO" => 30,
+            "COORDINACIÓN PEDAGÓGICA" => 31,
+            "TOPICO" => 32,
+            "SALA DE PROFESORES" => 33,
+            "TIENDA ESCOLAR" => 34,
+            "ALMACÉN" => 35,
+            "SSHH ADM. - HOMBRES" => 36,
+            "SSHH ADM. - MUJERES" => 37,
+            "SSHH INICIAL - HOMBRES" => 38,
+            "SSHH INICIAL - MUJERES" => 39,
+            "SSHH PRIM - HOMBRES" => 40,
+            "SSHH PRIM - MUJERES" => 41,
+            "SSHH SEC - HOMBRES" => 42,
+            "SSHH SEC - MUJERES" => 43,
+            "VESTUARIOS - HOMBRES" => 44,
+            "VESTUARIOS - MUJERES" => 45,
+            "COCINA INICIAL" => 46,
+            "COCINA PRIM -SEC" => 47,
+            "OFICINA DE BIENESTAR" => 48,
+            "LACTARIO" => 49,
+            "CTO ELÉCTRICO" => 50,
+            "DEP. MATERIAL DEPORTIVO" => 51,
+            "DEPÓSITO" => 52,
+            "GUARDIANÍA" => 53,
+            "CUARTO DE LIMPIEZA" => 54,
+            "AULAS CICLO I" => 55,
+            "AULAS CICLO II" => 56,
+            "AULAS PRIMARIA" => 57,
+            "AULAS SECUNDARIA" => 58,
+            "AULAS PSICOMOTRICIDAD" => 59,
+            "AULA DE INNOVACIÓN PRIM" => 60,
+            "AULA DE INNOVACIÓN SEC" => 61,
+            "TALLER EPT" => 62,
+            "MAESTRANZA" => 63,
+            "RESIDUOS" => 64,
+            "CIRCULACIÓN" => 65,
+            "ESCALERA PRIM" => 66,
+            "ESCALERA SEC" => 67,
+            "AREA DE INGRESO" => 68,
+        ];
+
+        $resumen = [];
+
+        for ($fila = 4; $fila <= 70; $fila++) {
+            $descripcion = trim((string) $hojaResumen->getCell("A{$fila}")->getCalculatedValue());
+            $cantidad   = (int) $hojaResumen->getCell("B{$fila}")->getCalculatedValue();
+            $area       = (float) $hojaResumen->getCell("C{$fila}")->getCalculatedValue();
+            $costo      = (float) $hojaResumen->getCell("D{$fila}")->getOldCalculatedValue();
+            $unidad     = trim((string) $hojaResumen->getCell("E{$fila}")->getCalculatedValue());
+
+            // Verificar que la fila no esté vacía hasta la fila 67
+            // luego dejar de verificar
+            if ($fila < 67) {
+                if (
+                    $descripcion === '' ||
+                    $cantidad <= 0 ||
+                    $area <= 0 ||
+                    $costo <= 0
+                ) {
+                    continue;
+                }
+            }
+
+            $seMultiplica = strtolower($unidad) == 'm2' || strtolower($unidad) == 'ml';
+            $esUnidad = strtolower($unidad) == 'und';
+
+            $oMeta = 0;
+
+            if ($seMultiplica) {
+                $oMeta = $cantidad * $area;
+            } elseif ($esUnidad) {
+                if ($cantidad == 0 && $area == 0 && $costo == 0) {
+                    continue;
+                }
+                $oMeta = $cantidad;
+            } else {
+                $oMeta = $area;
+            }
+
+            $resumen[] = [
+                'descripcion' => $descripcion,
+                'u_fisica_um' => $unidad,
+                'u_fisica_meta' => $cantidad,
+                'o_um' => $unidad,
+                'o_meta' => $oMeta,
+                'costo_precio_mercado' => $costo,
+            ];
+        }
+
+        $sql = 'SELECT id FROM unidad_medidas WHERE alias = :unidad';
+
+        foreach ($resumen as $item) {
+            $unidad = self::fetchObj($sql, ['unidad' => $item['o_um']]);
+
+            if (!$unidad) {
+                $unidad = self::fetchObj($sql, ['unidad' => 'UND']);
+            }
+
+            $tipoFactor = $this->determinarTipoFactor($item['descripcion'], $ambientes, $exteriores);
+
+            self::insert('presupuesto_resumen', [
+                'descripcion'          => $item['descripcion'],
+                'tipo_factor'          => 'INFRAESTRUCTURA',
+                'u_fisica_um'          => $tipoFactor,
+                'u_fisica_meta'        => $item['u_fisica_meta'],
+                'o_um_id'              => $unidad->id,
+                'o_meta'               => $item['o_meta'],
+                'costo_precio_mercado' => $item['costo_precio_mercado'],
+                'proyecto_generales_id' => $proyectoId,
+            ]);
         }
     }
 
