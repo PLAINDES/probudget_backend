@@ -23230,6 +23230,9 @@ CREATE TABLE seguros (
     datos JSON NULL
 );
 
+ALTER TABLE proyecto_generales 
+ADD COLUMN uso_plantilla TINYINT(1) NOT NULL DEFAULT 0;
+
 CREATE TABLE presupuesto_resumen (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     descripcion VARCHAR(150) NOT NULL,
