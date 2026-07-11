@@ -145,7 +145,8 @@ class Proyectogeneral extends Mysql
                 'costo_directo',
                 'categoriaId',
                 'subcategorias',
-                'newsubcategorias'
+                'newsubcategorias',
+                'uso_plantilla'
             ];
 
             foreach ($column as $value) {
