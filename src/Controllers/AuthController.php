@@ -59,7 +59,7 @@ class AuthController
         }
 
         $user = new User();
-        $userData = $user->findOrCreateFromEmail($username);
+        $userData = $user->findOrCreateFromCognito($username);
 
         if (!$userData['success']) {
             return (object)[
