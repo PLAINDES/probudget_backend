@@ -98,102 +98,63 @@ class AuthController
     {
         error_log("=== Backend Controller loginSSO() START ===");
 
-        $body = json_decode(file_get_contents('php://input'), true);
-        $idToken = $body['idToken'] ?? null;
-        $refreshToken = $body['refreshToken'] ?? null;
+        $idToken = $_POST['idToken'] ?? null;
 
-        error_log("idToken: " . $idToken);
-        error_log("refreshToken: " . $refreshToken);
-
-        if (!$idToken || !$refreshToken) {
+        if (!$idToken) {
             return (object)[
                 'success' => false,
-                'message' => 'Tokens SSO faltantes'
+                'message' => 'Token SSO no proporcionado'
             ];
         }
 
-        // Extraer username SOLO para calcular el SECRET_HASH (no se confía en esto todavía)
-        $payload = HelperJWT::decodeJwtPayloadUnsafe($idToken);
-        $cognitoUsername = $payload['cognito:username'] ?? null;
+        try {
+            $cognito = new CognitoService();
+            $cognitoUser = $cognito->validateIdToken($idToken);
 
-        if (!$cognitoUsername) {
-            return (object)[
-                'success' => false,
-                'message' => 'Token SSO inválido'
-            ];
-        }
+            $email = $cognitoUser->email ?? '';
+            $cognitoSub = $cognitoUser->sub ?? '';
+            $givenName = $cognitoUser->given_name ?? '';
+            $familyName = $cognitoUser->family_name ?? '';
 
-        $cognito = new CognitoService();
-
-        // Paso 1: canjear el refresh token — ESTA es la validación real hecha por AWS
-        $refreshResult = $cognito->refreshSession($refreshToken, $cognitoUsername);
-
-        if (!$refreshResult['success']) {
-            error_log("ERROR refresh SSO: " . $refreshResult['message']);
-            return (object)[
-                'success' => false,
-                'message' => 'Sesión SSO expirada o inválida'
-            ];
-        }
-
-        // Paso 2: confirmar el AccessToken fresco y traer atributos oficiales
-        $validation = $cognito->validateToken($refreshResult['accessToken']);
-
-        if (!$validation['success']) {
-            error_log("ERROR validateToken SSO: " . $validation['message']);
-            return (object)[
-                'success' => false,
-                'message' => 'No se pudo validar la sesión SSO'
-            ];
-        }
-
-        // Extraer email de los atributos oficiales que devuelve Cognito (getUser)
-        $email = null;
-        foreach ($validation['data']['UserAttributes'] as $attr) {
-            if ($attr['Name'] === 'email') {
-                $email = $attr['Value'];
-                break;
+            if (!$email) {
+                throw new \Exception('El token SSO no contiene un correo electrónico');
             }
-        }
 
-        if (!$email) {
+            $user = new User();
+            // Igual que ellos: busca primero por cognito_sub, luego por email
+            $userData = $user->findOrCreateFromCognito($cognitoSub, $email, $givenName, $familyName);
+
+            if (!$userData['success']) {
+                throw new \Exception($userData['message'] ?? 'No se pudo crear el usuario');
+            }
+
+            $_SESSION['usuario'] = $userData['data'];
+            $_SESSION['idToken'] = $idToken;
+
+            $jwtPayload = [
+                'id' => $userData['data']->id,
+                'email' => $userData['data']->email,
+                'exp' => time() + (60 * 60 * 24)
+            ];
+            $token = HelperJWT::encode($jwtPayload);
+
+            error_log("=== Login SSO exitoso para: $email ===");
+
+            return [
+                'success' => true,
+                'data' => [
+                    'usuario' => $userData['data'],
+                    'token' => $token,
+                ],
+                'message' => 'Inicio de sesión SSO exitoso'
+            ];
+        } catch (\Throwable $e) {
+            error_log("ERROR loginSSO: " . $e->getMessage());
             return (object)[
                 'success' => false,
-                'message' => 'No se pudo obtener el email del usuario'
+                'message' => $e->getMessage()
             ];
         }
-
-        $user = new User();
-        $userData = $user->findOrCreateFromEmail($email);
-
-        if (!$userData['success']) {
-            return (object)[
-                'success' => false,
-                'message' => $userData['message'] ?? 'No se pudo crear el usuario'
-            ];
-        }
-
-        $_SESSION['usuario'] = $userData['data'];
-        $_SESSION['accessToken'] = $refreshResult['accessToken'];
-        $_SESSION['idToken'] = $refreshResult['idToken'];
-
-        $jwtPayload = [
-            'id' => $userData['data']->id,
-            'email' => $userData['data']->email,
-            'exp' => time() + (60 * 60 * 24)
-        ];
-        $token = HelperJWT::encode($jwtPayload);
-
-        error_log("=== Login SSO exitoso para: $email ===");
-
-        return [
-            'success' => true,
-            'data' => [
-                'usuario' => $userData['data'],
-                'token' => $token,
-                'accessToken' => $refreshResult['accessToken']
-            ]
-        ];
     }
 
     public function signUp($request)
