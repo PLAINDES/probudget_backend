@@ -94,6 +94,108 @@ class AuthController
         ];
     }
 
+    public function loginSSO($request)
+    {
+        error_log("=== Backend Controller loginSSO() START ===");
+
+        $body = json_decode(file_get_contents('php://input'), true);
+        $idToken = $body['idToken'] ?? null;
+        $refreshToken = $body['refreshToken'] ?? null;
+
+        error_log("idToken: " . $idToken);
+        error_log("refreshToken: " . $refreshToken);
+
+        if (!$idToken || !$refreshToken) {
+            return (object)[
+                'success' => false,
+                'message' => 'Tokens SSO faltantes'
+            ];
+        }
+
+        // Extraer username SOLO para calcular el SECRET_HASH (no se confía en esto todavía)
+        $payload = HelperJWT::decodeJwtPayloadUnsafe($idToken);
+        $cognitoUsername = $payload['cognito:username'] ?? null;
+
+        if (!$cognitoUsername) {
+            return (object)[
+                'success' => false,
+                'message' => 'Token SSO inválido'
+            ];
+        }
+
+        $cognito = new CognitoService();
+
+        // Paso 1: canjear el refresh token — ESTA es la validación real hecha por AWS
+        $refreshResult = $cognito->refreshSession($refreshToken, $cognitoUsername);
+
+        if (!$refreshResult['success']) {
+            error_log("ERROR refresh SSO: " . $refreshResult['message']);
+            return (object)[
+                'success' => false,
+                'message' => 'Sesión SSO expirada o inválida'
+            ];
+        }
+
+        // Paso 2: confirmar el AccessToken fresco y traer atributos oficiales
+        $validation = $cognito->validateToken($refreshResult['accessToken']);
+
+        if (!$validation['success']) {
+            error_log("ERROR validateToken SSO: " . $validation['message']);
+            return (object)[
+                'success' => false,
+                'message' => 'No se pudo validar la sesión SSO'
+            ];
+        }
+
+        // Extraer email de los atributos oficiales que devuelve Cognito (getUser)
+        $email = null;
+        foreach ($validation['data']['UserAttributes'] as $attr) {
+            if ($attr['Name'] === 'email') {
+                $email = $attr['Value'];
+                break;
+            }
+        }
+
+        if (!$email) {
+            return (object)[
+                'success' => false,
+                'message' => 'No se pudo obtener el email del usuario'
+            ];
+        }
+
+        $user = new User();
+        $userData = $user->findOrCreateFromEmail($email);
+
+        if (!$userData['success']) {
+            return (object)[
+                'success' => false,
+                'message' => $userData['message'] ?? 'No se pudo crear el usuario'
+            ];
+        }
+
+        $_SESSION['usuario'] = $userData['data'];
+        $_SESSION['accessToken'] = $refreshResult['accessToken'];
+        $_SESSION['idToken'] = $refreshResult['idToken'];
+
+        $jwtPayload = [
+            'id' => $userData['data']->id,
+            'email' => $userData['data']->email,
+            'exp' => time() + (60 * 60 * 24)
+        ];
+        $token = HelperJWT::encode($jwtPayload);
+
+        error_log("=== Login SSO exitoso para: $email ===");
+
+        return [
+            'success' => true,
+            'data' => [
+                'usuario' => $userData['data'],
+                'token' => $token,
+                'accessToken' => $refreshResult['accessToken']
+            ]
+        ];
+    }
+
     public function signUp($request)
     {
         try {
