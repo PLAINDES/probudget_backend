@@ -481,9 +481,11 @@ class User extends Mysql
                 error_log("Usuario encontrado por email, vinculando cognito_sub");
 
                 // Vincula el sub de Cognito a la cuenta ya existente
-                self::update('users', $userByEmail['data']->id, [
-                    'cognito_sub' => $cognitoSub,
-                ]);
+                self::update(
+                    'users',
+                    ['cognito_sub' => $cognitoSub],
+                    ['id' => $userByEmail['data']->id]
+                );
 
                 $userByEmail['data']->cognito_sub = $cognitoSub;
 
