@@ -333,8 +333,6 @@ class Resumen extends Mysql
                         FROM proyecto_generales WHERE id = :id AND deleted_at IS NULL';
         $proyecto    = self::fetchObj($sqlProyecto, ['id' => $request->id]);
 
-        error_log("Proyecto: " . json_encode($proyecto));
-
         // Calcular total presupuesto replicando lógica del Twig
         $recalculo = new RecalculoPrespuesto();
         $pieData   = $recalculo->getPiePresupuesto(['id' => $request->id]);
@@ -383,7 +381,17 @@ class Resumen extends Mysql
             }
         }
 
-        $sql = 'SELECT * FROM probudget_pdfs WHERE proyecto_id = :id';
+        $sql = 'SELECT
+                    ppdf.id,
+                    ppdf.proyecto_id,
+                    ppdf.tipo,
+                    ppdf.especialidad_id,
+                    spg.descripcion AS especialidad,
+                    ppdf.created_at
+                FROM probudget_pdfs ppdf
+                LEFT JOIN subcategorias_proyecto_general spg
+                    ON ppdf.especialidad_id = spg.id
+                WHERE proyecto_id = :id';
         $pdfs = self::fetchAllObj($sql, ['id' => $request->id]);
 
         return [
