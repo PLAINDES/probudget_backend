@@ -128,8 +128,6 @@ class AuthController
 
             $email = $cognitoUser->email ?? '';
             $cognitoSub = $cognitoUser->sub ?? '';
-            $givenName = $cognitoUser->given_name ?? '';
-            $familyName = $cognitoUser->family_name ?? '';
 
             if (!$email) {
                 throw new \Exception('El token SSO no contiene un correo electrónico');
