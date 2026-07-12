@@ -32,4 +32,21 @@ class HelperJWT
         }
         return $resp;
     }
+
+    /**
+     * Decodifica el payload de un JWT SIN verificar firma.
+     * Es seguro usarlo aquí porque el username extraído solo se usa para calcular
+     * el SECRET_HASH del refresh — si el username es incorrecto o el token es falso,
+     * Cognito simplemente rechazará el refreshSession() en el siguiente paso.
+     * Nunca se confía en los datos de este decode para autenticar directamente.
+     */
+    public static function decodeJwtPayloadUnsafe($jwt)
+    {
+        $parts = explode('.', $jwt);
+        if (count($parts) !== 3) {
+            return null;
+        }
+        $payload = base64_decode(strtr($parts[1], '-_', '+/'));
+        return json_decode($payload, true);
+    }
 }
