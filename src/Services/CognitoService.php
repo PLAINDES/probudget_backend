@@ -125,7 +125,9 @@ class CognitoService
 
         $keys = JWK::parseKeySet($jwks);
 
-        $decoded = JWT::decode($idToken, $keys);
+        // v5.5.1 de firebase/php-jwt EXIGE el tercer argumento con los algoritmos permitidos.
+        // Cognito firma los ID Tokens con RS256, así que es el único que hace falta aceptar.
+        $decoded = JWT::decode($idToken, $keys, ['RS256']);
 
         $expectedIss = "https://cognito-idp.{$region}.amazonaws.com/{$userPoolId}";
         if ($decoded->iss !== $expectedIss) {
