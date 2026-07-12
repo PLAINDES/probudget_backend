@@ -128,6 +128,35 @@ class CognitoService
         return $decoded; // objeto con email, sub, given_name, family_name, etc.
     }
 
+    public function findUserByCognitoSub($cognitoSub)
+    {
+        try {
+            $result = self::fetchObj(
+                "SELECT * FROM users WHERE cognito_sub = ? LIMIT 1",
+                ['cognito_sub' => $cognitoSub]
+            );
+
+            if ($result && count($result) > 0) {
+                return [
+                    'success' => true,
+                    'data' => $result[0]
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => 'Usuario no encontrado por cognito_sub'
+            ];
+        } catch (\Throwable $th) {
+            error_log("ERROR findUserByCognitoSub: " . $th->getMessage());
+
+            return [
+                'success' => false,
+                'message' => $th->getMessage()
+            ];
+        }
+    }
+
     /**
     * Registrar usuario en Cognito
     */
