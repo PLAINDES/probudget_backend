@@ -4,6 +4,8 @@ namespace App\Services;
 
 use Aws\CognitoIdentityProvider\CognitoIdentityProviderClient;
 use Aws\Exception\AwsException;
+use Firebase\JWT\JWT;
+use Firebase\JWT\JWK;
 
 class CognitoService
 {
@@ -88,6 +90,42 @@ class CognitoService
               'data' => []
             ];
         }
+    }
+
+    /**
+     * Valida un ID Token de Cognito verificando su firma contra JWKS.
+     * No depende de qué App Client lo generó, solo de que sea del mismo User Pool
+     * y no haya expirado — por eso funciona para SSO entre distintas plataformas.
+     */
+    public function validateIdToken($idToken)
+    {
+        $region = getenv('REGION_AWS');
+        $userPoolId = $this->userPoolId;
+
+        $jwksUrl = "https://cognito-idp.{$region}.amazonaws.com/{$userPoolId}/.well-known/jwks.json";
+
+        $cacheFile = sys_get_temp_dir() . '/cognito_jwks_' . md5($userPoolId) . '.json';
+        if (file_exists($cacheFile) && (time() - filemtime($cacheFile) < 3600)) {
+            $jwksJson = file_get_contents($cacheFile);
+        } else {
+            $jwksJson = file_get_contents($jwksUrl);
+            file_put_contents($cacheFile, $jwksJson);
+        }
+
+        $jwks = json_decode($jwksJson, true);
+        $keys = JWK::parseKeySet($jwks);
+
+        $decoded = JWT::decode($idToken, $keys); // lanza excepción si firma/expiración inválida
+
+        $expectedIss = "https://cognito-idp.{$region}.amazonaws.com/{$userPoolId}";
+        if ($decoded->iss !== $expectedIss) {
+            throw new \Exception('Issuer inválido');
+        }
+        if ($decoded->token_use !== 'id') {
+            throw new \Exception('Tipo de token inválido');
+        }
+
+        return $decoded; // objeto con email, sub, given_name, family_name, etc.
     }
 
     /**

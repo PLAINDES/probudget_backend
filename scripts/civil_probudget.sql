@@ -23263,3 +23263,9 @@ CREATE TABLE IF NOT EXISTS probudget_pdfs (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uniq_proyecto_tipo (proyecto_id, tipo)
 );
+
+ALTER TABLE probudget_pdfs DROP INDEX uniq_proyecto_tipo;
+
+ALTER TABLE users
+ADD COLUMN cognito_sub VARCHAR(255) NULL AFTER email,
+ADD UNIQUE KEY uniq_cognito_sub (cognito_sub);
