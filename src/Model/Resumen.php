@@ -387,6 +387,7 @@ class Resumen extends Mysql
                     ppdf.tipo,
                     ppdf.especialidad_id,
                     spg.descripcion AS especialidad,
+                    ppdf.url,
                     ppdf.created_at
                 FROM probudget_pdfs ppdf
                 LEFT JOIN subcategorias_proyecto_general spg
