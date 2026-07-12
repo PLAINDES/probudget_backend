@@ -145,7 +145,7 @@ class CognitoService extends Mysql
     {
         try {
             $result = self::fetchObj(
-                "SELECT * FROM users WHERE cognito_sub = ? LIMIT 1",
+                "SELECT * FROM users WHERE cognito_sub = :cognito_sub LIMIT 1",
                 ['cognito_sub' => $cognitoSub]
             );
 
