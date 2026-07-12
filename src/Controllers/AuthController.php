@@ -112,8 +112,8 @@ class AuthController
     public function loginSSO($request)
     {
         error_log("=== Backend Controller loginSSO() START ===");
-
-        $idToken = $_POST['idToken'] ?? null;
+        $body = json_decode(file_get_contents('php://input'), true);
+        $idToken = $body['idToken'] ?? null;
 
         if (!$idToken) {
             return (object)[
