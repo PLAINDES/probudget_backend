@@ -23,6 +23,7 @@ use App\Model\Utilitarian\FG;
 use App\Model\Utilitarian\EmailSES;
 use App\Model\Utilitarian\HelperJWT;
 use App\Model\Persistence\Mysql;
+use App\Services\CognitoService;
 use stdClass;
 
 class User extends Mysql
@@ -463,7 +464,10 @@ class User extends Mysql
             error_log("email: " . $email);
 
             // 1. Buscar primero por cognito_sub
-            $userBySub = $this->findUserByCognitoSub($cognitoSub);
+            $cognito = new CognitoService();
+            $userBySub = null;
+
+            $userBySub = $cognito->findUserByCognitoSub($cognitoSub);
 
             if ($userBySub['success']) {
                 error_log("Usuario encontrado por cognito_sub");
@@ -492,8 +496,6 @@ class User extends Mysql
             $result = self::insert('users', [
                 'email' => $email,
                 'cognito_sub' => $cognitoSub,
-                'given_name' => $givenName,
-                'family_name' => $familyName,
                 'created_at' => date('Y-m-d H:i:s'),
             ]);
 
