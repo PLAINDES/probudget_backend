@@ -38,51 +38,40 @@ class AuthController
         error_log("=== Backend Controller login() START ===");
 
         $body = json_decode(file_get_contents('php://input'), true);
-        error_log("Body recibido: " . json_encode($body));
-
         $username = $body['username'] ?? null;
         $password = $body['password'] ?? null;
 
-        error_log("Username: " . ($username ?? 'NULL') . " | Password: " . ($password ? 'SET' : 'NULL'));
-
         if (!$username || !$password) {
-            error_log("ERROR: username o password vacíos");
             return (object)[
                 'success' => false,
                 'message' => 'Usuario o contraseña incorrectos'
             ];
         }
 
-        error_log("Iniciando CognitoService...");
         $cognito = new CognitoService();
         $cognitoResponse = $cognito->authenticateUser($username, $password);
-        error_log("CognitoResponse: " . json_encode($cognitoResponse));
 
         if (!$cognitoResponse['success']) {
-            error_log("ERROR Cognito: " . $cognitoResponse['message']);
             return (object)[
                 'success' => false,
                 'message' => $cognitoResponse['message']
             ];
         }
 
-        error_log("Cognito OK, buscando usuario en DB...");
         $user = new User();
         $userData = $user->findOrCreateFromEmail($username);
-        error_log("userData: " . json_encode($userData));
 
         if (!$userData['success']) {
-            error_log("ERROR userData: " . ($userData['message'] ?? 'sin mensaje'));
             return (object)[
                 'success' => false,
                 'message' => $userData['message'] ?? 'No se pudo crear el usuario'
             ];
         }
 
-        error_log("Usuario OK, generando token...");
         $_SESSION['usuario'] = $userData['data'];
         $_SESSION['accessToken'] = $cognitoResponse['accessToken'];
         $_SESSION['refreshToken'] = $cognitoResponse['refreshToken'];
+        $_SESSION['idToken'] = $cognitoResponse['idToken'];
 
         $payload = [
             'id' => $userData['data']->id,
@@ -90,6 +79,29 @@ class AuthController
             'exp' => time() + (60 * 60 * 24)
         ];
         $token = HelperJWT::encode($payload);
+
+        // ===== SSO: cookies compartidas a nivel de dominio raíz =====
+        $cookieDomain = $_ENV['DOMAIN']; // el punto inicial comparte entre TODOS los subdominios
+        error_log("Cookie domain: $cookieDomain");
+        $cookieExpiry = time() + (60 * 60 * 24); // ajusta según el TTL real del refreshToken de tu User Pool
+
+        setcookie('sso_id_token', $cognitoResponse['idToken'], [
+            'expires'  => $cookieExpiry,
+            'path'     => '/',
+            'domain'   => $cookieDomain,
+            'secure'   => true,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+
+        setcookie('sso_refresh_token', $cognitoResponse['refreshToken'], [
+            'expires'  => $cookieExpiry,
+            'path'     => '/',
+            'domain'   => $cookieDomain,
+            'secure'   => true,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
 
         error_log("=== Login exitoso para: $username ===");
 
