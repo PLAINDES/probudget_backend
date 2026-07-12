@@ -48,50 +48,65 @@ class AuthController
             ];
         }
 
-        $cognito = new CognitoService();
-        $cognitoResponse = $cognito->authenticateUser($username, $password);
+        try {
+            $cognito = new CognitoService();
+            $cognitoResponse = $cognito->authenticateUser($username, $password);
 
-        if (!$cognitoResponse['success']) {
+            if (!$cognitoResponse['success']) {
+                return (object)[
+                    'success' => false,
+                    'message' => $cognitoResponse['message']
+                ];
+            }
+
+            // Decodificamos el idToken para sacar el sub, igual que en loginSSO
+            $cognitoUser = $cognito->validateIdToken($cognitoResponse['idToken']);
+            $cognitoSub = $cognitoUser->sub ?? null;
+
+            error_log("cognitoSub obtenido en login: " . ($cognitoSub ?? 'NULL'));
+
+            $user = new User();
+            $userData = $user->findOrCreateFromCognito($cognitoSub, $username);
+
+            if (!$userData['success']) {
+                return (object)[
+                    'success' => false,
+                    'message' => $userData['message'] ?? 'No se pudo crear el usuario'
+                ];
+            }
+
+            $_SESSION['usuario'] = $userData['data'];
+            $_SESSION['accessToken'] = $cognitoResponse['accessToken'];
+            $_SESSION['refreshToken'] = $cognitoResponse['refreshToken'];
+            $_SESSION['idToken'] = $cognitoResponse['idToken'];
+
+            $payload = [
+                'id' => $userData['data']->id,
+                'email' => $userData['data']->email,
+                'exp' => time() + (60 * 60 * 24)
+            ];
+            $token = HelperJWT::encode($payload);
+
+            error_log("=== Login exitoso para: $username ===");
+
+            return [
+                'success' => true,
+                'data' => [
+                    'usuario' => $userData['data'],
+                    'token' => $token,
+                    'accessToken' => $cognitoResponse['accessToken'],
+                    'idToken' => $cognitoResponse['idToken'],
+                    'refreshToken' => $cognitoResponse['refreshToken'],
+                ]
+            ];
+        } catch (\Throwable $e) {
+            error_log("ERROR login: " . $e->getMessage());
+
             return (object)[
                 'success' => false,
-                'message' => $cognitoResponse['message']
+                'message' => $e->getMessage()
             ];
         }
-
-        $user = new User();
-        $userData = $user->findOrCreateFromCognito($username);
-
-        if (!$userData['success']) {
-            return (object)[
-                'success' => false,
-                'message' => $userData['message'] ?? 'No se pudo crear el usuario'
-            ];
-        }
-
-        $_SESSION['usuario'] = $userData['data'];
-        $_SESSION['accessToken'] = $cognitoResponse['accessToken'];
-        $_SESSION['refreshToken'] = $cognitoResponse['refreshToken'];
-        $_SESSION['idToken'] = $cognitoResponse['idToken'];
-
-        $payload = [
-            'id' => $userData['data']->id,
-            'email' => $userData['data']->email,
-            'exp' => time() + (60 * 60 * 24)
-        ];
-        $token = HelperJWT::encode($payload);
-
-        error_log("=== Login exitoso para: $username ===");
-
-        return [
-            'success' => true,
-            'data' => [
-                'usuario' => $userData['data'],
-                'token' => $token,
-                'accessToken' => $cognitoResponse['accessToken'],
-                'idToken' => $cognitoResponse['idToken'],
-                'refreshToken' => $cognitoResponse['refreshToken'],
-            ]
-        ];
     }
 
     public function loginSSO($request)
