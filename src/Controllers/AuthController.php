@@ -80,29 +80,6 @@ class AuthController
         ];
         $token = HelperJWT::encode($payload);
 
-        // ===== SSO: cookies compartidas a nivel de dominio raíz =====
-        $cookieDomain = $_ENV['DOMAIN']; // el punto inicial comparte entre TODOS los subdominios
-        error_log("Cookie domain: $cookieDomain");
-        $cookieExpiry = time() + (60 * 60 * 24); // ajusta según el TTL real del refreshToken de tu User Pool
-
-        setcookie('sso_id_token', $cognitoResponse['idToken'], [
-            'expires'  => $cookieExpiry,
-            'path'     => '/',
-            'domain'   => $cookieDomain,
-            'secure'   => true,
-            'httponly' => true,
-            'samesite' => 'Lax',
-        ]);
-
-        setcookie('sso_refresh_token', $cognitoResponse['refreshToken'], [
-            'expires'  => $cookieExpiry,
-            'path'     => '/',
-            'domain'   => $cookieDomain,
-            'secure'   => true,
-            'httponly' => true,
-            'samesite' => 'Lax',
-        ]);
-
         error_log("=== Login exitoso para: $username ===");
 
         return [
@@ -110,7 +87,9 @@ class AuthController
             'data' => [
                 'usuario' => $userData['data'],
                 'token' => $token,
-                'accessToken' => $cognitoResponse['accessToken']
+                'accessToken' => $cognitoResponse['accessToken'],
+                'idToken' => $cognitoResponse['idToken'],
+                'refreshToken' => $cognitoResponse['refreshToken'],
             ]
         ];
     }
