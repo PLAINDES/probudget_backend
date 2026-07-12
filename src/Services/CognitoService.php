@@ -99,7 +99,7 @@ class CognitoService
      */
     public function validateIdToken($idToken)
     {
-        $region = getenv('REGION_AWS');
+        $region = $this->region;
         $userPoolId = $this->userPoolId;
 
         $jwksUrl = "https://cognito-idp.{$region}.amazonaws.com/{$userPoolId}/.well-known/jwks.json";
@@ -109,13 +109,23 @@ class CognitoService
             $jwksJson = file_get_contents($cacheFile);
         } else {
             $jwksJson = file_get_contents($jwksUrl);
+
+            if ($jwksJson === false) {
+                throw new \Exception('No se pudo obtener el JWKS de Cognito desde: ' . $jwksUrl);
+            }
+
             file_put_contents($cacheFile, $jwksJson);
         }
 
         $jwks = json_decode($jwksJson, true);
+
+        if (!is_array($jwks) || !isset($jwks['keys'])) {
+            throw new \Exception('JWKS inválido o mal formado recibido de Cognito');
+        }
+
         $keys = JWK::parseKeySet($jwks);
 
-        $decoded = JWT::decode($idToken, $keys); // lanza excepción si firma/expiración inválida
+        $decoded = JWT::decode($idToken, $keys);
 
         $expectedIss = "https://cognito-idp.{$region}.amazonaws.com/{$userPoolId}";
         if ($decoded->iss !== $expectedIss) {
@@ -125,7 +135,7 @@ class CognitoService
             throw new \Exception('Tipo de token inválido');
         }
 
-        return $decoded; // objeto con email, sub, given_name, family_name, etc.
+        return $decoded;
     }
 
     public function findUserByCognitoSub($cognitoSub)
