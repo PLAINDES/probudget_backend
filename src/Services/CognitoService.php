@@ -30,6 +30,39 @@ class CognitoService
         ]);
     }
 
+    /**
+     * Canjea el refresh token por un AccessToken/IdToken frescos.
+     * Esto ES la validación real: si Cognito lo acepta, el refresh_token era legítimo.
+     */
+    public function refreshSession($refreshToken, $username)
+    {
+        try {
+            $result = $this->client->adminInitiateAuth([
+                'UserPoolId' => $this->userPoolId,
+                'ClientId' => $this->clientId,
+                'AuthFlow' => 'REFRESH_TOKEN_AUTH',
+                'AuthParameters' => [
+                    'REFRESH_TOKEN' => $refreshToken,
+                    'SECRET_HASH' => $this->calculateSecretHash($username)
+                ]
+            ]);
+
+            return [
+                'success' => true,
+                'accessToken' => $result['AuthenticationResult']['AccessToken'],
+                'idToken' => $result['AuthenticationResult']['IdToken'],
+            ];
+        } catch (AwsException $e) {
+            error_log($e->getAwsErrorMessage());
+            error_log($e->getAwsErrorCode());
+
+            return [
+                'success' => false,
+                'message' => $this->parseAwsError($e->getAwsErrorCode()) ?? 'Refresh token inválido'
+            ];
+        }
+    }
+
     /*
     Validar token de acceso de Cognito
      */
