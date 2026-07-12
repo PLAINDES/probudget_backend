@@ -6,8 +6,9 @@ use Aws\CognitoIdentityProvider\CognitoIdentityProviderClient;
 use Aws\Exception\AwsException;
 use Firebase\JWT\JWT;
 use Firebase\JWT\JWK;
+use App\Model\Persistence\Mysql;
 
-class CognitoService
+class CognitoService extends Mysql
 {
     private $client;
     private $clientId;
