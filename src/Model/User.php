@@ -455,31 +455,59 @@ class User extends Mysql
         return $resp;
     }
 
-    public function findOrCreateFromEmail($email)
+    public function findOrCreateFromCognito($cognitoSub, $email, $givenName = '', $familyName = '')
     {
         try {
-            $user = $this->findUserEmail($email);
-
-            error_log("============FindOrCreateFromEmail=======");
-            error_log("findUserEmail: " . $user['success']);
-
+            error_log("============FindOrCreateFromCognito=======");
+            error_log("cognitoSub: " . $cognitoSub);
             error_log("email: " . $email);
 
-            if (!$user['success']) {
-                $result = self::insert('users', [
-                    'email' => $email,
-                    'created_at' => date('Y-m-d H:i:s'),
-                ]);
+            // 1. Buscar primero por cognito_sub
+            $userBySub = $this->findUserByCognitoSub($cognitoSub);
 
-                if ($result) {
-                    return [
-                        'success' => true,
-                        'data' => $result
-                    ];
-                }
+            if ($userBySub['success']) {
+                error_log("Usuario encontrado por cognito_sub");
+                return $userBySub;
             }
 
-            return $user;
+            // 2. Si no está por sub, buscar por email
+            $userByEmail = $this->findUserEmail($email);
+
+            if ($userByEmail['success']) {
+                error_log("Usuario encontrado por email, vinculando cognito_sub");
+
+                // Vincula el sub de Cognito a la cuenta ya existente
+                self::update('users', $userByEmail['data']->id, [
+                    'cognito_sub' => $cognitoSub,
+                ]);
+
+                $userByEmail['data']->cognito_sub = $cognitoSub;
+
+                return $userByEmail;
+            }
+
+            // 3. No existe ni por sub ni por email -> crear
+            error_log("Usuario no encontrado, creando nuevo");
+
+            $result = self::insert('users', [
+                'email' => $email,
+                'cognito_sub' => $cognitoSub,
+                'given_name' => $givenName,
+                'family_name' => $familyName,
+                'created_at' => date('Y-m-d H:i:s'),
+            ]);
+
+            if ($result) {
+                return [
+                    'success' => true,
+                    'data' => $result
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => 'No se pudo crear el usuario'
+            ];
         } catch (\Throwable $th) {
             error_log("ERROR: " . $th->getMessage());
 
