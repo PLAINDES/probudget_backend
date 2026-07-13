@@ -254,11 +254,12 @@ class Proyectogeneral extends Mysql
         }
     }
 
+    /*
     public function getListProyectoGeneral()
     {
         error_log('USER ID REAL: ' . $this->_users_id);
         if (AuthService::isAdmin($this->_users_id)) {
-            $sql = "SELECT        
+            $sql = "SELECT
                         pg.id,
                         pg.users_id,
                         pg.proyecto,
@@ -278,7 +279,7 @@ class Proyectogeneral extends Mysql
                         pg.costo_directo,
                         pg.categoriaId,
                         c.descripcion AS categoriaNombre
-                    FROM proyecto_generales pg 
+                    FROM proyecto_generales pg
                     LEFT JOIN categorias c ON c.id = pg.categoriaId
                     WHERE pg.deleted_at IS NULL
                     ORDER BY pg.id ASC";
@@ -287,8 +288,8 @@ class Proyectogeneral extends Mysql
         }
 
         // Obtener IDs de proyectos compartidos
-        $sql = 'SELECT proyectogeneralId 
-                FROM usuarios_invitados 
+        $sql = 'SELECT proyectogeneralId
+                FROM usuarios_invitados
                 WHERE userId = :userId';
 
         $rs = self::fetchAllObj($sql, ['userId' => $this->_users_id]);
@@ -307,6 +308,37 @@ class Proyectogeneral extends Mysql
         }
 
         // Query final
+        $sql = "SELECT
+                    pg.id,
+                    pg.users_id,
+                    pg.proyecto,
+                    pg.cliente,
+                    pg.direccion,
+                    pg.distrito,
+                    pg.provincia,
+                    pg.departamento,
+                    pg.pais,
+                    pg.area_geografica,
+                    pg.fecha_base,
+                    pg.jornada_laboral,
+                    pg.moneda,
+                    pg.proyecto_generalescol,
+                    pg.fecha_inicio,
+                    pg.fecha_fin,
+                    pg.costo_directo,
+                    pg.categoriaId,
+                    c.descripcion AS categoriaNombre
+            FROM proyecto_generales pg
+            LEFT JOIN categorias c ON c.id = pg.categoriaId
+            WHERE $filter
+            AND pg.deleted_at IS NULL
+            ORDER BY pg.id ASC";
+
+        return self::fetchAllObj($sql, ['users_id' => $this->_users_id]);
+    }*/
+
+    public function getListProyectoGeneral()
+    {
         $sql = "SELECT        
                     pg.id,
                     pg.users_id,
@@ -327,16 +359,13 @@ class Proyectogeneral extends Mysql
                     pg.costo_directo,
                     pg.categoriaId,
                     c.descripcion AS categoriaNombre
-            FROM proyecto_generales pg 
-            LEFT JOIN categorias c ON c.id = pg.categoriaId
-            WHERE $filter 
-            AND pg.deleted_at IS NULL
-            ORDER BY pg.id ASC";
+                FROM proyecto_generales pg 
+                LEFT JOIN categorias c ON c.id = pg.categoriaId
+                WHERE pg.deleted_at IS NULL
+                ORDER BY pg.id ASC";
 
-        return self::fetchAllObj($sql, ['users_id' => $this->_users_id]);
+        return self::fetchAllObj($sql);
     }
-
-
 
     public function getDelete()
     {
