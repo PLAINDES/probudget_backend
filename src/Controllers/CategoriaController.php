@@ -40,7 +40,6 @@ class CategoriaController
 
     public function crearPresupuestoColegio($request)
     {
-        error_log("REQUEST: " . json_encode($request));
         $categoria   = new Categoria();
         return $categoria->crearPresupuestoColegio($request);
     }
