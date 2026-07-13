@@ -254,7 +254,6 @@ class Proyectogeneral extends Mysql
         }
     }
 
-    /*
     public function getListProyectoGeneral()
     {
         error_log('USER ID REAL: ' . $this->_users_id);
@@ -335,11 +334,12 @@ class Proyectogeneral extends Mysql
             ORDER BY pg.id ASC";
 
         return self::fetchAllObj($sql, ['users_id' => $this->_users_id]);
-    }*/
+    }
 
+    /*
     public function getListProyectoGeneral()
     {
-        $sql = "SELECT        
+        $sql = "SELECT
                     pg.id,
                     pg.users_id,
                     pg.proyecto,
@@ -359,13 +359,13 @@ class Proyectogeneral extends Mysql
                     pg.costo_directo,
                     pg.categoriaId,
                     c.descripcion AS categoriaNombre
-                FROM proyecto_generales pg 
+                FROM proyecto_generales pg
                 LEFT JOIN categorias c ON c.id = pg.categoriaId
                 WHERE pg.deleted_at IS NULL
                 ORDER BY pg.id ASC";
 
         return self::fetchAllObj($sql);
-    }
+    }*/
 
     public function getDelete()
     {
