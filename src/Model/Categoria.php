@@ -405,6 +405,8 @@ class Categoria extends Mysql
                 'uso_plantilla' => true
             ];
 
+            error_log("args: " . json_encode($args));
+
             $proyectoGeneral = new Proyectogeneral($args);
             $result = $proyectoGeneral->save();
 
