@@ -1114,7 +1114,7 @@ class Categoria extends Mysql
                 "success" => false,
                 "message" => $e->getMessage(),
             ];
-        } /*finally {
+        } finally {
             if ($perfilLibreOffice && is_dir($perfilLibreOffice)) {
                 exec("rm -rf " . escapeshellarg($perfilLibreOffice));
             }
@@ -1126,7 +1126,7 @@ class Categoria extends Mysql
             if ($tempFileRecalculado && file_exists($tempFileRecalculado)) {
                 unlink($tempFileRecalculado);
             }
-        }*/
+        }
     }
 
     private function normalizarTexto(string $texto): string
