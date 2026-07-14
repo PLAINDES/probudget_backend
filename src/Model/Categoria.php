@@ -302,7 +302,9 @@ class Categoria extends Mysql
             $this->agregarFilasAmbiente($request->ambientes, $sheet);
 
             // EXTERIORES
-            $this->agregarFilasExteriores($request->exteriores, $sheet);
+            if (!empty($request->exteriores)) {
+                $this->agregarFilasExteriores($request->exteriores, $sheet);
+            }
 
             // Guardar temporal para forzar recálculo
             $writer = new Xlsx($spreadsheet);
@@ -402,7 +404,8 @@ class Categoria extends Mysql
                 "distrito" => $request->distrito,
                 "departamento" => $request->departamento,
                 'jornada_laboral' => 8,
-                'uso_plantilla' => true
+                'uso_plantilla' => true,
+                'fecha_base' => date('Y-m-d H:i:s'),
             ];
 
             error_log("args: " . json_encode($args));
