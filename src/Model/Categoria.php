@@ -288,15 +288,7 @@ class Categoria extends Mysql
             $this->limpiarCampos($sheet);
 
             // CIMENTACIONES
-            foreach ($request->cimentaciones ?? [] as $index => $cimentacion) {
-                if ($index >= 4) {
-                    break;
-                }
-
-                $fila = 5 + $index;
-                $sheet->setCellValue("B{$fila}", $cimentacion["area"]);
-                $sheet->setCellValue("D{$fila}", strtolower($cimentacion["tipo"]));
-            }
+            $this->agregarCimentaciones($request->cimentaciones, $sheet);
 
             // AMBIENTES
             $this->agregarFilasAmbiente($request->ambientes, $sheet);
@@ -1117,7 +1109,7 @@ class Categoria extends Mysql
                 "success" => false,
                 "message" => $e->getMessage(),
             ];
-        } finally {
+        } /*finally {
             if ($perfilLibreOffice && is_dir($perfilLibreOffice)) {
                 exec("rm -rf " . escapeshellarg($perfilLibreOffice));
             }
@@ -1129,7 +1121,7 @@ class Categoria extends Mysql
             if ($tempFileRecalculado && file_exists($tempFileRecalculado)) {
                 unlink($tempFileRecalculado);
             }
-        }
+        }*/
     }
 
     private function normalizarTexto(string $texto): string
@@ -1454,12 +1446,49 @@ class Categoria extends Mysql
         }
     }
 
+    private function agregarCimentaciones($cimentaciones, $sheet)
+    {
+        // Mapeo de pisos a filas del Excel
+        $filasCimentaciones = [
+            1 => 5,
+            2 => 6,
+            3 => 7,
+            4 => 8,
+        ];
+
+        foreach ($cimentaciones ?? [] as $cimentacion) {
+            $piso = (int) $cimentacion["piso"];
+
+            if (!isset($filasCimentaciones[$piso])) {
+                continue;
+            }
+
+            $fila = $filasCimentaciones[$piso];
+
+            $tipo = strtolower(trim($cimentacion["tipo"]));
+
+            switch ($tipo) {
+                case "zapatas y vigas de cimentación":
+                    $sheet->setCellValue("B{$fila}", $cimentacion["area"]);
+                    $sheet->setCellValue("C{$fila}", $piso);
+                    $sheet->setCellValue("D{$fila}", $tipo);
+                    break;
+
+                case "platea de cimentación":
+                    $sheet->setCellValue("E{$fila}", $cimentacion["area"]);
+                    $sheet->setCellValue("F{$fila}", $piso);
+                    $sheet->setCellValue("G{$fila}", $tipo);
+                    break;
+            }
+        }
+    }
+
     private function limpiarCampos($sheet)
     {
         // Limpiar cimentaciones (filas 5-8)
         for ($i = 5; $i <= 8; $i++) {
             $sheet->setCellValue("B{$i}", null);
-            $sheet->setCellValue("D{$i}", null);
+            $sheet->setCellValue("E{$i}", null);
         }
 
         // Limpiar ambientes (filas 16-68, columnas B y C)
