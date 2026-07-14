@@ -12,6 +12,7 @@ use App\Model\Persistence\Mysql;
 use App\Model\Plan;
 use App\Model\Subcategoria;
 use App\Services\AuthService;
+use App\Model\RecalculoPrespuesto;
 
 class Proyectogeneral extends Mysql
 {
@@ -257,6 +258,7 @@ class Proyectogeneral extends Mysql
     public function getListProyectoGeneral()
     {
         error_log('USER ID REAL: ' . $this->_users_id);
+
         if (AuthService::isAdmin($this->_users_id)) {
             $sql = "SELECT
                         pg.id,
@@ -283,57 +285,117 @@ class Proyectogeneral extends Mysql
                     WHERE pg.deleted_at IS NULL
                     ORDER BY pg.id ASC";
 
-            return self::fetchAllObj($sql);
+            $proyectos = self::fetchAllObj($sql);
+        } else {
+            // Obtener IDs de proyectos compartidos
+            $sql = 'SELECT proyectogeneralId
+                    FROM usuarios_invitados
+                    WHERE userId = :userId';
+
+            $rs = self::fetchAllObj($sql, ['userId' => $this->_users_id]);
+
+            $compartidos = array_filter(array_map(function ($v) {
+                return intval($v->proyectogeneralId);
+            }, $rs));
+
+            $filter = 'pg.users_id = :users_id';
+
+            if (!empty($compartidos)) {
+                $inList = implode(',', $compartidos);
+                $filter = "(pg.users_id = :users_id OR pg.id IN ($inList))";
+            }
+
+            $sql = "SELECT
+                        pg.id,
+                        pg.users_id,
+                        pg.proyecto,
+                        pg.cliente,
+                        pg.direccion,
+                        pg.distrito,
+                        pg.provincia,
+                        pg.departamento,
+                        pg.pais,
+                        pg.area_geografica,
+                        pg.fecha_base,
+                        pg.jornada_laboral,
+                        pg.moneda,
+                        pg.proyecto_generalescol,
+                        pg.fecha_inicio,
+                        pg.fecha_fin,
+                        pg.costo_directo,
+                        pg.categoriaId,
+                        c.descripcion AS categoriaNombre
+                    FROM proyecto_generales pg
+                    LEFT JOIN categorias c ON c.id = pg.categoriaId
+                    WHERE $filter
+                    AND pg.deleted_at IS NULL
+                    ORDER BY pg.id ASC";
+
+            $proyectos = self::fetchAllObj($sql, ['users_id' => $this->_users_id]);
         }
 
-        // Obtener IDs de proyectos compartidos
-        $sql = 'SELECT proyectogeneralId
-                FROM usuarios_invitados
-                WHERE userId = :userId';
+        $recalculo = new RecalculoPrespuesto();
 
-        $rs = self::fetchAllObj($sql, ['userId' => $this->_users_id]);
+        foreach ($proyectos as $proyecto) {
+            $pieData = $recalculo->getPiePresupuesto([
+                'id' => $proyecto->id
+            ]);
 
-        // Convertir a enteros y limpiar basura
-        $compartidos = array_filter(array_map(function ($v) {
-            return intval($v->proyectogeneralId);
-        }, $rs));
+            $totalPpto = 0;
 
-        // Armar filtro
-        $filter = 'pg.users_id = :users_id';
+            if (!empty($pieData['data']['pie'])) {
+                $cd   = 0;
+                $ggp  = 0.13;
+                $utp  = 0.12;
+                $igvp = 0.18;
 
-        if (!empty($compartidos)) {
-            $inList = implode(',', $compartidos);
-            $filter = "(pg.users_id = :users_id OR pg.id IN ($inList))";
+                foreach ($pieData['data']['pie'] as $pieLine) {
+                    $variable = is_object($pieLine)
+                        ? $pieLine->variable
+                        : $pieLine['variable'];
+
+                    $monto = is_object($pieLine)
+                        ? $pieLine->monto
+                        : $pieLine['monto'];
+
+                    $porcentaje = is_object($pieLine)
+                        ? $pieLine->percentage
+                        : $pieLine['percentage'];
+
+                    switch ($variable) {
+                        case 'CD':
+                            $cd = (float) $monto;
+                            break;
+
+                        case 'GG':
+                            if ($porcentaje !== null) {
+                                $ggp = (float) $porcentaje;
+                            }
+                            break;
+
+                        case 'UT':
+                            if ($porcentaje !== null) {
+                                $utp = (float) $porcentaje;
+                            }
+                            break;
+
+                        case 'IGV':
+                            if ($porcentaje !== null) {
+                                $igvp = (float) $porcentaje;
+                            }
+                            break;
+                    }
+                }
+
+                $subtotal = $cd + ($cd * $ggp) + ($cd * $utp);
+                $totalPpto = $subtotal + ($subtotal * $igvp);
+            }
+
+            // Reemplazar el costo directo por el presupuesto total
+            $proyecto->costo_directo = round($totalPpto, 2);
         }
 
-        // Query final
-        $sql = "SELECT
-                    pg.id,
-                    pg.users_id,
-                    pg.proyecto,
-                    pg.cliente,
-                    pg.direccion,
-                    pg.distrito,
-                    pg.provincia,
-                    pg.departamento,
-                    pg.pais,
-                    pg.area_geografica,
-                    pg.fecha_base,
-                    pg.jornada_laboral,
-                    pg.moneda,
-                    pg.proyecto_generalescol,
-                    pg.fecha_inicio,
-                    pg.fecha_fin,
-                    pg.costo_directo,
-                    pg.categoriaId,
-                    c.descripcion AS categoriaNombre
-            FROM proyecto_generales pg
-            LEFT JOIN categorias c ON c.id = pg.categoriaId
-            WHERE $filter
-            AND pg.deleted_at IS NULL
-            ORDER BY pg.id ASC";
-
-        return self::fetchAllObj($sql, ['users_id' => $this->_users_id]);
+        return $proyectos;
     }
 
     /*
