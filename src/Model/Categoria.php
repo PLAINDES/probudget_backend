@@ -232,6 +232,15 @@ class Categoria extends Mysql
                 "COMUNICACIONES" => "COMUNICACIONES",
             ];
 
+            $mapaHojasMetrado = [
+                "PROVISIONALES"  => "Metrado Provisionales",
+                "ESTRUCTURA"     => "Metrado Estructuras",
+                "ARQUITECTURA"   => "Metrado Arquitectura",
+                "SANITARIAS"     => "Metrado Sanitarias",
+                "ELECTRICAS"     => "Metrado Electricas",
+                "COMUNICACIONES" => "Metrado Comunicaciones",
+            ];
+
             $mapaHojasApu = [
                 "PROVISIONALES" => "APU PROVISIONALES",
                 "ESTRUCTURA" => "APU ESTRUCTURAS",
@@ -345,6 +354,7 @@ class Categoria extends Mysql
                 array_merge(
                     [$nombreHoja4, $nombreHoja3],
                     array_values($mapaHojasApu),
+                    array_values($mapaHojasMetrado),
                     array_keys($hojasPresupuesto),
                     ['Obras provisionales'],
                     ['Datos iniciales ', 'calculo r'],
@@ -361,7 +371,7 @@ class Categoria extends Mysql
             $spreadsheetFinal = $reader2->load($tempFileRecalculado);
 
             $todasLasHojas = $reader2->listWorksheetNames($tempFileRecalculado);
-            error_log("Hojas disponibles: " . implode(' | ', $todasLasHojas));
+            //error_log("Hojas disponibles: " . implode(' | ', $todasLasHojas));
 
             $nombresFinales = [];
             foreach ($spreadsheetFinal->getAllSheets() as $s) {
@@ -400,12 +410,12 @@ class Categoria extends Mysql
                 'fecha_base' => date('Y-m-d H:i:s'),
             ];
 
-            error_log("args: " . json_encode($args));
+            //error_log("args: " . json_encode($args));
 
             $proyectoGeneral = new Proyectogeneral($args);
             $result = $proyectoGeneral->save();
 
-            error_log("result: " . print_r($result, true));
+            //error_log("result: " . print_r($result, true));
 
             /* TODO: descomentar luego
             if (!$result['success']) {
@@ -414,7 +424,7 @@ class Categoria extends Mysql
 
             $proyectoId = $result["data"];
 
-            error_log("proyectoId: $proyectoId");
+            //error_log("proyectoId: $proyectoId");
 
             $this->guardarResumen($hojaResumen, $proyectoId);
 
@@ -785,6 +795,44 @@ class Categoria extends Mysql
                     }
                 }
 
+                // ── CARGAR METRADOS DE ESTA HOJA ──────────────────────────────────────────
+                $mapaMetrados = [];
+
+                $nombreHojaMetrado = $mapaHojasMetrado[$nombreHoja] ?? null;
+                $hojaMetrado = $nombreHojaMetrado
+                    ? $spreadsheetFinal->getSheetByName($nombreHojaMetrado)
+                    : null;
+
+                if ($hojaMetrado) {
+                    $maxFilaMetrado = $hojaMetrado->getHighestRow();
+
+                    for ($filaMet = 1; $filaMet <= $maxFilaMetrado; $filaMet++) {
+                        $codigoMet = trim($hojaMetrado->getCell("A{$filaMet}")->getFormattedValue());
+
+                        // Debe ser un código tipo "1.1.1.1" (igual que en la hoja de presupuesto)
+                        if (empty($codigoMet) || strpos($codigoMet, ".") === false) {
+                            continue;
+                        }
+
+                        $unidadMet = trim($hojaMetrado->getCell("G{$filaMet}")->getFormattedValue());
+
+                        // Solo nos interesan las filas de PARTIDA (las que tienen unidad, col G)
+                        // Los títulos/subtítulos de la hoja de metrado no tienen unidad → se saltan
+                        if (empty($unidadMet)) {
+                            continue;
+                        }
+
+                        $cantidadMet = $hojaMetrado->getCell("M{$filaMet}")->getOldCalculatedValue()
+                            ?? $hojaMetrado->getCell("M{$filaMet}")->getValue();
+
+                        $mapaMetrados[$codigoMet] = [
+                            "cantidad" => is_numeric($cantidadMet) ? (float) $cantidadMet : null,
+                        ];
+                    }
+                }
+
+                //error_log('-- Mapa metrados: ' . json_encode($mapaMetrados));
+
                 // ── PRESUPUESTO ────────────────────────────────────────────────────────────────
                 $maxFila = $hojaPresupuesto->getHighestRow();
 
@@ -878,6 +926,18 @@ class Categoria extends Mysql
                             "partida_id"             => $partidaId,
                             "subpartida_id"          => null,
                         ]);
+
+                        // ── METRADO DE ESTA PARTIDA ───────────────────────────────────────────────
+                        $metradoPartida = $mapaMetrados[$item] ?? null;
+                        //error_log("metradoPartida: " . json_encode($metradoPartida));
+
+                        if ($metradoPartida) {
+                            self::insert("metrado_partida_presupuestos", [
+                                "presupuestos_id"       => $presupuestoId,
+                                "proyecto_generales_id" => $proyectoId,
+                                "metrado_cantidad"      => $metradoPartida["cantidad"],
+                            ]);
+                        }
 
                         // ── INSUMOS DE ESTA PARTIDA ────────────────────────────────────────────
                         if ($apu && !empty($apu["insumos"])) {
@@ -1109,7 +1169,7 @@ class Categoria extends Mysql
                 "success" => false,
                 "message" => $e->getMessage(),
             ];
-        } /*finally {
+        } finally {
             if ($perfilLibreOffice && is_dir($perfilLibreOffice)) {
                 exec("rm -rf " . escapeshellarg($perfilLibreOffice));
             }
@@ -1121,7 +1181,7 @@ class Categoria extends Mysql
             if ($tempFileRecalculado && file_exists($tempFileRecalculado)) {
                 unlink($tempFileRecalculado);
             }
-        }*/
+        }
     }
 
     private function normalizarTexto(string $texto): string
@@ -1168,7 +1228,7 @@ class Categoria extends Mysql
 
     private function guardarResumen($hojaResumen, $proyectoId)
     {
-        error_log("ID RECIBIDO EN GUARDAR RESUMEN: $proyectoId");
+        //error_log("ID RECIBIDO EN GUARDAR RESUMEN: $proyectoId");
         $exteriores = [
             "AREAS VERDES" => 72,
             "LOSA DEPORTIVA" => 73,
@@ -1314,7 +1374,7 @@ class Categoria extends Mysql
 
     private function agregarFilasAmbiente($ambientes, $sheet)
     {
-        error_log('Ambientes: ' . json_encode($ambientes));
+        //error_log('Ambientes: ' . json_encode($ambientes));
         $ambienteFilas = [
             "BIBLIOTECA" => 16,
             "LABORATORIO" => 17,
@@ -1396,7 +1456,7 @@ class Categoria extends Mysql
 
     private function agregarFilasExteriores($exteriores, $sheet)
     {
-        error_log('exteriores' . json_encode($exteriores));
+        //error_log('exteriores' . json_encode($exteriores));
         $exterioresFilas = [
             "AREAS VERDES" => 72,
             "LOSA DEPORTIVA" => 73,
