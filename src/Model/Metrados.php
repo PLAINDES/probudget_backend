@@ -284,7 +284,6 @@ class Metrados extends Mysql
 
     public function getListPresupuestoMetrado()
     {
-
         $sql_general = "SELECT        
                         id,
                         descripcion AS 'name',
@@ -324,7 +323,7 @@ class Metrados extends Mysql
 
         $data = array();
         foreach ($presupuestos_general as $key => $value) {
-            if ($value->presupuestos_proyecto_generales_id == null || $value->presupuestos_proyecto_generales_id == 0) {
+            if ($value->type_item == '1') {
                 $value->detail = $this->setMatrizPresupuestoCalculo($value->id, $presupuestos_general, $metrados);
                 array_push($data, $value);
             }
