@@ -73,6 +73,16 @@ class PresupuestoController
         return $presupuesto->getPiePresupuesto(['id' => $request->id]);
     }
 
+    public function getPiePresupuestoTotals($request)
+    {
+        error_log('subpresupuestos_id: ' . $request->subpresupuestos_id);
+        $presupuesto   = new RecalculoPrespuesto();
+        return $presupuesto->getPiePresupuestoTotals([
+            'id' => $request->id,
+            'subpresupuestos_id' => $request->subpresupuestos_id
+        ]);
+    }
+
     public function getListTitle($request)
     {
         $presupuestosTitulos   = new PresupuestosTitulos([]);
