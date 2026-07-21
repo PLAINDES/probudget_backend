@@ -191,6 +191,66 @@ class RecalculoPrespuesto extends Mysql
         }
     }
 
+    public function getPiePresupuestoTotals($array = [])
+    {
+        try {
+            if (array_key_exists('id', $array)) {
+                $response = [];
+                $id = $array['id'];
+                $subpresupuestoId = $array['subpresupuestos_id'] ?? null;
+
+                $sql_general = "SELECT metrado, cu, mo, mt, eq, sc
+                                    FROM presupuestos 
+                                    WHERE proyecto_generales_id = :id 
+                                    AND type_item = 3 
+                                    AND deleted_at is NULL"
+                                    . ($subpresupuestoId ? " AND subpresupuestos_id = :subId" : "");
+
+                $params = ['id' => $id];
+                if ($subpresupuestoId) {
+                    $params['subId'] = $subpresupuestoId;
+                }
+
+                $presupuestos_general = self::fetchAllObj($sql_general, $params);
+
+                $suma_ppa = 0;
+                foreach ($presupuestos_general as $item) {
+                    $metrado = $item->metrado ? $item->metrado : 0;
+                    $cu = $item->cu ? $item->cu : 0;
+                    $suma_ppa += ($metrado * $cu);
+                }
+
+                $proceso_calculo = $this->getFormulaPiePresupuestoTotals($suma_ppa, $id);
+
+                $subcategoria = new Subcategoria(['id' => $id]);
+                $subpresupuestos = $subcategoria->getSubPresupuestoParcial();
+
+                $especialidadInfo = null;
+                if ($subpresupuestoId) {
+                    $filtradas = array_values(array_filter($subpresupuestos, function ($s) use ($subpresupuestoId) {
+                        return $s->id == $subpresupuestoId;
+                    }));
+                    $especialidadInfo = $filtradas[0] ?? null;
+                    $subpresupuestos = $filtradas;
+                }
+
+                $response['success'] = true;
+                $response['message'] = 'List';
+                $response['data'] = array(
+                    'subpresupuestos' => $subpresupuestos,
+                    'pie' => $proceso_calculo,
+                    'especialidad' => $especialidadInfo,
+                );
+
+                return $response;
+            } else {
+                return ["success" => false, "message" => "Especificar el proyecto"];
+            }
+        } catch (\Throwable $th) {
+            return ["success" => false, "message" => "Ocurrio un problema"];
+        }
+    }
+
     public function getFormulaPiePresupuesto($monto, $id)
     {
         $sql = "SELECT        
@@ -298,5 +358,126 @@ class RecalculoPrespuesto extends Mysql
             array_push($ppa, $array);
         }
         return $ppa;
+    }
+
+    public function getFormulaPiePresupuestoTotals($monto, $id)
+    {
+        $sql = "SELECT        
+                ppo.id,
+                ppo.variable,
+                ppo.descripcion,
+                ppo.formula,
+                ppo.valor,
+                ppo.iu,
+                ppp.percentage
+        FROM pie_presupuesto ppo
+        LEFT JOIN proyecto_pie_presupuesto ppp 
+        ON ppo.id = ppp.pie_presupuesto_id AND ppp.proyectos_generales_id = :id AND ppp.type_percentage = 'PIE'
+        ORDER BY ppo.posicion ASC";
+        $priPresupuesto = self::fetchAllObj($sql, ['id' => $id]);
+        $ppa = [];
+
+        foreach ($priPresupuesto as $key => $value) {
+            $array = [];
+            $percentageDisplay = null;
+
+            if ($value->id == 1) {
+                $array["descripcion"] = $value->descripcion;
+                $array["monto"] = $monto;
+                $array["variable"] = $value->variable;
+                $array["percentage"] = null;
+                $array["id"] = $value->id;
+                $array["proyectos_generales_id"] = $id;
+            } else {
+                $porciones = $this->parseFormula($value->formula);
+
+                if (count($porciones) == 3) {
+                    if ($porciones[0] == "CD") {
+                        $calculo_monto = $monto;
+                    } else {
+                        $found_key = array_search($porciones[0], array_column($ppa, 'variable'));
+                        $calculo_monto = $ppa[$found_key]['monto'];
+                    }
+
+                    if ($value->percentage !== null && (floatval($porciones[2]) || is_numeric($porciones[2]))) {
+                        $porcion_dos = $value->percentage;
+                        $percentageDisplay = $value->percentage;
+                    } elseif (floatval($porciones[2]) || is_numeric($porciones[2])) {
+                        $porcion_dos = $porciones[2];
+                        $percentageDisplay = (float) $porciones[2];
+                    } else {
+                        $found_key = array_search($porciones[2], array_column($ppa, 'variable'));
+                        $porcion_dos = $ppa[$found_key]['monto'];
+                    }
+
+                    switch ($porciones[1]) {
+                        case '+':
+                            $array["monto"] = (float) ($calculo_monto + floatval($porcion_dos));
+                            break;
+                        case '-':
+                            $array["monto"] = (float) ($calculo_monto - floatval($porcion_dos));
+                            break;
+                        case '*':
+                            $array["monto"] = (float) ($calculo_monto * floatval($porcion_dos));
+                            break;
+                        default:
+                            $array["monto"] = (float) ($calculo_monto / floatval($porcion_dos));
+                            break;
+                    }
+                } elseif (count($porciones) == 5) {
+                    if ($porciones[0] == "CD") {
+                        $calculo_monto = $monto;
+                    } else {
+                        $found_key = array_search($porciones[0], array_column($ppa, 'variable'));
+                        $calculo_monto = $ppa[$found_key]['monto'];
+                    }
+
+                    if (floatval($porciones[2]) || is_numeric($porciones[2])) {
+                        $porcion_dos = $porciones[2];
+                    } else {
+                        $found_key = array_search($porciones[2], array_column($ppa, 'variable'));
+                        $porcion_dos = $ppa[$found_key]['monto'];
+                    }
+
+                    if (floatval($porciones[4]) || is_numeric($porciones[4])) {
+                        $porcion_tres = $porciones[4];
+                    } else {
+                        $found_key = array_search($porciones[4], array_column($ppa, 'variable'));
+                        $porcion_tres = $ppa[$found_key]['monto'];
+                    }
+
+                    switch ($porciones[1]) {
+                        case '+':
+                            $array["monto"] = (float) ($calculo_monto + floatval($porcion_dos) + floatval($porcion_tres));
+                            break;
+                        case '-':
+                            $array["monto"] = (float) ($calculo_monto - floatval($porcion_dos) + floatval($porcion_tres));
+                            break;
+                        case '*':
+                            $array["monto"] = (float) ($calculo_monto * floatval($porcion_dos) + floatval($porcion_tres));
+                            break;
+                    }
+                }
+
+                $array["descripcion"] = $value->descripcion;
+                $array["variable"] = $value->variable;
+                $array["percentage"] = $percentageDisplay !== null
+                    ? (float) number_format($percentageDisplay * 100, 2, '.', '')
+                    : null;
+                $array["id"] = $value->id;
+                $array["proyectos_generales_id"] = $id;
+            }
+            array_push($ppa, $array);
+        }
+        return $ppa;
+    }
+
+    private function parseFormula($formula)
+    {
+        // "CD*0.12"   → ["CD", "*", "0.12"]
+        // "CD+UT+GG"  → ["CD", "+", "UT", "+", "GG"]
+        // "ST+IGV"    → ["ST", "+", "IGV"]
+        $porciones = preg_split('/([+\-*\/])/', $formula, -1, PREG_SPLIT_DELIM_CAPTURE);
+        return array_map('trim', $porciones);
     }
 }
