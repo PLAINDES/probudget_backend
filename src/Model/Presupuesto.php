@@ -10,14 +10,10 @@
 
 namespace App\Model;
 
-use App\Model\Utilitarian\FG;
+use App\Model\{ApusPartidasProyecto, PartidaDetail, Partidas, Plan, PresupuestoTransactions,
+    PresupuestosTitulos, SubpartidaProyecto};
 use App\Model\Persistence\Mysql;
-use App\Model\PresupuestoTransactions;
-use App\Model\PresupuestosTitulos;
-use App\Model\PartidaDetail;
-use App\Model\Partidas;
-use App\Model\Plan;
-use App\Model\SubpartidaProyecto;
+use App\Model\Utilitarian\FG;
 
 class Presupuesto extends Mysql
 {
@@ -364,7 +360,6 @@ class Presupuesto extends Mysql
                                 p.mt AS mat,
                                 p.eq,
                                 p.sc,
-                                p.sp,
                                 p.metrado AS metered,
                                 p.presupuestos_proyecto_generales_id,
                                 p.nro_orden AS level,
@@ -375,7 +370,7 @@ class Presupuesto extends Mysql
                             WHERE p.proyecto_generales_id = :id
                             AND p.deleted_at IS NULL
                             {$subpresupuestoCondition}
-                            ORDER BY p.nro_orden ASC";
+                            ORDER BY p.nro_orden ASC"; // p.sp -> quitado porque no se usa
 
             $presupuestos_general = self::fetchAllObj($sql_general, ['id' => $this->_id]);
             $data = array();
@@ -390,14 +385,14 @@ class Presupuesto extends Mysql
                     $mat = 0;
                     $eq = 0;
                     $sc = 0;
-                    $sp = 0;
+                    //$sp = 0;
                     foreach ($detail as $item) {
                         $total += ($item->total_parcial * 1);
                         $mo += ($item->mo * 1);
                         $mat += ($item->mat * 1);
                         $eq += ($item->eq * 1);
                         $sc += ($item->sc * 1);
-                        $sp += ($item->sp * 1);
+                        //$sp += ($item->sp * 1);
                     }
                     $presupuestos_general[$key]->detail = $detail;
                     $presupuestos_general[$key]->total_parcial = number_format($total, 2, '.', '');
@@ -405,7 +400,7 @@ class Presupuesto extends Mysql
                     $presupuestos_general[$key]->mat = $mat;
                     $presupuestos_general[$key]->eq = $eq;
                     $presupuestos_general[$key]->sc = $sc;
-                    $presupuestos_general[$key]->sp = $sp;
+                    //$presupuestos_general[$key]->sp = $sp;
                     array_push($data, $presupuestos_general[$key]);
                 }
             }
@@ -448,11 +443,14 @@ class Presupuesto extends Mysql
 
                     $met = $value->metered ? $value->metered : 0;
 
-                    $childrens[$key]->mo  = $value->mo  ? $value->mo  * $met : 0;
-                    $childrens[$key]->mat = $value->mat ? $value->mat * $met : 0;
-                    $childrens[$key]->eq  = $value->eq  ? $value->eq  * $met : 0;
-                    $childrens[$key]->sc  = $value->sc  ? $value->sc  * $met : 0;
-                    $childrens[$key]->sp  = $value->sp  ? $value->sp  * $met : 0;
+                    $apusPartida = new ApusPartidasProyecto();
+                    $resumen = $apusPartida->getResumenApuPartida($value->id);
+
+                    $childrens[$key]->mo  = $resumen->mano_obra * $met;
+                    $childrens[$key]->mat = $resumen->materiales * $met;
+                    $childrens[$key]->eq  = $resumen->herramienta_equipos * $met;
+                    $childrens[$key]->sc  = $resumen->subcontrato * $met;
+                    //$childrens[$key]->sp  = $resumen->subpartida * $met;
 
                     $childrens[$key]->unmetered = $met == 0;
 
@@ -471,7 +469,7 @@ class Presupuesto extends Mysql
                 $mat = 0;
                 $eq = 0;
                 $sc = 0;
-                $sp = 0;
+                //$sp = 0;
 
                 foreach ($detail as $item) {
                     $total += ($item->total_parcial * 1);
@@ -479,7 +477,7 @@ class Presupuesto extends Mysql
                     $mat += ($item->mat * 1);
                     $eq  += ($item->eq  * 1);
                     $sc  += ($item->sc  * 1);
-                    $sp  += ($item->sp  * 1);
+                    //$sp  += ($item->sp  * 1);
                 }
 
                 $childrens[$key]->total_parcial = number_format($total, 2, '.', '');
@@ -487,7 +485,7 @@ class Presupuesto extends Mysql
                 $childrens[$key]->mat = $mat;
                 $childrens[$key]->eq  = $eq;
                 $childrens[$key]->sc  = $sc;
-                $childrens[$key]->sp  = $sp;
+                //$childrens[$key]->sp  = $sp;
                 $childrens[$key]->detail = $detail;
             }
         }
