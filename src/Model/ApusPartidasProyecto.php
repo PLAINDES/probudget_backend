@@ -663,6 +663,137 @@ class ApusPartidasProyecto extends Mysql
         return $resp;
     }
 
+    /*
+        CLONANDO METODO PARA EVITAR CONFLICTOS EN OTRAS CLASES O METODOS
+     */
+    private function performCalculationsResumen($cabecera, $apus, $isdata = true)
+    {
+        $resp = new stdClass();
+        $presupuesto_id = $cabecera->presupuestos_id;
+        $rend = $cabecera->rendimiento ? $cabecera->rendimiento : 0;
+        $jorn = $cabecera->jornada_laboral ?? 8;
+
+        $mototal = 0;
+        foreach ($apus as $key => $e) {
+            if (strtolower($e->tipo) == 'mo') {
+                $cuadrilla = $e->cuadrilla ? number_format($e->cuadrilla, 4, '.', '') : 0.0000;
+                $precio = $e->precio ? number_format($e->precio, 2, '.', '') : 0.00;
+                $apus[$key]->cantidad =
+                    $rend ? number_format((($cuadrilla * $jorn) / $rend), 4, '.', '') : 0.0000;
+                $parcial = ($apus[$key]->cantidad * $precio);
+                $parcial = number_format($parcial, 2, '.', '');
+                $apus[$key]->parcial = number_format($parcial, 2, '.', ''); // number_format($parcial, 2, '.', '');
+                $mototal += $parcial;
+            }
+        }
+
+        $eqtotal = 0;
+
+        foreach ($apus as $key => $e) {
+            if (strtolower($e->tipo) == 'eq') {
+                if ($e->apu_cantidad) {
+                    $apus[$key]->precio = $mototal;
+                    $apus[$key]->cuadrilla = '';
+                } else {
+                    $cuadrilla = $e->cuadrilla ? number_format($e->cuadrilla, 4, '.', '') : 0.0000;
+                    $apus[$key]->cantidad = $rend
+                        ? number_format((($cuadrilla * $jorn) / $rend), 4, '.', '')
+                        : 0.0000;
+                }
+
+                $cantidad = $apus[$key]->cantidad ?: 0.0000;
+                $precio   = $apus[$key]->precio ?: 0;
+
+                if (strtolower(trim($e->alias)) == '%mo') {
+                    $parcial = ($cantidad / 100) * $precio;
+                    $parcial = number_format($parcial, 2, '.', '');
+                } else {
+                    $parcial = $cantidad * $precio;
+                    $parcial = number_format($parcial, 2, '.', '');
+                }
+
+                $apus[$key]->parcial = number_format($parcial, 2, '.', '');
+                $apus[$key]->precio  = number_format($precio, 2, '.', '');
+
+                $eqtotal += $parcial;
+            }
+        }
+
+        $sptotal = 0;
+        $sctotal = 0;
+        $mttotal = 0;
+
+        foreach ($apus as $key => $e) {
+            if ($e->partida_id) {
+                // Obtiene el resumen completo de la subpartida
+                $sub = $this->getResumenSubpartida($e->id);
+
+                $cantidad = $e->cantidad ?: 0;
+
+                // Acumular directamente a cada rubro
+                $mototal += $sub->mano_obra * $cantidad;
+                $mttotal += $sub->materiales * $cantidad;
+                $eqtotal += $sub->herramienta_equipos * $cantidad;
+                $sctotal += $sub->subcontrato * $cantidad;
+
+                // SP sigue existiendo solo para compatibilidad
+                $precio = $e->punit ?: 0;
+
+                $parcial = $cantidad * $precio;
+
+                $apus[$key]->parcial = number_format($parcial, 2, '.', '');
+
+                $sptotal += $parcial;
+
+                $apus[$key]->tipo = 'SP';
+            }
+            if (strtolower($e->tipo) == 'sc') {
+                $precio = $e->precio ? $e->precio : 0.00;
+                $cantidad = $e->cantidad ? $e->cantidad : 0.0000;
+                if ($e->apu_cantidad) {
+                    $alias = strtolower($e->alias);
+                    $precio = $alias == '%mo' ? $mototal : $eqtotal;
+                }
+                $parcial = ($cantidad * $precio);
+                $parcial = number_format($parcial, 2, '.', '');
+                $apus[$key]->parcial = $parcial; // number_format($parcial, 2, '.', '');
+                $apus[$key]->precio = $precio;
+                $sctotal += $parcial;
+            }
+            if (strtolower($e->tipo) == 'mt') {
+                $cantidad = $e->cantidad ? $e->cantidad : 0.0000;
+                $precio = $e->precio ? $e->precio : 0;
+                if ($e->apu_cantidad) {
+                    $alias = strtolower($e->alias);
+                    $precio = $alias == '%mo' ? $mototal : $eqtotal;
+                }
+                $parcial = ($cantidad * $precio);
+                $parcial = number_format($parcial, 2, '.', '');
+                $apus[$key]->parcial = $parcial; // number_format($parcial, 2, '.', '');
+                $apus[$key]->cuadrilla = '';
+                $mttotal += $parcial;
+            }
+        }
+
+        $resp->id = $cabecera->id;
+        $resp->rendimiento = $rend;
+        $resp->rendimiento_unid = $cabecera->rendimiento_unid;
+        $resp->presupuestos_id = $presupuesto_id;
+        if (isset($cabecera->partida)) {
+            $resp->partida = $cabecera->partida;
+        }
+        $resp->mano_obra = $mototal;
+        $resp->materiales = $mttotal;
+        $resp->herramienta_equipos = $eqtotal;
+        $resp->subcontrato = $sctotal;
+        $resp->subpartida = $sptotal;
+        if ($isdata) {
+            $resp->detalle = $apus;
+        }
+        $resp->success = true;
+        return $resp;
+    }
+
     private function getApusPartida($presupuestos_id, $subpartida_id)
     {
         $resp = new stdClass();
@@ -718,6 +849,47 @@ class ApusPartidasProyecto extends Mysql
             $resp->success = false;
         }
         return $resp;
+    }
+
+    private function getResumenSubpartida($apuId)
+    {
+        $request = new stdClass();
+        $request->subpartida_id = $apuId;
+        $request->presupuestos_id = null;
+
+        $result = $this->getApusPartida(null, $apuId);
+
+        if (!$result->success) {
+            $r = new stdClass();
+            $r->mano_obra = 0;
+            $r->materiales = 0;
+            $r->herramienta_equipos = 0;
+            $r->subcontrato = 0;
+            return $r;
+        }
+
+        return $this->performCalculationsResumen(
+            $result->cabecera,
+            $result->apus,
+            false
+        );
+    }
+
+    public function getResumenApuPartida($presupuestosId)
+    {
+        $result = $this->getApusPartida($presupuestosId, null);
+
+        if (!$result->success) {
+            return (object)[
+                'mano_obra' => 0,
+                'materiales' => 0,
+                'herramienta_equipos' => 0,
+                'subcontrato' => 0,
+                'subpartida' => 0,
+            ];
+        }
+
+        return $this->performCalculationsResumen($result->cabecera, $result->apus, false);
     }
 
     private function getApusAllSubPartida($proyectos_generales_id)
