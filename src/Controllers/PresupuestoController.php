@@ -21,6 +21,16 @@ class PresupuestoController
         return $presupuesto->getSave();
     }
 
+    public function saveTituloProyecto($request)
+    {
+        $data = [
+            'proyecto_generales_id' => $request->proyecto_generales_id,
+            'title' => $request->titulo
+        ];
+        $presupuesto   = new PresupuestosTitulos($data);
+        return $presupuesto->saveTituloProyecto();
+    }
+
     public function getDelete($request)
     {
         $presupuesto   = new Presupuesto($request);

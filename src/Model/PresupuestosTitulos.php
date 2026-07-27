@@ -26,6 +26,21 @@ class PresupuestosTitulos extends Mysql
         $this->_proyecto_generales_id = FG::validateMatrizKey('proyecto_generales_id', $array);
     }
 
+    public function saveTituloProyecto()
+    {
+        $var = ["titulo" => $this->_titulo, 'proyectos_generales_id' => $this->_proyecto_generales_id];
+        $insert = self::insert("titulos_proyecto", $var);
+        if ($insert && $insert["lastInsertId"]) {
+            return [
+                'success' => true,
+                'id' => $insert["lastInsertId"]
+            ];
+        }
+        return [
+            'success' => false
+        ];
+    }
+
     public function getSave()
     {
         if ($this->titulos) {
