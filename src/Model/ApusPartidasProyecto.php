@@ -181,6 +181,12 @@ class ApusPartidasProyecto extends Mysql
                 }
             }
 
+            $apus = $this->getApusPartida($param->presupuestos_id, $param->subpartida_id);
+            if ($apus->success) {
+                $calculo = $this->performCalculations($apus->cabecera, $apus->apus, false);
+                $this->updateHeaderApuPartida($calculo, $param->presupuestos_id, $param->subpartida_id);
+            }
+
             $resp['data'] = $var;
             return $resp;
         } catch (\Throwable $th) {
@@ -1062,6 +1068,7 @@ class ApusPartidasProyecto extends Mysql
 
     private function updateHeaderApuPartida($resp, $presupuestos_id, $subpartida_id)
     {
+        error_log("updateHeaderApuPartida presupuestos_id={$presupuestos_id} subpartida_id={$subpartida_id} cu={$cu} mo={$resp->mano_obra} trace=" . json_encode(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)));
         $cu = $resp->mano_obra + $resp->materiales + $resp->herramienta_equipos + $resp->subcontrato + $resp->subpartida;
         if ($subpartida_id) {
             self::update("apus_partida_presupuestos", array(
