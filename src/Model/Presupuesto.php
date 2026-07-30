@@ -377,7 +377,8 @@ class Presupuesto extends Mysql
 
             foreach ($presupuestos_general as $key => $value) {
                 if (
-                    $value->type_item == '1'
+                    $value->type_item == '1' &&
+                    empty($value->presupuestos_proyecto_generales_id)
                 ) {
                     $detail = $this->setMatrizPresupuesto($value->id, $presupuestos_general);
                     $total = 0;
