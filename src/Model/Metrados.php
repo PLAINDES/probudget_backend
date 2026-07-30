@@ -323,7 +323,10 @@ class Metrados extends Mysql
 
         $data = array();
         foreach ($presupuestos_general as $key => $value) {
-            if ($value->type_item == '1') {
+            if (
+                $value->type_item == '1' &&
+                empty($value->presupuestos_proyecto_generales_id)
+            ) {
                 $value->detail = $this->setMatrizPresupuestoCalculo($value->id, $presupuestos_general, $metrados);
                 array_push($data, $value);
             }
