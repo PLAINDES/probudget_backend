@@ -23269,3 +23269,45 @@ ALTER TABLE probudget_pdfs DROP INDEX uniq_proyecto_tipo;
 ALTER TABLE users
 ADD COLUMN cognito_sub VARCHAR(255) NULL AFTER email,
 ADD UNIQUE KEY uniq_cognito_sub (cognito_sub);
+
+
+-- Migración: soporte de subtítulos anidados recursivamente (árbol self-referencing)
+--
+-- Antes: el nivel 2 (subtítulo) y el nivel 3 (gasto) eran fijos y distintos.
+-- Ahora: cualquier nodo puede ser 'subtitulo' (contenedor, puede tener hijos)
+-- o 'gasto' (hoja, no tiene hijos). El anidamiento se resuelve con la columna
+-- self-referencing que ya existía: gastos_generales_id.
+--
+-- grupos_id sigue usándose SOLO para indicar la categoría raíz virtual
+-- (0 = GASTOS GENERALES VARIABLES, 1 = GASTOS GENERALES FIJOS), tal como
+-- ya funcionaba antes. Esa raíz no tiene fila propia en la tabla.
+
+ALTER TABLE gastos_generales
+    ADD COLUMN tipo ENUM('subtitulo', 'gasto') NOT NULL DEFAULT 'gasto' AFTER descripcion,
+    ADD COLUMN orden INT NOT NULL DEFAULT 0 AFTER gastos_generales_id;
+
+-- Backfill de datos existentes:
+-- Los registros que hoy tienen hijos (otros registros con gastos_generales_id
+-- apuntando a ellos) son subtítulos; el resto son gastos.
+UPDATE gastos_generales gg
+SET tipo = 'subtitulo'
+WHERE EXISTS (
+    SELECT 1 FROM (SELECT gastos_generales_id FROM gastos_generales) AS hijos
+    WHERE hijos.gastos_generales_id = gg.id
+);
+
+-- Backfill de orden inicial (respeta el orden actual por id dentro de cada padre)
+SET @rn := 0;
+UPDATE gastos_generales gg
+JOIN (
+    SELECT id, (@rn := @rn + 1) AS rn
+    FROM gastos_generales
+    ORDER BY grupos_id ASC, gastos_generales_id ASC, id ASC
+) t ON t.id = gg.id
+SET gg.orden = t.rn;
+
+-- Índices para que la construcción recursiva del árbol y los movimientos
+-- (up/down) sean rápidos incluso con muchos niveles de anidamiento.
+ALTER TABLE gastos_generales
+    ADD INDEX idx_gg_padre (gastos_generales_id),
+    ADD INDEX idx_gg_proyecto_grupo (proyecto_generales_id, grupos_id, orden);
