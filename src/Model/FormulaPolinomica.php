@@ -23,6 +23,8 @@ class FormulaPolinomica extends Mysql
         $resp = [];
         try {
             $datainsumos = $this->getListInsumos($request);
+
+            //error_log(json_encode($datainsumos));
             $list = $datainsumos->list;
             $sublist = $datainsumos->sublist;
             $list_unif = $datainsumos->list_unif;
@@ -39,6 +41,8 @@ class FormulaPolinomica extends Mysql
             $resp['success'] = false;
             $resp['message'] = 'Ocurrió un erro al listar insumos';
         }
+
+        //error_log(json_encode($resp));
         return $resp;
     }
 
@@ -76,68 +80,33 @@ class FormulaPolinomica extends Mysql
             $ius[$item->iu] = $item;
         }
 
-        $result = $this->performCalculationsInsumos($list, $sublist);
-        $filter = $result['data'];
-        $direct_cost = $result['direct_cost'];
-        $costs = ['GG' => 0, 'UT' => 0];
+        $result = $this->assembleInsumos(
+            $list,
+            $sublist,
+            $list_unif,
+            $ppresupuesto
+        );
 
-        foreach ($ppresupuesto as $item) {
-            if ($item->pie_presupuesto_id == 2) {
-                $costs['UT'] = $item->percentage;
-            }
-            if ($item->pie_presupuesto_id == 3) {
-                $costs['GG'] = $item->percentage;
-            }
-        }
+        $filter = $result->indices_unificados;
 
-        $gg = round(($direct_cost * $costs['GG']), 2);
-        $ut = round(($direct_cost * $costs['UT']), 2);
-        $subtotal = $direct_cost + $gg + $ut;
-        $insumoggu = new stdClass();
-        $insumoggu->coeficiente = number_format(round((($gg + $ut) / $subtotal), 3), 3, '.', '');
-        $insumoggu->add = true;
         $detail = [];
         $groups_iu = [];
 
         foreach ($filter as $e) {
-            $coeficiente = 0;
-            if ($subtotal) {
-                $coeficiente = round(($e->monto_parcial_ppto / $subtotal), 3);
+            // Las filas hijas ya fueron absorbidas por su padre
+            if ($e->costo_final === null) {
+                continue;
             }
-            if ($e->iu) {
-                if (isset($groups_iu[$e->iu])) {
-                    $groups_iu[$e->iu]->coeficiente = $groups_iu[$e->iu]->coeficiente + $coeficiente;
-                } else {
-                    $e->coeficiente = $coeficiente;
-                    $e->indice_unificado = '';
-                    if (isset($ius[$e->iu])) {
-                        $iu = $ius[$e->iu];
-                        $e->indice_unificado = $iu->descripcion;
-                    }
-                    $groups_iu[$e->iu] = $e;
-                }
-                if (!$pie_p_grupo && $e->iuinsumo = 39 && $insumoggu->add) {
-                    $coef = $groups_iu[$e->iu]->coeficiente + $insumoggu->coeficiente;
-                    $groups_iu[$e->iu]->coeficiente = $coef;
-                    $insumoggu->add = false;
-                }
-            }
-        }
 
-        if ($insumoggu->add) {
-            /*$insumoggu->iu = NULL;
-            $insumoggu->monomio = NULL;*/
-            if ($pie_p_grupo && $pie_p_grupo->iu && isset($groups_iu[$pie_p_grupo->iu])) {
-                $ggu_iu = $pie_p_grupo->iu;
-                $coef = $groups_iu[$ggu_iu]->coeficiente + $insumoggu->coeficiente;
-                $groups_iu[$ggu_iu]->coeficiente = $coef;
-                //$insumoggu->iu = $pie_p_grupo->iu;
-                //$insumoggu->monomio = $pie_p_grupo->monomio;
+            $e->coeficiente = round($e->costo_final / 100, 3);
+
+            $e->indice_unificado = '';
+
+            if (isset($ius[$e->iu])) {
+                $e->indice_unificado = $ius[$e->iu]->descripcion;
             }
-            /*$insumoggu->id = 'ggu';
-            $insumoggu->iuinsumo = 39;
-            $insumoggu->indice_unificado = 'Gastos generales y utilidad';
-            $groups_iu[39] = $insumoggu;*/
+
+            $groups_iu[$e->iu] = $e;
         }
 
         $groups_monomio = [];
@@ -160,8 +129,10 @@ class FormulaPolinomica extends Mysql
         $advertencia = false;
         foreach ($detail as $key => $e) {
             if ($e->monomio) {
-                $detail[$key]->factor =  number_format($factor_monomio[$e->monomio], 3, '.', '');
-                if ($detail[$key]->factor < 0.05) {
+                $factor = round($factor_monomio[$e->monomio], 3);
+                $detail[$key]->factor = number_format($factor, 3, '.', '');
+
+                if ($factor < 0.05) {
                     $advertencia = true;
                 }
                 if (!isset($fsimbol[$e->monomio])) {
@@ -201,6 +172,12 @@ class FormulaPolinomica extends Mysql
             'formula' => $formula,
             'advertencia' => $advertencia
         );
+        error_log('monomios: ' . json_encode($groups_monomio));
+        //error_log('detail: ' . json_encode($detail));
+        error_log('formula: ' . json_encode($formula));
+        error_log('advertencia: ' . $advertencia);
+
+        //error_log('detail: ' . json_encode($detail));
 
         return $response;
     }
@@ -378,7 +355,6 @@ class FormulaPolinomica extends Mysql
 
     private function assembleInsumos($list, $sublist, $list_unif, $ppresupuesto)
     {
-
         $groupsKeys = [];
         $unifieds = [];
         $filters = [];
@@ -390,30 +366,58 @@ class FormulaPolinomica extends Mysql
         $supplies = $detalleInsumos->assembleInsumos($list, $sublist);
 
         $presupuesto   = new RecalculoPrespuesto();
-        $resultPie = $presupuesto->getPiePresupuesto(['id' => $this->proyecto_general_id]);
+        $resultPie = $presupuesto->getPiePresupuestoTotals(['id' => $this->proyecto_general_id]);
         $pies = $resultPie['data']['pie'];
 
         $pgg = 0;
         $put = 0;
         $pcd = 0;
+
+        $ggpercentage = 0;
+        $utpercentage = 0;
+
         foreach ($pies as $key => $pie) {
             if (strtolower($pie['variable']) == 'gg') {
-                $pgg = $pie['monto'] * 0.13;
+                $pgg = (float) str_replace(',', '', $pie['monto']);
+                $ggpercentage = $pie['percentage'];
             } elseif (strtolower($pie['variable']) == 'ut') {
-                $put = $pie['monto'] * 0.12;
+                $put = (float) str_replace(',', '', $pie['monto']);
+                $utpercentage = $pie['percentage'];
             } elseif (strtolower($pie['variable']) == 'cd') {
-                $pcd = $pie['monto'];
+                $pcd = (float) str_replace(',', '', $pie['monto']);
             }
         }
+
         $subtotal = $pcd + ($pgg + $put);
 
+        $mapMonomios = [];
         foreach ($supplies as $k => $o) {
             $groupsKeys[$o->iuinsumo][] = [
                 'amount'    => $o->parcialNumber,
                 'iu'        => $o->iu,
                 'insumo_id' => $o->id
             ];
+
+            if ($o->iu && $o->monomio) {
+                $mapMonomios[$o->iu] = $o->monomio;
+            }
         }
+
+        $montoTotal = 0;
+        foreach ($list_unif as $k => $o) {
+            if ($groupsKeys[$o->iu]) {
+                $monto = 0;
+
+                foreach ($groupsKeys[$o->iu] as $k2 => $o2) {
+                    $amount = (float) str_replace(',', '', $o2['amount']);
+                    $monto += $amount;
+                }
+                $montoTotal += $monto;
+            }
+        }
+
+        $ggu = $montoTotal * (($ggpercentage + $utpercentage) / 100);
+        $montoTotal += $ggu;
 
         foreach ($list_unif as $k => $o) {
             if ($o->iu == $siu) {
@@ -424,15 +428,23 @@ class FormulaPolinomica extends Mysql
                 $monto = 0;
                 $parent = null;
                 foreach ($groupsKeys[$o->iu] as $k2 => $o2) {
-                    $monto = $monto + $o2['amount'];
+                    $amount = (float) str_replace(',', '', $o2['amount']);
+                    $monto += $amount;
+
                     if ($o2['iu']) {
                         $parent = $o2['iu'];
                     }
                 }
+
                 if ($o->iu == $siu) {
-                    $monto = $monto + ($pgg + $put);
+                    $monto += $ggu;
                 }
-                $costo_inicial = $monto / $subtotal;
+
+                //$costo_inicial = $monto / $subtotal;
+                $costo_inicial = $montoTotal > 0
+                                    ? ($monto / $montoTotal) * 100
+                                    : 0;
+
                 if ($parent) {
                     $costosKeys[$parent][] = $costo_inicial;
                 }
@@ -442,6 +454,7 @@ class FormulaPolinomica extends Mysql
                 $o->parent = $parent;
                 $o->monto = $monto;
                 $o->grupo = 0;
+                $o->monomio = $mapMonomios[$o->iu] ?? null;
                 $unifieds[] = $o;
             }
         }
@@ -454,41 +467,86 @@ class FormulaPolinomica extends Mysql
             return $a->iu > $b->iu;
         });
 
-        $colors = range(0, 15);
-        $index = 1;
-        foreach ($filters as $k => $o) {
+        $index = 0;
+        foreach ($filters as $o) {
             $band = false;
-            foreach ($unifieds as $k2 => $o2) {
-                if ($o2->parent == $o->iu) {
+
+            // Genera un color distinto para cada grupo
+            $hue = fmod($index * 137.508, 360);
+
+            $saturation = 70;
+            $lightness = 85;
+
+            $color = sprintf(
+                'hsl(%.2f, %d%%, %d%%)',
+                $hue,
+                $saturation,
+                $lightness
+            );
+
+            foreach ($unifieds as $k => $u) {
+                if ($u->parent == $o->iu) {
                     $band = true;
-                    $unifieds[$k2]->grupo = $index;
+                    $unifieds[$k]->color = $color;
                 }
             }
+
             if ($band) {
-                $index = $index + 1;
+                $index++;
             }
         }
 
         foreach ($unifieds as $k => $o) {
-            if (isset($costosKeys[$o->parent])) {
-                $costos = $costosKeys[$o->parent];
-                $costo_final = 0;
-                foreach ($costos as $k2 => $o2) {
-                    $costo_final = $costo_final + $o2;
-                }
-                $o->costo_final = $costo_final;
+            if (!isset($o->color)) {
+                $o->color = '';
             }
-            $unifieds[$k]->costo_inicial = FG::numberFormat($o->costo_inicial, 3);
-            $unifieds[$k]->costo_final = FG::numberFormat($o->costo_final, 3);
-            $unifieds[$k]->monto = FG::numberFormat($o->monto);
+
+            if (isset($costosKeys[$o->iu])) {
+                $o->costo_final = array_sum($costosKeys[$o->iu]);
+            } elseif ($o->parent) {
+                $o->costo_final = null;
+            } else {
+                $o->costo_final = $o->costo_inicial;
+            }
+
+            $unifieds[$k]->costo_inicial = (float) $o->costo_inicial;
+            $unifieds[$k]->costo_final   = $o->costo_final === null
+                ? null
+                : (float) $o->costo_final;
+            $unifieds[$k]->monto         = (float) $o->monto;
         }
 
         usort($unifieds, function ($a, $b) {
-            return $a->grupo > $b->grupo;
+            // Los que no tienen parent primero
+            if (empty($a->parent) && !empty($b->parent)) {
+                return -1;
+            }
+
+            if (!empty($a->parent) && empty($b->parent)) {
+                return 1;
+            }
+
+            // Si ambos pertenecen a un grupo, agrupar por parent
+            if (!empty($a->parent) && !empty($b->parent)) {
+                if ($a->parent == $b->parent) {
+                    return $a->iu <=> $b->iu;
+                }
+
+                return $a->parent <=> $b->parent;
+            }
+
+            // Los libres se ordenan por IU
+            return $a->iu <=> $b->iu;
         });
 
         $response = new stdClass();
         $response->indices_unificados = $unifieds;
+        $response->monto_total = $montoTotal;
+        $response->ggu = $ggu;
+        $response->costos_keys = $costosKeys;
+        $response->groups_keys = $groupsKeys;
+        $response->map_monomios = $mapMonomios;
+
         return $response;
     }
 

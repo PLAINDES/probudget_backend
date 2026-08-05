@@ -23311,3 +23311,8 @@ SET gg.orden = t.rn;
 ALTER TABLE gastos_generales
     ADD INDEX idx_gg_padre (gastos_generales_id),
     ADD INDEX idx_gg_proyecto_grupo (proyecto_generales_id, grupos_id, orden);
+
+
+ALTER TABLE presupuestos
+ADD COLUMN visible TINYINT(1) NOT NULL DEFAULT 1
+AFTER metrado;
