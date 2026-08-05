@@ -459,8 +459,21 @@ class FormulaPolinomica extends Mysql
             }
         }
 
-        if ($indiceUnificado39 && !isset($groupsKeys[$siu])) {
-            $filters[] = $indiceUnificado39;
+        if (!isset($groupsKeys[$siu]) && $indiceUnificado39) {
+            $nuevo = clone $indiceUnificado39;
+
+            $nuevo->costo_inicial = $montoTotal > 0
+                ? ($ggu / $montoTotal) * 100
+                : 0;
+
+            $nuevo->costo_final = $nuevo->costo_inicial;
+            $nuevo->insumo_id = null;
+            $nuevo->parent = null;
+            $nuevo->monto = $ggu;
+            $nuevo->grupo = 0;
+            $nuevo->monomio = null;
+
+            $unifieds[] = $nuevo;
         }
 
         usort($filters, function ($a, $b) {
