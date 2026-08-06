@@ -23270,6 +23270,18 @@ ALTER TABLE users
 ADD COLUMN cognito_sub VARCHAR(255) NULL AFTER email,
 ADD UNIQUE KEY uniq_cognito_sub (cognito_sub);
 
+UPDATE ub_distritos
+SET descripcion = REPLACE(descripcion, '&Ntilde;', 'Ñ')
+WHERE descripcion LIKE '%&Ntilde;%';
+
+UPDATE ub_provincias
+SET descripcion = REPLACE(descripcion, '&Ntilde;', 'Ñ')
+WHERE descripcion LIKE '%&Ntilde;%';
+
+UPDATE ub_departamentos
+SET descripcion = REPLACE(descripcion, '&Ntilde;', 'Ñ')
+WHERE descripcion LIKE '%&Ntilde;%';
+
 
 -- Migración: soporte de subtítulos anidados recursivamente (árbol self-referencing)
 --
