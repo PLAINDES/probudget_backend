@@ -42,7 +42,6 @@ class FormulaPolinomica extends Mysql
             $resp['message'] = 'Ocurrió un erro al listar insumos';
         }
 
-        //error_log(json_encode($resp));
         return $resp;
     }
 
@@ -67,14 +66,6 @@ class FormulaPolinomica extends Mysql
         $list_unif = $resp->list_unif;
         $ppresupuesto = $resp->ppresupuesto;
 
-        $sql = 'SELECT iu, monomio FROM pie_presupuesto_grupo 
-                WHERE subpresupuestos_id =:subpresupuestos_id 
-                AND proyectos_generales_id =:proyectos_generales_id';
-        $pie_p_grupo = self::fetchObj($sql, [
-            'subpresupuestos_id' => $request->subpresupuesto_id,
-            'proyectos_generales_id' => $request->proyecto_general_id
-        ]);
-
         $ius = [];
         foreach ($list_unif as $item) {
             $ius[$item->iu] = $item;
@@ -87,6 +78,8 @@ class FormulaPolinomica extends Mysql
             $ppresupuesto
         );
 
+        //error_log('listado de insumos: ' . json_encode($result->indices_unificados));
+
         $filter = $result->indices_unificados;
 
         $detail = [];
@@ -94,7 +87,7 @@ class FormulaPolinomica extends Mysql
 
         foreach ($filter as $e) {
             // Las filas hijas ya fueron absorbidas por su padre
-            if ($e->costo_final === null) {
+            if (!$e->es_grupo) {
                 continue;
             }
 
@@ -172,10 +165,10 @@ class FormulaPolinomica extends Mysql
             'formula' => $formula,
             'advertencia' => $advertencia
         );
-        error_log('monomios: ' . json_encode($groups_monomio));
+        //error_log('monomios: ' . json_encode($groups_monomio));
         //error_log('detail: ' . json_encode($detail));
-        error_log('formula: ' . json_encode($formula));
-        error_log('advertencia: ' . $advertencia);
+        //error_log('formula: ' . json_encode($formula));
+        //error_log('advertencia: ' . $advertencia);
 
         //error_log('detail: ' . json_encode($detail));
 
@@ -322,25 +315,33 @@ class FormulaPolinomica extends Mysql
             $sql = "UPDATE apus_partida_presupuestos SET iu = {$request->iu} 
             WHERE subpresupuestos_id = {$request->subpresupuesto_id} AND proyectos_generales_id = {$request->proyecto_generales_id}";
 
-            if ($request->insumo_id == 'ggu') {
-                $sql .= " AND insumo_id = {$request->id}";
-                self::ex($sql);
-                $sql = 'SELECT id FROM pie_presupuesto_grupo WHERE subpresupuestos_id =:subpresupuestos_id AND proyectos_generales_id =:proyectos_generales_id';
+            if (empty($request->insumo_id)) {
+                $sql = 'SELECT id
+                        FROM pie_presupuesto_grupo
+                        WHERE subpresupuestos_id = :subpresupuestos_id
+                        AND proyectos_generales_id = :proyectos_generales_id';
+
                 $pp_grupo = self::fetchObj($sql, [
                     'subpresupuestos_id' => $request->subpresupuesto_id,
                     'proyectos_generales_id' => $request->proyecto_generales_id
                 ]);
+
                 if ($pp_grupo) {
-                    self::update("pie_presupuesto_grupo", ['iu' => $request->iu], ['id' => $pp_grupo->id]);
+                    self::update('pie_presupuesto_grupo', [
+                        'iu' => $request->iu
+                    ], [
+                        'id' => $pp_grupo->id
+                    ]);
                 } else {
-                    $lastInsert = self::insert("pie_presupuesto_grupo", [
+                    self::insert('pie_presupuesto_grupo', [
                         'iu' => $request->iu,
                         'subpresupuestos_id' => $request->subpresupuesto_id,
                         'proyectos_generales_id' => $request->proyecto_generales_id
                     ]);
                 }
             } else {
-                $sql .= " AND (insumo_id = {$request->insumo_id} OR insumo_id = {$request->id})";
+                $sql .= " AND (insumo_id = {$request->insumo_id}";
+                $sql .= !empty($request->id) ? " OR insumo_id = {$request->id})" : ")";
                 self::ex($sql);
             }
             $resp['success'] = true;
@@ -472,6 +473,7 @@ class FormulaPolinomica extends Mysql
             $nuevo->monto = $ggu;
             $nuevo->grupo = 0;
             $nuevo->monomio = null;
+            $nuevo->es_grupo = true;
 
             $unifieds[] = $nuevo;
         }
@@ -514,10 +516,14 @@ class FormulaPolinomica extends Mysql
                 $o->color = '';
             }
 
+            $o->es_grupo = $o->es_grupo ?? false;
+
             if (isset($costosKeys[$o->iu])) {
                 $o->costo_final = array_sum($costosKeys[$o->iu]);
+                $o->es_grupo = true;
             } elseif ($o->parent) {
                 $o->costo_final = null;
+                $o->es_grupo = false;
             } else {
                 $o->costo_final = $o->costo_inicial;
             }
@@ -527,6 +533,7 @@ class FormulaPolinomica extends Mysql
                 ? null
                 : (float) $o->costo_final;
             $unifieds[$k]->monto         = (float) $o->monto;
+            $unifieds[$k]->es_grupo      = $o->es_grupo;
         }
 
         usort($unifieds, function ($a, $b) {
