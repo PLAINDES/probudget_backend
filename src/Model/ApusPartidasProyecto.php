@@ -54,6 +54,24 @@ class ApusPartidasProyecto extends Mysql
             if ($param->master_insumo_id) {
                 $insumo = $this->findOrCreateInsumo($param->master_insumo_id, $param->proyectos_generales_id);
             } elseif ($param->proyecto_insumo_id) {
+                if ($tipo == 'SP') {
+                    $sql = 'SELECT id 
+                            FROM presupuestos
+                            WHERE id = :presupuestos_id
+                            AND partidas_id = :partidas_id
+                            AND deleted_at IS NULL';
+                    $mismaPartida = self::fetchObj($sql, [
+                        'presupuestos_id' => $param->presupuestos_id,
+                        'partidas_id' => $param->proyecto_insumo_id
+                    ]);
+
+                    if ($mismaPartida) {
+                        return [
+                            'success' => false,
+                            'message' => 'No puedes asignar la misma partida como insumo tipo subpartida'
+                        ];
+                    }
+                }
                 $insumo = $this->findInsumo($param->proyecto_insumo_id, $tipo);
             }
 
@@ -1068,7 +1086,6 @@ class ApusPartidasProyecto extends Mysql
 
     private function updateHeaderApuPartida($resp, $presupuestos_id, $subpartida_id)
     {
-        error_log("updateHeaderApuPartida presupuestos_id={$presupuestos_id} subpartida_id={$subpartida_id} cu={$cu} mo={$resp->mano_obra} trace=" . json_encode(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)));
         $cu = $resp->mano_obra + $resp->materiales + $resp->herramienta_equipos + $resp->subcontrato + $resp->subpartida;
         if ($subpartida_id) {
             self::update("apus_partida_presupuestos", array(
