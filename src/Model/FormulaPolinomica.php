@@ -156,7 +156,7 @@ class FormulaPolinomica extends Mysql
         });
 
         usort($formula, function ($a, $b) {
-            return $a->monomio > $b->monomio;
+            return strcasecmp($a['simbolo'], $b['simbolo']);
         });
 
         $response = [];
@@ -173,7 +173,7 @@ class FormulaPolinomica extends Mysql
         //error_log('formula: ' . json_encode($formula));
         //error_log('advertencia: ' . $advertencia);
 
-        error_log('detail: ' . json_encode($detail));
+        //error_log('detail: ' . json_encode($detail));
 
         return $response;
     }
@@ -227,6 +227,7 @@ class FormulaPolinomica extends Mysql
 
     public function updateSimbol($request)
     {
+        error_log('request: ' . print_r($request, true));
         $resp = [];
         try {
             $sql = 'SELECT id FROM formula_polinomica WHERE subpresupuesto_id =:subpresupuesto_id AND proyecto_general_id =:proyecto_general_id AND monomio =:monomio';
@@ -243,7 +244,7 @@ class FormulaPolinomica extends Mysql
                 $var = [
                     'monomio' => $request->monomio,
                     'proyecto_general_id' => $request->proyecto_generales_id,
-                    'subpresupuesto_id' => $request->subpresupuesto_id
+                    'subpresupuesto_id' => $request->subpresupuesto_id,
                 ];
                 if ($request->simbolo) {
                     $var['simbolo'] = $request->simbolo;
@@ -640,7 +641,6 @@ class FormulaPolinomica extends Mysql
         $response->groups_keys = $groupsKeys;
         $response->map_monomios = $mapMonomios;
 
-        error_log(json_encode($response));
         return $response;
     }
 
