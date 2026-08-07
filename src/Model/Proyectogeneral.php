@@ -257,8 +257,6 @@ class Proyectogeneral extends Mysql
 
     public function getListProyectoGeneral()
     {
-        error_log('USER ID REAL: ' . $this->_users_id);
-
         if (AuthService::isAdmin($this->_users_id)) {
             $sql = "SELECT
                         pg.id,
