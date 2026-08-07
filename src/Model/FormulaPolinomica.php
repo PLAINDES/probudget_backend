@@ -71,6 +71,9 @@ class FormulaPolinomica extends Mysql
             $ius[$item->iu] = $item;
         }
 
+        $this->proyecto_general_id = $request->proyecto_general_id;
+        $this->subpresupuesto_id = $request->subpresupuesto_id;
+
         $result = $this->assembleInsumos(
             $list,
             $sublist,
@@ -170,7 +173,7 @@ class FormulaPolinomica extends Mysql
         //error_log('formula: ' . json_encode($formula));
         //error_log('advertencia: ' . $advertencia);
 
-        //error_log('detail: ' . json_encode($detail));
+        error_log('detail: ' . json_encode($detail));
 
         return $response;
     }
@@ -261,9 +264,13 @@ class FormulaPolinomica extends Mysql
     {
         $resp = [];
         try {
-            $sql = 'SELECT COUNT(1) AS valid FROM (SELECT iu FROM apus_partida_presupuestos
-                WHERE subpresupuestos_id =:subpresupuestos_id AND proyectos_generales_id =:proyectos_generales_id AND monomio =:monomio
-                GROUP BY iu) AS total';
+            $sql = 'SELECT COUNT(1) AS valid 
+                    FROM (SELECT iu FROM apus_partida_presupuestos
+                            WHERE subpresupuestos_id =:subpresupuestos_id 
+                            AND proyectos_generales_id =:proyectos_generales_id 
+                            AND monomio =:monomio
+                            GROUP BY iu) 
+                    AS total';
             $result = self::fetchObj($sql, [
                 'subpresupuestos_id' => $request->subpresupuesto_id,
                 'proyectos_generales_id' => $request->proyecto_generales_id,
@@ -276,25 +283,43 @@ class FormulaPolinomica extends Mysql
                 return $resp;
             }
 
-            /*$sql = 'SELECT COUNT(1) AS valid FROM (SELECT monomio FROM apus_partida_presupuestos
-                WHERE subpresupuestos_id =:subpresupuestos_id AND proyectos_generales_id =:proyectos_generales_id AND monomio IS NOT NULL
-                GROUP BY monomio) AS total';
-            $result = self::fetchObj($sql,['subpresupuestos_id' => $request->subpresupuesto_id,
-            'proyectos_generales_id' => $request->proyecto_generales_id]);
+            $siu = 39; // mismo valor usado en assembleInsumos
 
-            if($result->valid >= 3) {
-                $resp['success'] = false;
-                $resp['message'] = 'Error máximo pueden haber 8 monomios';
-                return $resp;
-            }*/
+            if ($request->iu == $siu) {
+                // El 39 virtual no tiene filas reales en apus_partida_presupuestos,
+                // así que el UPDATE normal afectaría 0 filas. Se guarda como override.
+                $pp_grupo = self::fetchObj(
+                    'SELECT id FROM pie_presupuesto_grupo
+                    WHERE subpresupuestos_id = :subpresupuestos_id
+                    AND proyectos_generales_id = :proyectos_generales_id',
+                    [
+                        'subpresupuestos_id' => $request->subpresupuesto_id,
+                        'proyectos_generales_id' => $request->proyecto_generales_id
+                    ]
+                );
 
-            $update = self::update('apus_partida_presupuestos', [
-                'monomio' => $request->monomio,
-            ], [
-                'subpresupuestos_id' => $request->subpresupuesto_id,
-                'proyectos_generales_id' => $request->proyecto_generales_id,
-                'iu' => $request->iu
-            ]);
+                if ($pp_grupo) {
+                    self::update('pie_presupuesto_grupo', [
+                        'monomio' => $request->monomio
+                    ], [
+                        'id' => $pp_grupo->id
+                    ]);
+                } else {
+                    self::insert('pie_presupuesto_grupo', [
+                        'monomio' => $request->monomio,
+                        'subpresupuestos_id' => $request->subpresupuesto_id,
+                        'proyectos_generales_id' => $request->proyecto_generales_id
+                    ]);
+                }
+            } else {
+                self::update('apus_partida_presupuestos', [
+                    'monomio' => $request->monomio,
+                ], [
+                    'subpresupuestos_id' => $request->subpresupuesto_id,
+                    'proyectos_generales_id' => $request->proyecto_generales_id,
+                    'iu' => $request->iu
+                ]);
+            }
 
             $this->updateSimbol($request);
 
@@ -312,8 +337,10 @@ class FormulaPolinomica extends Mysql
     {
         $resp = [];
         try {
-            $sql = "UPDATE apus_partida_presupuestos SET iu = {$request->iu} 
-            WHERE subpresupuestos_id = {$request->subpresupuesto_id} AND proyectos_generales_id = {$request->proyecto_generales_id}";
+            $sql = "UPDATE apus_partida_presupuestos 
+                    SET iu = {$request->iu} 
+                    WHERE subpresupuestos_id = {$request->subpresupuesto_id} 
+                    AND proyectos_generales_id = {$request->proyecto_generales_id}";
 
             if (empty($request->insumo_id)) {
                 $sql = 'SELECT id
@@ -475,6 +502,30 @@ class FormulaPolinomica extends Mysql
             $nuevo->monomio = null;
             $nuevo->es_grupo = true;
 
+            // Verifica si hay una agrupación manual guardada para el índice virtual 39
+            $ppGrupo = self::fetchObj(
+                'SELECT iu, monomio FROM pie_presupuesto_grupo
+                 WHERE subpresupuestos_id = :subpresupuestos_id
+                 AND proyectos_generales_id = :proyectos_generales_id',
+                [
+                    'subpresupuestos_id' => $this->subpresupuesto_id,
+                    'proyectos_generales_id' => $this->proyecto_general_id
+                ]
+            );
+
+            if ($ppGrupo) {
+                if ($ppGrupo->monomio) {
+                    $nuevo->monomio = $ppGrupo->monomio;
+                }
+
+                if ($ppGrupo->iu == $siu) {
+                    $nuevo->parent = $siu;
+                } elseif (isset($groupsKeys[$ppGrupo->iu])) {
+                    $nuevo->parent = $ppGrupo->iu;
+                    $costosKeys[$ppGrupo->iu][] = $nuevo->costo_inicial;
+                }
+            }
+
             $unifieds[] = $nuevo;
         }
 
@@ -486,18 +537,11 @@ class FormulaPolinomica extends Mysql
         foreach ($filters as $o) {
             $band = false;
 
-            // Genera un color distinto para cada grupo
             $hue = fmod($index * 137.508, 360);
-
             $saturation = 70;
             $lightness = 85;
 
-            $color = sprintf(
-                'hsl(%.2f, %d%%, %d%%)',
-                $hue,
-                $saturation,
-                $lightness
-            );
+            $color = sprintf('hsl(%.2f, %d%%, %d%%)', $hue, $saturation, $lightness);
 
             foreach ($unifieds as $k => $u) {
                 if ($u->parent == $o->iu) {
@@ -507,6 +551,16 @@ class FormulaPolinomica extends Mysql
             }
 
             if ($band) {
+                $index++;
+            }
+        }
+
+        // Caso especial: el 39 virtual agrupado a sí mismo no está en $filters,
+        // así que nunca recibe color en el bucle anterior. Se le asigna aparte.
+        foreach ($unifieds as $k => $u) {
+            if ($u->iu == $siu && $u->parent == $siu && empty($u->color)) {
+                $hue = fmod($index * 137.508, 360);
+                $unifieds[$k]->color = sprintf('hsl(%.2f, %d%%, %d%%)', $hue, 70, 85);
                 $index++;
             }
         }
@@ -521,7 +575,8 @@ class FormulaPolinomica extends Mysql
             if (isset($costosKeys[$o->iu])) {
                 $o->costo_final = array_sum($costosKeys[$o->iu]);
                 $o->es_grupo = true;
-            } elseif ($o->parent) {
+            } elseif ($o->parent && $o->parent != $o->iu) {
+                // Solo se oculta/anida si el parent es OTRO grupo, no si apunta a sí mismo
                 $o->costo_final = null;
                 $o->es_grupo = false;
             } else {
@@ -567,6 +622,7 @@ class FormulaPolinomica extends Mysql
         $response->groups_keys = $groupsKeys;
         $response->map_monomios = $mapMonomios;
 
+        error_log(json_encode($response));
         return $response;
     }
 
