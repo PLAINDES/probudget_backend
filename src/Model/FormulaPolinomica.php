@@ -555,14 +555,32 @@ class FormulaPolinomica extends Mysql
             }
         }
 
-        // Caso especial: el 39 virtual agrupado a sí mismo no está en $filters,
-        // así que nunca recibe color en el bucle anterior. Se le asigna aparte.
-        foreach ($unifieds as $k => $u) {
-            if ($u->iu == $siu && $u->parent == $siu && empty($u->color)) {
-                $hue = fmod($index * 137.508, 360);
-                $unifieds[$k]->color = sprintf('hsl(%.2f, %d%%, %d%%)', $hue, 70, 85);
-                $index++;
+        // Manejo de color para el grupo virtual 39, ya sea "agrupado solo"
+        // o con hijos reales agrupados hacia él (39 nunca aparece en $filters
+        // por ser virtual, así que el bucle de colores anterior no lo alcanza).
+        $tiene39Hijos = false;
+        $es39AutoAgrupado = false;
+
+        foreach ($unifieds as $u) {
+            if ($u->iu != $siu && $u->parent == $siu) {
+                $tiene39Hijos = true;
             }
+            if ($u->iu == $siu && $u->parent == $siu) {
+                $es39AutoAgrupado = true;
+            }
+        }
+
+        if ($tiene39Hijos || $es39AutoAgrupado) {
+            $hue = fmod($index * 137.508, 360);
+            $color39 = sprintf('hsl(%.2f, %d%%, %d%%)', $hue, 70, 85);
+
+            foreach ($unifieds as $k => $u) {
+                if ($u->iu == $siu || $u->parent == $siu) {
+                    $unifieds[$k]->color = $color39;
+                }
+            }
+
+            $index++;
         }
 
         foreach ($unifieds as $k => $o) {
