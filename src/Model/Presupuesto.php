@@ -316,7 +316,6 @@ class Presupuesto extends Mysql
     public function getListPresupuesto()
     {
         try {
-        // ✅ CONSTRUIR LA CONDICIÓN DINÁMICAMENTE
             $subpresupuestoCondition = "";
 
             if (!empty($this->_subpresupuestos_id)) {
@@ -370,38 +369,31 @@ class Presupuesto extends Mysql
                             WHERE p.proyecto_generales_id = :id
                             AND p.deleted_at IS NULL
                             {$subpresupuestoCondition}
-                            ORDER BY p.nro_orden ASC"; // p.sp -> quitado porque no se usa
+                            ORDER BY p.nro_orden ASC";
 
             $presupuestos_general = self::fetchAllObj($sql_general, ['id' => $this->_id]);
             $data = array();
 
             foreach ($presupuestos_general as $key => $value) {
-                if (
-                    $value->type_item == '1' &&
-                    empty($value->presupuestos_proyecto_generales_id)
-                ) {
+                if (!empty($value->presupuestos_proyecto_generales_id)) {
+                    continue;
+                }
+
+                if ($value->type_item == '1') {
                     $detail = $this->setMatrizPresupuesto($value->id, $presupuestos_general);
-                    $total = 0;
-                    $mo = 0;
-                    $mat = 0;
-                    $eq = 0;
-                    $sc = 0;
-                    //$sp = 0;
-                    foreach ($detail as $item) {
-                        $total += ($item->total_parcial * 1);
-                        $mo += ($item->mo * 1);
-                        $mat += ($item->mat * 1);
-                        $eq += ($item->eq * 1);
-                        $sc += ($item->sc * 1);
-                        //$sp += ($item->sp * 1);
-                    }
+                    $totales = $this->sumarTotales($detail);
+
                     $presupuestos_general[$key]->detail = $detail;
-                    $presupuestos_general[$key]->total_parcial = number_format($total, 2, '.', '');
-                    $presupuestos_general[$key]->mo = $mo;
-                    $presupuestos_general[$key]->mat = $mat;
-                    $presupuestos_general[$key]->eq = $eq;
-                    $presupuestos_general[$key]->sc = $sc;
-                    //$presupuestos_general[$key]->sp = $sp;
+                    $presupuestos_general[$key]->total_parcial = number_format($totales['total'], 2, '.', '');
+                    $presupuestos_general[$key]->mo  = $totales['mo'];
+                    $presupuestos_general[$key]->mat = $totales['mat'];
+                    $presupuestos_general[$key]->eq  = $totales['eq'];
+                    $presupuestos_general[$key]->sc  = $totales['sc'];
+
+                    array_push($data, $presupuestos_general[$key]);
+                } elseif ($value->type_item == '3') {
+                    // Partida suelta, sin padre
+                    $presupuestos_general[$key] = $this->calcularMontosPartida($presupuestos_general[$key]);
                     array_push($data, $presupuestos_general[$key]);
                 }
             }
@@ -419,8 +411,7 @@ class Presupuesto extends Mysql
     public function setMatrizPresupuesto($searchedValue, $dataPresupuesto)
     {
         $array = [];
-        $pt = 0.00;
-        $object =   array_filter(
+        $object = array_filter(
             $dataPresupuesto,
             function ($e) use ($searchedValue) {
                 return $e->presupuestos_proyecto_generales_id == $searchedValue;
@@ -435,63 +426,65 @@ class Presupuesto extends Mysql
         if (count($childrens)) {
             foreach ($childrens as $key => $value) {
                 if ($value->type_item == '3') {
-                    $metrado = $value->metered ? $value->metered : 0;
-                    $cu = $value->cu ? $value->cu : 0;
-
-                    $total_parcial = ($metrado * $cu);
-
-                    $childrens[$key]->total_parcial = number_format($total_parcial, 2, '.', '');
-
-                    $met = $value->metered ? $value->metered : 0;
-
-                    $apusPartida = new ApusPartidasProyecto();
-                    $resumen = $apusPartida->getResumenApuPartida($value->id);
-
-                    $childrens[$key]->mo  = $resumen->mano_obra * $met;
-                    $childrens[$key]->mat = $resumen->materiales * $met;
-                    $childrens[$key]->eq  = $resumen->herramienta_equipos * $met;
-                    $childrens[$key]->sc  = $resumen->subcontrato * $met;
-                    //$childrens[$key]->sp  = $resumen->subpartida * $met;
-
-                    $childrens[$key]->unmetered = $met == 0;
-
-                    // TRAER APUS / SUBPARTIDAS
-                    /*
-                    $apus = $this->getDetallePartida($value->id);
-
-                    $childrens[$key]->detail = $apus;*/
-
+                    $childrens[$key] = $this->calcularMontosPartida($value);
                     continue;
                 }
+
                 $detail = $this->setMatrizPresupuesto($value->id, $dataPresupuesto);
+                $totales = $this->sumarTotales($detail);
 
-                $total = 0;
-                $mo = 0;
-                $mat = 0;
-                $eq = 0;
-                $sc = 0;
-                //$sp = 0;
-
-                foreach ($detail as $item) {
-                    $total += ($item->total_parcial * 1);
-                    $mo  += ($item->mo  * 1);
-                    $mat += ($item->mat * 1);
-                    $eq  += ($item->eq  * 1);
-                    $sc  += ($item->sc  * 1);
-                    //$sp  += ($item->sp  * 1);
-                }
-
-                $childrens[$key]->total_parcial = number_format($total, 2, '.', '');
-                $childrens[$key]->mo  = $mo;
-                $childrens[$key]->mat = $mat;
-                $childrens[$key]->eq  = $eq;
-                $childrens[$key]->sc  = $sc;
-                //$childrens[$key]->sp  = $sp;
+                $childrens[$key]->total_parcial = number_format($totales['total'], 2, '.', '');
+                $childrens[$key]->mo  = $totales['mo'];
+                $childrens[$key]->mat = $totales['mat'];
+                $childrens[$key]->eq  = $totales['eq'];
+                $childrens[$key]->sc  = $totales['sc'];
                 $childrens[$key]->detail = $detail;
             }
         }
 
         return $childrens;
+    }
+
+    /**
+     * Calcula total_parcial, mo, mat, eq, sc y unmetered para una partida (type_item == 3)
+     * a partir de su metrado, costo unitario y el resumen de su APU.
+     */
+    private function calcularMontosPartida($value)
+    {
+        $metrado = $value->metered ? $value->metered : 0;
+        $cu = $value->cu ? $value->cu : 0;
+
+        $total_parcial = ($metrado * $cu);
+        $value->total_parcial = number_format($total_parcial, 2, '.', '');
+
+        $apusPartida = new ApusPartidasProyecto();
+        $resumen = $apusPartida->getResumenApuPartida($value->id);
+
+        $value->mo  = $resumen->mano_obra * $metrado;
+        $value->mat = $resumen->materiales * $metrado;
+        $value->eq  = $resumen->herramienta_equipos * $metrado;
+        $value->sc  = $resumen->subcontrato * $metrado;
+        $value->unmetered = $metrado == 0;
+
+        return $value;
+    }
+
+    /**
+     * Suma total_parcial, mo, mat, eq, sc de una lista de items ya procesados (detail).
+     */
+    private function sumarTotales($detail)
+    {
+        $totales = ['total' => 0, 'mo' => 0, 'mat' => 0, 'eq' => 0, 'sc' => 0];
+
+        foreach ($detail as $item) {
+            $totales['total'] += ($item->total_parcial * 1);
+            $totales['mo']    += ($item->mo * 1);
+            $totales['mat']   += ($item->mat * 1);
+            $totales['eq']    += ($item->eq * 1);
+            $totales['sc']    += ($item->sc * 1);
+        }
+
+        return $totales;
     }
 
     /*
@@ -678,12 +671,20 @@ class Presupuesto extends Mysql
             // DETERMINAR TIPO DE MOVIMIENTO
             // =========================
 
-            if ($parent->type_item == 1) {
+            if ($parent->type_item == 1 || $parent->type_item == 2) {
                 // MOVER A TÍTULO
                 return $this->moverATitulo($itemId, $newParentId, $proyectoId);
             } elseif ($parent->type_item == 3) {
                 // MOVER A PARTIDA (crear subpartida)
                 $subpartida = new SubpartidaProyecto();
+
+                if ($item->unidad_medidas_id == '' || $item->unidad_medidas_id == null) {
+                    return [
+                        'success' => false,
+                        'message' => 'Primero asigna una partida o crea una nueva'
+                    ];
+                }
+
                 $data = (object) [
                     'partida' => $item->descripcion ?? '',
                     'rendimiento' => $item->rendimiento ?? '',
