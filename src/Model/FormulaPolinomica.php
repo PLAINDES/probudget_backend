@@ -523,6 +523,7 @@ class FormulaPolinomica extends Mysql
 
                 if ($ppGrupo->iu == $siu) {
                     $nuevo->parent = $siu;
+                    $costosKeys[$siu][] = $nuevo->costo_inicial;
                 } elseif (isset($groupsKeys[$ppGrupo->iu])) {
                     $nuevo->parent = $ppGrupo->iu;
 
