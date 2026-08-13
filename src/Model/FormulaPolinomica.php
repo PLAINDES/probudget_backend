@@ -448,6 +448,7 @@ class FormulaPolinomica extends Mysql
         $ggu = $montoTotal * (($ggpercentage + $utpercentage) / 100);
         $montoTotal += $ggu;
 
+        $costoInicialPorIu = [];
         foreach ($list_unif as $k => $o) {
             if ($o->iu == $siu) {
                 $indiceUnificado39 = $o;
@@ -469,7 +470,6 @@ class FormulaPolinomica extends Mysql
                     $monto += $ggu;
                 }
 
-                //$costo_inicial = $monto / $subtotal;
                 $costo_inicial = $montoTotal > 0
                                     ? ($monto / $montoTotal) * 100
                                     : 0;
@@ -485,6 +485,8 @@ class FormulaPolinomica extends Mysql
                 $o->grupo = 0;
                 $o->monomio = $mapMonomios[$o->iu] ?? null;
                 $unifieds[] = $o;
+
+                $costoInicialPorIu[$o->iu] = $costo_inicial; // <-- nuevo
             }
         }
 
@@ -523,6 +525,14 @@ class FormulaPolinomica extends Mysql
                     $nuevo->parent = $siu;
                 } elseif (isset($groupsKeys[$ppGrupo->iu])) {
                     $nuevo->parent = $ppGrupo->iu;
+
+                    // Si el grupo destino aún no tenía hijos, su costo propio nunca
+                    // se agregó a $costosKeys — hay que sumarlo ahora, junto al del 39,
+                    // o su costo_final terminará reflejando solo el aporte del 39.
+                    if (!isset($costosKeys[$ppGrupo->iu]) && isset($costoInicialPorIu[$ppGrupo->iu])) {
+                        $costosKeys[$ppGrupo->iu][] = $costoInicialPorIu[$ppGrupo->iu];
+                    }
+
                     $costosKeys[$ppGrupo->iu][] = $nuevo->costo_inicial;
                 }
             }
