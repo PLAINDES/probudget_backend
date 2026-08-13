@@ -23328,3 +23328,86 @@ ALTER TABLE gastos_generales
 ALTER TABLE presupuestos
 ADD COLUMN visible TINYINT(1) NOT NULL DEFAULT 1
 AFTER metrado;
+
+ALTER TABLE indice_unificado
+ADD UNIQUE KEY uk_indice_unificado_iu (iu);
+
+
+-- Generado desde Excel
+INSERT INTO indice_unificado (iu, descripcion) VALUES (1, 'Aceite y lubricante (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (2, 'Acero de construcción liso') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (3, 'Acero de construcción corrugado') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (4, 'Agregado fino') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (5, 'Agregado grueso') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (6, 'Alambre y cable de cobre desnudo') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (7, 'Alambre y cable tipo TW, THW, LSOH (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (8, 'Alambre y cable tipo WP, CPI (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (9, 'Alcantarilla metálica y guardavías (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (10, 'Aparato sanitario con grifería') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (11, 'Artefacto de alumbrado exterior') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (12, 'Artefacto de alumbrado interior') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (13, 'Asfalto') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (14, 'Baldosa acústica') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (16, 'Baldosa vinílica y PVC (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (17, 'Bloque y ladrillo') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (18, 'Cable telefónico y de red (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (19, 'Cable NYY, N2XY, NPT, N2XOH, N2XSY (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (20, 'Cemento asfáltico') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (21, 'Cemento Portland e hidráulico (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (24, 'Cerámica y porcelanato (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (26, 'Cerrajería (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (27, 'Detonante') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (28, 'Dinamita') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (30, 'Dólar más inflación mercado USA') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (31, 'Prefabricado de concreto (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (32, 'Flete terrestre') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (33, 'Flete aéreo') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (34, 'Gasohol y gasolina (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (37, 'Herramienta manual') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (38, 'Hormigón y afirmado (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (39, 'Índice de Precios al Consumidor (INEI) (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (40, 'Loseta y terrazo (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (41, 'Madera nacional en tiras para piso (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (42, 'Madera importada para encofrado y carpintería') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (43, 'Madera nacional para encofrado y carpintería') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (44, 'Madera terciada nacional (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (46, 'Malla de acero') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (47, 'Mano de obra (incluye leyes sociales)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (48, 'Maquinaria y equipo de construcción liviano (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (49, 'Maquinaria y equipo de construcción pesado (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (50, 'Marco y tapa de fierro (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (51, 'Perfil de acero al carbono (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (52, 'Perfil de aluminio') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (53, 'Petróleo diésel') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (54, 'Pintura látex') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (55, 'Pintura temple') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (56, 'Plancha de acero LAC') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (57, 'Plancha de acero LAF') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (59, 'Plancha de fibrocemento y yeso (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (60, 'Plancha de poliuretano, poliestireno y termoaislante (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (61, 'Plancha galvanizada') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (62, 'Poste de concreto') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (65, 'Tubería de acero negro y/o galvanizado ') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (66, 'Tubería de PVC para la red de agua potable y alcantarillado') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (68, 'Tubería de cobre') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (71, 'Tubería de hierro fundido y dúctil (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (72, 'Tubería de PVC para redes interiores (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (77, 'Válvula de bronce y latón (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (78, 'Válvula de hierro y acero (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (79, 'Vidrio (b)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (80, 'Concreto premezclado') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (81, 'Aditivo de concreto y similar (c)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (82, 'Alambre y cable de aluminio (c)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (83, 'Implemento y accesorio de seguridad (c)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (84, 'Madera terciada importada (c)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (85, 'Perfil de acero galvanizado (c)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (86, 'Pintura esmalte y epóxica (c)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (87, 'Plancha con cubierta aluzinc (c)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (88, 'Plancha y cobertura plástica (c)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (89, 'Poste y tubería de fibra de vidrio (c)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (90, 'Tubería de polietileno (c)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (91, 'Geomembrana y geotextil (c)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (92, 'Flete fluvial (c)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (93, 'Bienes y servicios auxiliares (c)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (94, 'Encofrado y andamio prefabricado (c)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+INSERT INTO indice_unificado (iu, descripcion) VALUES (95, 'Equipamiento permanente de obra (c)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
