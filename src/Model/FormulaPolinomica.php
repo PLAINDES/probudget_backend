@@ -264,19 +264,29 @@ class FormulaPolinomica extends Mysql
     public function updateMonomio($request)
     {
         $resp = [];
+
         try {
-            $sql = 'SELECT COUNT(1) AS valid 
-                    FROM (SELECT iu FROM apus_partida_presupuestos
-                            WHERE subpresupuestos_id =:subpresupuestos_id 
-                            AND proyectos_generales_id =:proyectos_generales_id 
-                            AND monomio =:monomio
-                            GROUP BY iu) 
-                    AS total';
+            /*
+            error_log('================ UPDATE MONOMIO ================');
+            error_log('REQUEST: ' . print_r($request->params(), true));*/
+
+            $sql = 'SELECT COUNT(1) AS valid
+                    FROM (
+                        SELECT iu
+                        FROM apus_partida_presupuestos
+                        WHERE subpresupuestos_id = :subpresupuestos_id
+                        AND proyectos_generales_id = :proyectos_generales_id
+                        AND monomio = :monomio
+                        GROUP BY iu
+                    ) AS total';
+
             $result = self::fetchObj($sql, [
                 'subpresupuestos_id' => $request->subpresupuesto_id,
                 'proyectos_generales_id' => $request->proyecto_generales_id,
                 'monomio' => $request->monomio
             ]);
+
+            //error_log('VALID: ' . print_r($result, true));
 
             if ($result->valid >= 3) {
                 $resp['success'] = false;
@@ -284,13 +294,31 @@ class FormulaPolinomica extends Mysql
                 return $resp;
             }
 
-            $siu = 39; // mismo valor usado en assembleInsumos
+            $siu = 39;
 
-            if ($request->iu == $siu) {
-                // El 39 virtual no tiene filas reales en apus_partida_presupuestos,
-                // así que el UPDATE normal afectaría 0 filas. Se guarda como override.
+            $iu39Real = self::fetchObj(
+                'SELECT id, iu, monomio, deleted_at
+                FROM apus_partida_presupuestos
+                WHERE subpresupuestos_id = :subpresupuestos_id
+                AND proyectos_generales_id = :proyectos_generales_id
+                AND iu = :iu
+                AND deleted_at IS NULL
+                LIMIT 1',
+                [
+                    'subpresupuestos_id' => $request->subpresupuesto_id,
+                    'proyectos_generales_id' => $request->proyecto_generales_id,
+                    'iu' => $siu
+                ]
+            );
+
+            //error_log('IU39 REAL: ' . print_r($iu39Real->id, true));
+
+            if ($request->iu == $siu && !$iu39Real) {
+                //error_log('*** ENTRA A OVERRIDE ***');
+
                 $pp_grupo = self::fetchObj(
-                    'SELECT id FROM pie_presupuesto_grupo
+                    'SELECT *
+                    FROM pie_presupuesto_grupo
                     WHERE subpresupuestos_id = :subpresupuestos_id
                     AND proyectos_generales_id = :proyectos_generales_id',
                     [
@@ -299,39 +327,107 @@ class FormulaPolinomica extends Mysql
                     ]
                 );
 
+                //error_log('ANTES UPDATE: ' . print_r($pp_grupo, true));
+
                 if ($pp_grupo) {
-                    self::update('pie_presupuesto_grupo', [
-                        'monomio' => $request->monomio
-                    ], [
-                        'id' => $pp_grupo->id
-                    ]);
+                    //error_log('ACTUALIZANDO ID = ' . $pp_grupo->id . ' A MONOMIO = ' . $request->monomio);
+
+                    $r = self::update(
+                        'pie_presupuesto_grupo',
+                        [
+                            'monomio' => $request->monomio
+                        ],
+                        [
+                            'id' => $pp_grupo->id
+                        ]
+                    );
+
+                    error_log('RETURN UPDATE: ' . print_r($r, true));
+
+                    /*
+                    $pp_grupo2 = self::fetchObj(
+                        'SELECT *
+                        FROM pie_presupuesto_grupo
+                        WHERE id = :id',
+                        [
+                            'id' => $pp_grupo->id
+                        ]
+                    );
+
+                    error_log('DESPUES POR ID: ' . print_r($pp_grupo2, true));
+
+                    $pp_grupo3 = self::fetchObj(
+                        'SELECT *
+                        FROM pie_presupuesto_grupo
+                        WHERE subpresupuestos_id = :sub
+                        AND proyectos_generales_id = :pro',
+                        [
+                            'sub' => $request->subpresupuesto_id,
+                            'pro' => $request->proyecto_generales_id
+                        ]
+                    );
+
+                    error_log('DESPUES POR SUB+PROY: ' . print_r($pp_grupo3, true));*/
                 } else {
-                    self::insert('pie_presupuesto_grupo', [
-                        'monomio' => $request->monomio,
-                        'subpresupuestos_id' => $request->subpresupuesto_id,
-                        'proyectos_generales_id' => $request->proyecto_generales_id
-                    ]);
+                    //error_log('NO EXISTE, INSERTANDO');
+
+                    $id = self::insert(
+                        'pie_presupuesto_grupo',
+                        [
+                            'monomio' => $request->monomio,
+                            'subpresupuestos_id' => $request->subpresupuesto_id,
+                            'proyectos_generales_id' => $request->proyecto_generales_id
+                        ]
+                    );
+
+                    /*
+                    error_log('INSERT ID: ' . print_r($id, true));
+
+                    $pp_grupo4 = self::fetchObj(
+                        'SELECT *
+                        FROM pie_presupuesto_grupo
+                        WHERE subpresupuestos_id = :sub
+                        AND proyectos_generales_id = :pro',
+                        [
+                            'sub' => $request->subpresupuesto_id,
+                            'pro' => $request->proyecto_generales_id
+                        ]
+                    );
+
+                    error_log('DESPUES INSERT: ' . print_r($pp_grupo4, true));*/
                 }
             } else {
-                self::update('apus_partida_presupuestos', [
-                    'monomio' => $request->monomio,
-                ], [
-                    'subpresupuestos_id' => $request->subpresupuesto_id,
-                    'proyectos_generales_id' => $request->proyecto_generales_id,
-                    'iu' => $request->iu
-                ]);
+                //error_log('*** UPDATE APUS_PARTIDA_PRESUPUESTOS ***');
+
+                $r = self::update(
+                    'apus_partida_presupuestos',
+                    [
+                        'monomio' => $request->monomio,
+                    ],
+                    [
+                        'subpresupuestos_id' => $request->subpresupuesto_id,
+                        'proyectos_generales_id' => $request->proyecto_generales_id,
+                        'iu' => $request->iu,
+                        'deleted_at' => null
+                    ]
+                );
+
+                //error_log('RETURN UPDATE APU: ' . print_r($r, true));
             }
 
             $this->updateSimbol($request);
 
             $resp['success'] = true;
             $resp['message'] = 'Cambios asignados correctamente...';
-            return $resp;
         } catch (\Throwable $th) {
+            error_log('EXCEPTION: ' . $th->getMessage());
+            error_log($th->getTraceAsString());
+
             $resp['success'] = false;
             $resp['message'] = $th->getMessage();
-            return $resp;
         }
+
+        return $resp;
     }
 
     public function updateIndice($request)
