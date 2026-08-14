@@ -23411,3 +23411,10 @@ INSERT INTO indice_unificado (iu, descripcion) VALUES (92, 'Flete fluvial (c)') 
 INSERT INTO indice_unificado (iu, descripcion) VALUES (93, 'Bienes y servicios auxiliares (c)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
 INSERT INTO indice_unificado (iu, descripcion) VALUES (94, 'Encofrado y andamio prefabricado (c)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
 INSERT INTO indice_unificado (iu, descripcion) VALUES (95, 'Equipamiento permanente de obra (c)') ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion);
+
+
+ALTER TABLE categorias
+ADD COLUMN codigo VARCHAR(50) NULL AFTER icono;
+
+ALTER TABLE proyecto_generales
+ADD COLUMN codigo VARCHAR(50) NULL AFTER id;

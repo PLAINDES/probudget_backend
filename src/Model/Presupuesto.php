@@ -332,7 +332,8 @@ class Presupuesto extends Mysql
                                 dep.descripcion AS departamento,
                                 pg.fecha_base,
                                 pg.moneda,
-                                pg.categoriaId
+                                pg.categoriaId,
+                                pg.codigo
                             FROM proyecto_generales pg
                             LEFT JOIN ub_distritos d
                                 ON d.id = pg.distrito
