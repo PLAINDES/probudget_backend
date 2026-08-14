@@ -164,6 +164,14 @@ class Proyectogeneral extends Mysql
     public function save()
     {
         try {
+            $sql = 'SELECT id, codigo FROM categorias
+                    WHERE id = :id';
+            $categoria = self::fetchObj($sql, ['id' => $this->_categoriaId]);
+
+            if (!$categoria) {
+                $this->_values['categoriaId'] = null;
+            }
+
             if ($this->_id) {
                 $sql = 'SELECT COUNT(id) FROM proyecto_generales WHERE id = :id';
                 $proyectoGeneral = self::fetchObj($sql, ['id' => $this->_id]);
@@ -187,6 +195,15 @@ class Proyectogeneral extends Mysql
                 $insert = self::insert("proyecto_generales", $this->_values);
                 if ($insert && $insert["lastInsertId"]) {
                     $id = $insert["lastInsertId"];
+
+                    $this->_values['codigo'] =
+                            $this->generarCodigoProyecto($categoria->codigo ?? null, $id);
+                    error_log('Codigo generado: ' . $this->_values['codigo']);
+
+                    self::update("proyecto_generales", [
+                        'codigo' => $this->_values['codigo']
+                    ], ['id' => $id]);
+
                     $resp['success'] = true;
                     $resp['message'] = 'Proyecto general registrado';
                     $resp['data'] = compact('id');
@@ -230,6 +247,7 @@ class Proyectogeneral extends Mysql
                             fecha_base,
                             jornada_laboral,
                             moneda,
+                            codigo,
                             'subcategorias' 
             FROM proyecto_generales WHERE id = :id";
             $proyectoGeneral = self::fetchObj($sql, ['id' => $this->_id]);
@@ -322,7 +340,8 @@ class Proyectogeneral extends Mysql
                         pg.fecha_fin,
                         pg.costo_directo,
                         pg.categoriaId,
-                        c.descripcion AS categoriaNombre
+                        c.descripcion AS categoriaNombre,
+                        c.codigo
                     FROM proyecto_generales pg
                     LEFT JOIN categorias c ON c.id = pg.categoriaId
                     WHERE $filter
@@ -447,5 +466,32 @@ class Proyectogeneral extends Mysql
             $resp['message'] = 'No se puede eliminar el registro';
             return $resp;
         }
+    }
+
+    private function generarCodigoProyecto($codigoCategoria = null, $idProyecto = null)
+    {
+        if (!$codigoCategoria && $idProyecto) {
+            $sql = 'SELECT id
+                    FROM subcategorias_proyecto_general
+                    WHERE proyecto_generales_id = :proyecto_generales_id';
+
+            $subcategorias = self::fetchAllObj($sql, [
+                'proyecto_generales_id' => $idProyecto
+            ]);
+
+            $codigoCategoria = count($subcategorias) + 1;
+            $codigoCategoria = str_pad($codigoCategoria, 2, '0', STR_PAD_LEFT);
+
+            $longitudId = 7 - strlen($codigoCategoria);
+
+            return $codigoCategoria . str_pad($idProyecto, $longitudId, '0', STR_PAD_LEFT);
+        }
+
+        $codigoCategoria = (string) $codigoCategoria;
+        $idProyecto = (string) $idProyecto;
+
+        $longitudId = 7 - strlen($codigoCategoria);
+
+        return $codigoCategoria . str_pad($idProyecto, $longitudId, '0', STR_PAD_LEFT);
     }
 }
