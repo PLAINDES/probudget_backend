@@ -100,22 +100,42 @@ class Mysql
     public static function update($tabla, array $data, array $where)
     {
         $pdo = self::Connection();
+
         $set = [];
         foreach ($data as $k => $v) {
-            $set[] = "$k = :set_$k";
+            if ($v === null) {
+                $set[] = "$k = NULL";
+            } else {
+                $set[] = "$k = :set_$k";
+            }
         }
+
         $w = [];
         foreach ($where as $k => $v) {
-            $w[] = "$k = :w_$k";
+            if ($v === null) {
+                $w[] = "$k IS NULL";
+            } else {
+                $w[] = "$k = :w_$k";
+            }
         }
-        $sql = "UPDATE $tabla SET " . implode(', ', $set) . " WHERE " . implode(' AND ', $w);
+
+        $sql = "UPDATE $tabla SET " . implode(', ', $set)
+             . " WHERE " . implode(' AND ', $w);
+
         $stmt = $pdo->prepare($sql);
+
         foreach ($data as $k => $v) {
-            $stmt->bindValue(":set_$k", $v);
+            if ($v !== null) {
+                $stmt->bindValue(":set_$k", $v);
+            }
         }
+
         foreach ($where as $k => $v) {
-            $stmt->bindValue(":w_$k", $v);
+            if ($v !== null) {
+                $stmt->bindValue(":w_$k", $v);
+            }
         }
+
         return $stmt->execute();
     }
 
