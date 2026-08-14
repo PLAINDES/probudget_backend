@@ -1121,7 +1121,53 @@ class ApusPartidasProyecto extends Mysql
         try {
             $sql = 'SELECT presupuestos_id, subpartida_id, partida_id FROM apus_partida_presupuestos WHERE id = :id AND deleted_at IS NULL';
             $detalleInsumos = self::fetchObj($sql, ['id' => $request->id]);
+
             if ($detalleInsumos) {
+                $sql = "SELECT
+                            iu,
+                            monomio,
+                            subpresupuestos_id,
+                            proyectos_generales_id
+                        FROM apus_partida_presupuestos
+                        WHERE id = :id
+                        AND deleted_at IS NULL";
+
+                $apu = self::fetchObj($sql, ['id' => $request->id]);
+
+                if ($apu && $apu->iu == 39 && $apu->monomio) {
+                    $pp = self::fetchObj(
+                        "SELECT id
+                        FROM pie_presupuesto_grupo
+                        WHERE subpresupuestos_id = :sub
+                        AND proyectos_generales_id = :pro",
+                        [
+                            'sub' => $apu->subpresupuestos_id,
+                            'pro' => $apu->proyectos_generales_id
+                        ]
+                    );
+
+                    if ($pp) {
+                        self::update(
+                            'pie_presupuesto_grupo',
+                            [
+                                'monomio' => $apu->monomio
+                            ],
+                            [
+                                'id' => $pp->id
+                            ]
+                        );
+                    } else {
+                        self::insert(
+                            'pie_presupuesto_grupo',
+                            [
+                                'subpresupuestos_id' => $apu->subpresupuestos_id,
+                                'proyectos_generales_id' => $apu->proyectos_generales_id,
+                                'monomio' => $apu->monomio
+                            ]
+                        );
+                    }
+                }
+
                 $this->removerRecursive($request->id, $detalleInsumos->partida_id);
                 $args = new stdClass();
                 $args->subpartida_id = $detalleInsumos->subpartida_id;
