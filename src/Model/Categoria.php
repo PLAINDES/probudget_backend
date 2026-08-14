@@ -27,6 +27,7 @@ class Categoria extends Mysql
         return $resp;
     }
 
+    // TODO: Implementar la generacion del código
     public function getSave($request)
     {
         try {
