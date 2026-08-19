@@ -974,7 +974,7 @@ class Categoria extends Mysql
                                         "subpresupuestos_id"     => $subpresupuestoProyectoId,
                                         "partida_id"             => $subpartidaPartidaId,
                                         "subpartida_id"          => null,
-                                        "iu"                     => $insumo["iu"] ?? null,
+                                        "iu"                     => null,
                                         "monomio"                => null,
                                     ]);
 
@@ -1018,7 +1018,7 @@ class Categoria extends Mysql
                                         if (!isset($mapaInsumosProyecto[$cacheKeySub])) {
                                             $resultInsumoSub = self::insert("insumos_proyecto", [
                                                 "codigo"                 => $insumoMaestroSub->codigo ?? null,
-                                                "iu"                     => $insumoMaestroSub->iu ?? $insumoSub["iu"],
+                                                "iu"                     => $insumoSub["iu"],
                                                 "indice_unificado"       => $insumoMaestroSub->indice_unificado
                                                     ?? $grupoActual,
                                                 "tipo"                   => $insumoSub["tipo"] ?? null,
@@ -1045,7 +1045,7 @@ class Categoria extends Mysql
                                             "subpresupuestos_id"     => $subpresupuestoProyectoId,
                                             "partida_id"             => null,
                                             "subpartida_id"          => $apuSubId,
-                                            "iu"                     => $insumoMaestroSub->iu ?? null,
+                                            "iu"                     => null,
                                             "monomio"                => null,
                                         ]);
                                     }
@@ -1068,7 +1068,7 @@ class Categoria extends Mysql
                                 if (!isset($mapaInsumosProyecto[$cacheKey])) {
                                     $resultInsumo = self::insert("insumos_proyecto", [
                                         "codigo"                 => $insumoMaestro->codigo ?? null,
-                                        "iu"                     => $insumoMaestro->iu ?? $insumo["iu"],
+                                        "iu"                     => $insumo["iu"],
                                         "indice_unificado"       => $insumoMaestro->indice_unificado ?? $grupoActual,
                                         "tipo"                   => $insumo["tipo"] ?? null,
                                         "insumos"                => $insumo["nombre"],
@@ -1100,7 +1100,7 @@ class Categoria extends Mysql
                                     "subpresupuestos_id"     => $subpresupuestoProyectoId,
                                     "partida_id"             => null,
                                     "subpartida_id"          => null,
-                                    "iu"                     => $insumoMaestro->iu ?? null,
+                                    "iu"                     => null,
                                     "monomio"                => null,
                                 ]);
                             }
